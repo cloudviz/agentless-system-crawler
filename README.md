@@ -1,14 +1,14 @@
 
-Prereq:
-	Install Python 2.7.6
-	apt-get install python-dev (for installing psutil)
-	apt-get install python-pip
-	pip install simplejson
-	pip install psutil
-	pip install netifaces
-	pip install bottle
+**Prereq:**
+	* Install Python 2.7.6
+	* apt-get install python-dev (for installing psutil)
+	* apt-get install python-pip
+	* pip install simplejson
+	* pip install psutil
+	* pip install netifaces
+	* pip install bottle
 
-Agentless, out-of-band container crawling:
+**Agentless, out-of-band container crawling:**
 
 	On host machine, start a ubuntu container that idles (Read docker documents on
 	how to install docker engine on the host machine)
@@ -44,7 +44,7 @@ Agentless, out-of-band container crawling:
 
 	% vimdiff test.csv.9348177d4c8e.4.sorted test.csv.9348177d4c8e.5.sorted
 
-In-guest crawling:
+**In-guest crawling:**
 
 	We will start crawler agent in manual mode this time instead of periodic mode:
 
