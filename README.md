@@ -91,13 +91,7 @@ Now we can find the differences before and after:
 You will probably see something similar to this below indicating package
 emacs is now installed and disk space has shrunk due to installating emacs.
 
-< disk  "/"
-{"partitionname":"/dev/xvda2","freepct":97.7,"fstype":"ext3","mountpt":"/","mountopts":"rw,noatime,errors=remount-ro,barrier=0","partitionsize":105300402176}
----
-> disk  "/"
-> {"partitionname":"/dev/xvda2","freepct":97.6,"fstype":"ext3","mountpt":"/","mountopts":"rw,noatime,errors=remount-ro,barrier=0","partitionsize":105300402176}
-67a68
-> package       "emacs"
-> {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
+> > package       "emacs"
+> > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
 
 
