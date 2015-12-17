@@ -12,6 +12,20 @@ Agentless System Crawler
  * pip install netifaces
  * pip install bottle
 
+**Quick test:**
+
+```bash
+% sudo python2.7 ./crawler/crawler.py
+```
+
+This should print something like this on stdout:
+
+```
+metadata	"metadata"	{"since_timestamp":1450194519.0,"features":"os,cpu","timestamp":"2015-12-16T20:27:25-0500","since":"BOOT","namespace":"192.168.1.3","system_type":"vm","compress":false}
+os	"linux"	{"boottime":1450194519.0,"ipaddr":["127.0.0.1","192.168.1.3","192.168.122.1","192.168.123.1","172.17.42.1","9.80.80.71"],"osdistro":"Red Hat Enterprise Linux Workstation","osname":"Linux-2.6.32-573.8.1.el6.x86_64-x86_64-with-redhat-6.7-Santiago","osplatform":"x86_64","osrelease":"2.6.32-573.8.1.el6.x86_64","ostype":"linux","osversion":"#1 SMP Fri Sep 25 19:24:22 EDT 2015"}
+cpu	"cpu-0"	{"cpu_idle":61.0,"cpu_nice":0.0,"cpu_user":19.5,"cpu_wait":0.0,"cpu_system":19.5,"cpu_interrupt":0.0,"cpu_steal":0.0,"cpu_used":39}
+```
+
 **Agentless, out-of-band container crawling:**
 ----------------------------------------------
 
@@ -26,10 +40,9 @@ Start crawler agent:
 
 ```bash
 % cd agentless-crawler
-% ./crawler.py --crawlmode OUTCONTAINER --crawlContainers ALL --url
-file:///tmp/test.csv --since EPOCH --frequency 5 --features
-os,disk,process,connection,metric,package,file,config --compress false
---logfile /var/log/crawler.log --numprocesses 8 --linkContainerLogFiles
+% ./crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
+--features os,disk,process,connection,metric,package,file,config
+--logfile /var/log/crawler.log --numprocesses 8
 ```
 
 Wait 30 seconds for crawler agent to take a snapshot of the idle container, and
@@ -65,8 +78,7 @@ Now using vimdiff, you can see the 2nd snapshot has a lot of new files added to
 We will start crawler agent in manual mode this time instead of periodic mode:
 
 ```bash
-% ./crawler.py --url "file:///tmp/before.csv" --since EPOCH --features
-os,disk,process,package --compress false
+% sudo python2.7 crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
 ```
 
 Install emacs:
@@ -78,8 +90,7 @@ Install emacs:
 Use crawler to collect information again
 
 ```bash
-% ./crawler.py --url "file:///tmp/after.csv" --since EPOCH --features
-os,disk,process,package --compress false
+% sudo python2.7 crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
 ```
 
 Now we can find the differences before and after:
