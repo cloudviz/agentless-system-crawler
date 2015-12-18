@@ -1,0 +1,8 @@
+deprecated/
+*.pyc
+utils/
+binaries/
+timeout.py
+alchemy.py
+*.json
+*.sh
