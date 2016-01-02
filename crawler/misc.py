@@ -5,10 +5,11 @@ import logging
 import socket
 import subprocess
 import re
+import psutil
 
 # Additional modules
 
-# External dependencies that must be easy_install'ed separately
+# External dependencies that must be pip install'ed separately
 
 from netifaces import interfaces, ifaddresses, AF_INET
 
@@ -39,6 +40,25 @@ def GetProcessEnv(pid=1):
             continue
         env[k] = v
     return env
+
+
+def process_is_crawler(proc):
+    try:
+        cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
+                                             ) else proc.cmdline)
+
+        # curr is the crawler process
+
+        curr = psutil.Process(os.getpid())
+        curr_cmdline = (
+            curr.cmdline() if hasattr(
+                curr.cmdline,
+                '__call__') else curr.cmdline)
+        if cmdline == curr_cmdline:
+            return True
+    except Exception:
+        pass
+    return False
 
 
 class NullHandler(logging.Handler):
@@ -95,7 +115,7 @@ def find_mount_point(path):
 def log_atime_config(path, crawlmode):
     atime_config = 'unknown'
     mountlocation = find_mount_point(path=path)
-    logger.info("Mount location for specified crawl root_dir '%s': '%s'"
+    logger.info('Mount location for specified crawl root_dir %s: %s'
                 % (path, mountlocation))
 
     # Looking at `mount` for atime config is only meaningful for INVM
