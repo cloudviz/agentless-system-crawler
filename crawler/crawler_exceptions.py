@@ -9,8 +9,29 @@ class CrawlError(Exception):
     pass
 
 
-class CrawlTimeoutError(Exception):
+class CrawlTimeoutError(CrawlError):
 
     """Indicates some error during crawling."""
+
+    pass
+
+
+class ContainerInvalidEnvironment(Exception):
+
+    """"Indicates that the environment can not be applied to the operation."""
+
+    pass
+
+
+class AlchemyInvalidMetadata(ContainerInvalidEnvironment):
+
+    """Invalid or non-present alchemy metadata file."""
+
+    pass
+
+
+class AlchemyInvalidContainer(ContainerInvalidEnvironment):
+
+    """Invalid or non-present alchemy metadata file."""
 
     pass

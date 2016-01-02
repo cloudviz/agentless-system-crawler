@@ -65,9 +65,10 @@ DEFAULT_CRAWL_OPTIONS = {
     'dockerps': {},
     'dockerhistory': {},
     'dockerinspect': {},
+    '_test_crash': {},
+    '_test_infinite_loop': {},
     'logcrawler': {
         'host_log_basedir': '/var/log/crawler_container_logs/',
-        'container_logs_list_file': '/etc/logcrawl-logs.json',
         'log_types_file': 'd464347c-3b99-11e5-b0e9-062dcffc249f.type-mapping',
         'default_log_files': [{'name': '/var/log/messages',
                                'type': None}],
@@ -81,4 +82,4 @@ DEFAULT_CRAWL_OPTIONS = {
     'docker_containers_list': DEFAULT_DOCKER_CONTAINERS_LIST
 }
 
-DEFAULT_FEATURES_TO_CRAWL = 'os,disk,process,package,config,file'
+DEFAULT_FEATURES_TO_CRAWL = 'os,cpu'

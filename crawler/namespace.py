@@ -20,7 +20,7 @@ except Exception as e:
     logger.warning('Can not crawl containers as there is no libc: %s' % e)
     raise e
 
-all_namespaces = [
+ALL_NAMESPACES = [
     'user',
     'pid',
     'uts',
@@ -28,6 +28,19 @@ all_namespaces = [
     'net',
     'mnt',
 ]
+
+
+IN_CONTAINER_TIMEOUT = 10
+
+
+def get_pid_namespace(pid):
+    try:
+        ns = os.stat('/proc/' + str(pid) + '/ns/pid').st_ino
+        return ns
+    except Exception:
+        logger.debug('There is no container with pid=%s running.'
+                     % pid)
+        return None
 
 
 class ProcessContext:
@@ -74,7 +87,9 @@ class ProcessContext:
         except Exception as e:
             logging.disable(logging.NOTSET)
             logger.error('Could not move back to the host: %s' % e)
-            raise
+            # XXX can't recover from this one. But it would be better to
+            # bubble up the error.
+            sys.exit(1)
 
         # We are now in host context
 
@@ -92,25 +107,6 @@ class ProcessContext:
             logger.warning('Could not close the namespaces: %s' % e)
 
 
-child_process = None
-
-
-def signal_handler(signum, stack):
-    global child_process
-    try:
-        logger.error('Killing %s' % child_process)
-        os.kill(child_process.pid, 9)
-    except Exception as e:
-        logger.error(e)
-        pass
-    sys.exit(1)
-
-
-def kill_child_on_kill(child):
-    global child_process
-    child_process = child
-
-
 def run_as_another_namespace(
     pid,
     namespaces,
@@ -124,16 +120,19 @@ def run_as_another_namespace(
     context.attach()
     queue = multiprocessing.Queue(2 ** 15)
 
-    child_process = multiprocessing.Process(
-        name='crawler-%s' %
-        pid, target=function_wrapper, args=(
-            queue, function, args), kwargs=kwargs)
-    kill_child_on_kill(child_process)
-    child_process.start()
+    try:
+        child_process = multiprocessing.Process(
+            name='crawler-%s' %
+            pid, target=function_wrapper, args=(
+                queue, function, args), kwargs=kwargs)
+        child_process.start()
+    except OSError:
+        queue.close()
+        raise CrawlError()
 
     child_exception = None
     try:
-        (result, child_exception) = queue.get(timeout=3)
+        (result, child_exception) = queue.get(timeout=IN_CONTAINER_TIMEOUT)
     except Queue.Empty:
         child_exception = CrawlTimeoutError()
     except Exception:
@@ -142,7 +141,7 @@ def run_as_another_namespace(
     if child_exception:
         result = None
 
-    child_process.join(3)
+    child_process.join(IN_CONTAINER_TIMEOUT)
 
     # The join failed and the process might still be alive
 
@@ -170,6 +169,18 @@ def function_wrapper(
     *args,
     **kwargs
 ):
+
+    # Die if the parent dies
+    PR_SET_PDEATHSIG = 1
+    libc.prctl(PR_SET_PDEATHSIG, signal.SIGHUP)
+
+    def signal_handler_sighup(*args):
+        logger.warning('Crawler parent process died, so exiting... Bye!')
+        queue.close()
+        exit(1)
+
+    signal.signal(signal.SIGHUP, signal_handler_sighup)
+
     result = None
     try:
         args = args[0]
@@ -235,11 +246,16 @@ def close_process_namespaces(namespace_fd, namespaces):
 def attach_to_process_namespaces(namespace_fd, ct_namespaces):
     for ct_ns in ct_namespaces:
         try:
-            r = libc.setns(namespace_fd[ct_ns], 0)
+            if hasattr(libc, 'setns'):
+                r = libc.setns(namespace_fd[ct_ns], 0)
+            else:
+                # The Linux kernel ABI should be stable enough
+                __NR_setns = 308
+                r = libc.syscall(__NR_setns, namespace_fd[ct_ns], 0)
             if r == -1:
                 errno_msg = misc.get_errno_msg(libc)
-                error_msg = ("Could not attach to the container '%s' "
-                             "namespace (fd=%s): '%s'" %
+                error_msg = ('Could not attach to the container %s '
+                             'namespace (fd=%s): %s' %
                              (ct_ns, namespace_fd[ct_ns], errno_msg))
                 logger.warning(error_msg)
                 if ct_ns == 'mnt':

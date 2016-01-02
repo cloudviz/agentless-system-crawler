@@ -46,7 +46,7 @@ def _publish_to_kafka_no_retries(fpath, url):
                 'The kafka url provided does not seem to be valid: %s. '
                 'It should be something like this: '
                 'kafka://[ip|hostname]:[port]/[kafka_topic]. '
-                'For example: kafka://1.1.1.1:1234/alchemy_metrics' % url)
+                'For example: kafka://1.1.1.1:1234/metrics' % url)
 
         kafka_python_client = kafka_python.KafkaClient(kurl)
         kafka_python_client.ensure_topic_exists(topic)

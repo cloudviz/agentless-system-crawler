@@ -17,12 +17,13 @@ import multiprocessing
 import tempfile
 import argparse
 import cPickle as pickle
+import json
+import copy
 
 
 # External dependencies that must be pip install'ed separately
 
 import bottle
-import simplejson as json
 import defaults
 import misc
 import crawlutils
@@ -284,10 +285,8 @@ def crawler_worker(process_id, logfile, params):
 
     # Starting message
 
-    parent_pid = params.get('parent_pid', None)
     logger.info('*' * 50)
-    logger.info("Crawler #%d started by main process %d." %
-                (process_id, parent_pid))
+    logger.info('Crawler #%d started.' % (process_id))
     logger.info('*' * 50)
 
     crawlutils.snapshot(**params)
@@ -297,7 +296,6 @@ def crawler_worker(process_id, logfile, params):
 
 def start_autonomous_crawler(num_processes, logfile):
 
-    params['parent_pid'] = int(os.getpid())
     if params['crawlmode'] == 'OUTCONTAINER':
         jobs = []
 
@@ -390,7 +388,7 @@ if __name__ == '__main__':
         '--features',
         dest='features',
         type=str,
-        default='os,cpu',
+        default=defaults.DEFAULT_FEATURES_TO_CRAWL,
         help='Comma-separated list of feature-types to crawl. Defaults to '
              '{0}'.format(defaults.DEFAULT_FEATURES_TO_CRAWL))
     parser.add_argument(
@@ -410,7 +408,8 @@ if __name__ == '__main__':
         dest='frequency',
         type=int,
         default=None,
-        help='Interval in secs between successive snapshots. Defaults to -1')
+        help='Interval in secs between successive snapshots. Defaults to -1 '
+             'which means only run one iteration.')
     parser.add_argument(
         '--compress',
         dest='compress',
@@ -527,27 +526,26 @@ if __name__ == '__main__':
     args = parser.parse_args()
     params = {}
 
+    params['options'] = copy.deepcopy(defaults.DEFAULT_CRAWL_OPTIONS)
     if args.options:
-        params['options'] = json.loads(args.options)
-        # There are some obligatory fields that need to be part of the options
-        # tree. Let's add them by hand.
-        options = params['options']
-        if 'metadata' not in options:
-            options['metadata'] = defaults.DEFAULT_METADATA
-        if 'partition_strategy' not in options:
-            options['partition_strategy'] = defaults.DEFAULT_PARTITION_STRATEGY
-        if 'compress' not in options:
-            options['compress'] = defaults.DEFAULT_COMPRESS
-        if 'link_container_log_files' not in options:
-            options['link_container_log_files'] = (
-                defaults.DEFAULT_LINK_CONTAINER_LOG_FILES)
-        if 'mountpoint' not in options:
-            options['mountpoint'] = defaults.DEFAULT_MOUNTPOINT
-        if 'docker_containers_list' not in options:
-            options['docker_containers_list'] = (
-                defaults.DEFAULT_DOCKER_CONTAINERS_LIST)
-    else:
-        params['options'] = defaults.DEFAULT_CRAWL_OPTIONS
+        try:
+            _options = json.loads(args.options)
+        except (KeyError, ValueError):
+            sys.stderr.write('Can not parse the user options json.\n')
+            sys.exit(1)
+
+        # The default options are replaced at the root level of each option.
+        # For example: the 'file' option, which has many details (it's really a
+        # tree of options),is completely replaced by the the 'file' option in
+        # the user json.
+
+        for (option, value) in _options.iteritems():
+            if option in defaults.DEFAULT_CRAWL_OPTIONS:
+                # Check the data passed!
+                params['options'][option] = value
+            if option not in defaults.DEFAULT_CRAWL_OPTIONS:
+                sys.stderr.write('There is a problem with the options json.\n')
+                sys.exit(1)
 
     # Arguments to the crawl snapshot function are passed as a big options
     # tree,which defaults to DEFAULT_CRAWL_OPTIONS. Most of the following
@@ -562,7 +560,7 @@ if __name__ == '__main__':
         params['features'] = args.features
     if args.since:
         params['since'] = args.since
-    if args.frequency:
+    if args.frequency is not None:
         params['frequency'] = args.frequency
     if args.compress:
         options['compress'] = (args.compress == 'true')
@@ -574,14 +572,21 @@ if __name__ == '__main__':
                 print ('Need to specify mountpoint location (--mountpoint) '
                        'for MOUNTPOINT mode')
                 sys.exit(1)
+            if not os.path.exists(args.mountpoint):
+                print (
+                    'Mountpoint location %s does not exist.' %
+                    (args.mountpoint))
+                sys.exit(1)
             options['mountpoint'] = args.mountpoint
             options['os']['mountpoint'] = args.mountpoint
             options['package']['root_dir'] = args.mountpoint
             options['file']['root_dir'] = args.mountpoint
-            # To remove /mnt/CrawlDisk from each reported file path
+            # To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
+            # reported file path.
             options['file']['root_dir_alias'] = '/'
             options['config']['root_dir'] = args.mountpoint
-            # To remove /mnt/CrawlDisk from each reported config file path
+            # To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
+            # reported file path.
             options['config']['root_dir_alias'] = '/'
 
         elif args.crawlmode == 'DEVICE':

@@ -9,6 +9,7 @@ import time
 import csv
 import copy
 from mtgraphite import MTGraphiteClient
+import json
 
 # External dependencies that must be pip install'ed separately
 
@@ -19,7 +20,6 @@ except ImportError:
     kafka_python = None
     pykafka = None
 
-import simplejson as json
 import requests
 
 from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
@@ -36,9 +36,10 @@ logger = logging.getLogger('crawlutils')
 class Emitter:
 
     """Class that abstracts the outputs supported by the crawler, like
-    stdout, or kafka. An object of this class is created for every frame
-    emitted. A frame is emitted for every container and at every crawling
-    interval.
+    stdout, or kafka.
+
+    An object of this class is created for every frame emitted. A frame is
+    emitted for every container and at every crawling interval.
     """
 
     # We want to use a global to store the MTGraphite client class so it
@@ -240,7 +241,7 @@ class Emitter:
             logger.exception(e)
             raise
 
-    def close_file(self):
+    def _close_file(self):
 
         # close the output file
 
@@ -293,7 +294,7 @@ class Emitter:
     def _publish_to_kafka_no_retries(self, url):
 
         if kafka_python or pykafka is None:
-            raise ImportError("Please install kafka and pykafka")
+            raise ImportError('Please install kafka and pykafka')
 
         try:
             list = url[len('kafka://'):].split('/')
@@ -306,11 +307,12 @@ class Emitter:
                     'The kafka url provided does not seem to be valid: %s. '
                     'It should be something like this: '
                     'kafka://[ip|hostname]:[port]/[kafka_topic]. '
-                    'For example: kafka://1.1.1.1:1234/alchemy_metrics' % url)
+                    'For example: kafka://1.1.1.1:1234/metrics' % url)
 
             h = NullHandler()
             logging.getLogger('kafka').addHandler(h)
 
+            # XXX We should definitely create a long lasting kafka client
             kafka_python_client = kafka_python.KafkaClient(kurl)
             kafka_python_client.ensure_topic_exists(topic)
 
@@ -389,12 +391,12 @@ class Emitter:
         trc,
     ):
         if exc:
-            self.close_file()
+            self._close_file()
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
             return False
         try:
-            self.close_file()
+            self._close_file()
             for url in self.urls:
                 logger.debug('Emitting frame to {0}'.format(url))
                 if url.startswith('stdout://'):
