@@ -26,7 +26,7 @@ os	"linux"	{"boottime":1450194519.0,"ipaddr":["127.0.0.1","192.168.1.3","192.168
 cpu	"cpu-0"	{"cpu_idle":61.0,"cpu_nice":0.0,"cpu_user":19.5,"cpu_wait":0.0,"cpu_system":19.5,"cpu_interrupt":0.0,"cpu_steal":0.0,"cpu_used":39}
 ```
 
-**Agentless, out-of-band container crawling:**
+**Agentless, out-of-band Docker containers crawling:**
 ----------------------------------------------
 
 On host machine, start a ubuntu container that idles (Read docker documents on
