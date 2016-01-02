@@ -109,5 +109,7 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 **Tests:**
 ----------
 
+```bash
 % cd tests
 % bash test_all.sh
+```
