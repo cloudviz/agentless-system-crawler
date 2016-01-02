@@ -4,6 +4,7 @@ from collections import namedtuple
 
 OSFeature = namedtuple('OSFeature', [
     'boottime',
+    'uptime',
     'ipaddr',
     'osdistro',
     'osname',

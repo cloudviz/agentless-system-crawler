@@ -39,8 +39,7 @@ how to install docker engine on the host machine)
 Start crawler agent:
 
 ```bash
-% cd agentless-crawler
-% ./crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
+% sudo python2.7 ./crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
 --features os,disk,process,connection,metric,package,file,config
 --logfile /var/log/crawler.log --numprocesses 8
 ```
@@ -106,3 +105,11 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
 
 
+
+**Tests:**
+----------
+
+```bash
+% cd tests
+% bash test_all.sh
+```

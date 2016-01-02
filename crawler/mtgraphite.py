@@ -230,3 +230,26 @@ class MTGraphiteClient(object):
             self.next_timeout = time.time() + self.batch_send_every_t
 
         return len(messages)
+
+    def construct_message(self, space_id, group_id, metric_type, value,
+                          timestamp=None):
+        """
+        Message constructor. Creates a message that you can then append to a
+        list and send using send_messages.
+
+        params:
+        :param string space_id: space id (you can get this via logmet)
+        :param string group_id: group id to access the metric
+        :param string metric_type: type of metric (e.g., cpu, memory)
+        :param int value: value of the metric
+        :param int timestamp: None by default. If left as None, the current
+                              time is used instead.
+
+        returns: a string that contains the message you want to send.
+        """
+        if timestamp:
+            return '%s.%s.%s %d %d\r\n' % (space_id, group_id, metric_type,
+                                           value, timestamp)
+        else:
+            return '%s.%s.%s %d %d\r\n' % (space_id, group_id, metric_type,
+                                           value, int(time.time()))
