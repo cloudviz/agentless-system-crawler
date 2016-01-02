@@ -1587,7 +1587,7 @@ def machine(prefix='/mnt/CrawlDisk'):
 
     """
 
-    return uname(prefix='/mnt/CrawlDisk')[4]
+    return uname(prefix=prefix)[4]
 
 
 def processor(prefix='/mnt/CrawlDisk'):
