@@ -15,7 +15,7 @@ Agentless System Crawler
 **Quick test:**
 
 ```bash
-% sudo python2.7 ./crawler/crawler.py
+% sudo python2.7 crawler/crawler.py
 ```
 
 This should print something like this on stdout:
@@ -39,7 +39,7 @@ how to install docker engine on the host machine)
 Start crawler agent:
 
 ```bash
-% sudo python2.7 ./crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
+% sudo python2.7 crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
 --features os,disk,process,connection,metric,package,file,config
 --logfile /var/log/crawler.log --numprocesses 8
 ```
@@ -77,7 +77,7 @@ Now using vimdiff, you can see the 2nd snapshot has a lot of new files added to
 We will start crawler agent in manual mode this time instead of periodic mode:
 
 ```bash
-% sudo python2.7 crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
+% sudo python2.7 crawler/crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
 ```
 
 Install emacs:
@@ -89,7 +89,7 @@ Install emacs:
 Use crawler to collect information again
 
 ```bash
-% sudo python2.7 crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
+% sudo python2.7 crawler/crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
 ```
 
 Now we can find the differences before and after:
