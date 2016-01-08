@@ -65,7 +65,7 @@ class MTGraphiteClient(object):
                     logger.warning("Identification message not sent properly, returned len = %d", sent)
 
                 authentication_message = """"""
-                authentication_message += "2S"
+                authentication_message += "2T"
                 authentication_message += chr(len(self.super_tenant_id))
                 authentication_message += self.super_tenant_id
                 authentication_message += chr(len(self.super_tenant_password))
@@ -78,7 +78,7 @@ class MTGraphiteClient(object):
                 code = bytearray(chunk)[:2]
                 logger.info("MTGraphite authentication server response of %s" % code)
                 if code == "0A":
-                    raise "Invalid tenant auth, please check the tenant id or password!"
+                    raise Exception("Invalid tenant auth, please check the tenant id or password!")
                 return self.conn
 
             except Exception as e:
