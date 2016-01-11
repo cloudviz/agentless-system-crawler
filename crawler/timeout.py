@@ -1,14 +1,23 @@
-# code copied from http://stackoverflow.com/questions/2281850/timeout-function-if-it-takes-too-long-to-finish
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# code copied from
+# http://stackoverflow.com/questions/2281850/timeout-function-if-it-takes-too-long-to-finish
+
 from functools import wraps
 import errno
 import os
 import signal
 
+
 class TimeoutError(Exception):
+
     pass
 
+
 def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
+
     def decorator(func):
+
         def _handle_timeout(signum, frame):
             raise TimeoutError(error_message)
 

@@ -1,0 +1,431 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import os
+import logging
+import tempfile
+import gzip
+import shutil
+import time
+import csv
+import copy
+from mtgraphite import MTGraphiteClient
+from timeout import timeout
+import json
+
+# External dependencies that must be pip install'ed separately
+
+try:
+    import kafka as kafka_python
+    import pykafka
+except ImportError:
+    kafka_python = None
+    pykafka = None
+
+import requests
+
+from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
+                      ProcessFeature, MetricFeature, ConnectionFeature,
+                      PackageFeature, MemoryFeature, CpuFeature,
+                      InterfaceFeature, LoadFeature, DockerPSFeature,
+                      DockerHistoryFeature)
+from misc import NullHandler
+
+
+logger = logging.getLogger('crawlutils')
+
+
+class Emitter:
+
+    """Class that abstracts the outputs supported by the crawler, like
+    stdout, or kafka.
+
+    An object of this class is created for every frame emitted. A frame is
+    emitted for every container and at every crawling interval.
+    """
+
+    # We want to use a global to store the MTGraphite client class so it
+    # persists across metric intervals.
+
+    mtgclient = None
+
+    # Debugging TIP: use url='file://<local-file>' to emit the frame data into
+    # a local file
+
+    def __init__(
+        self,
+        urls,
+        emitter_args={},
+        format='csv',
+        max_emit_retries=9,
+    ):
+
+        self.urls = urls
+        self.emitter_args = emitter_args
+        if 'compress' in emitter_args:
+            compress = emitter_args['compress']
+        else:
+            compress = False
+        self.compress = compress
+        self.format = format
+        self.max_emit_retries = max_emit_retries
+        self.mtgclient = None
+
+    def __enter__(self):
+        (self.temp_fd, self.temp_fpath) = \
+            tempfile.mkstemp(prefix='emit.')
+        os.close(self.temp_fd)  # close temporary file descriptor
+
+        # as we open immediately
+        # need to find a better fix later
+
+        if self.compress:
+            self.emitfile = gzip.open(self.temp_fpath, 'wb')
+        else:
+            self.emitfile = open(self.temp_fpath, 'wb')
+        self.csv_writer = csv.writer(self.emitfile, delimiter='\t',
+                                     quotechar="'")
+        self.begin_time = time.time()
+        self.num_features = 0
+        return self
+
+    def _get_feature_type(self, feature):
+        if isinstance(feature, OSFeature):
+            return 'os'
+        if isinstance(feature, FileFeature):
+            return 'file'
+        if isinstance(feature, ConfigFeature):
+            return 'config'
+        if isinstance(feature, DiskFeature):
+            return 'disk'
+        if isinstance(feature, ProcessFeature):
+            return 'process'
+        if isinstance(feature, ConnectionFeature):
+            return 'connection'
+        if isinstance(feature, MetricFeature):
+            return 'metric'
+        if isinstance(feature, PackageFeature):
+            return 'package'
+        if isinstance(feature, MemoryFeature):
+            return 'memory'
+        if isinstance(feature, CpuFeature):
+            return 'cpu'
+        if isinstance(feature, InterfaceFeature):
+            return 'interface'
+        if isinstance(feature, LoadFeature):
+            return 'load'
+        if isinstance(feature, DockerPSFeature):
+            return 'dockerps'
+        if isinstance(feature, DockerHistoryFeature):
+            return 'dockerhistory'
+        raise ValueError('Unrecognized feature type')
+
+    def emit_dict_as_graphite(
+        self,
+        sysname,
+        group,
+        suffix,
+        data,
+        timestamp=None,
+    ):
+        if timestamp is None:
+            timestamp = int(time.time())
+        else:
+            timestamp = int(timestamp)
+
+        try:
+            items = data.items()
+        except:
+            return
+
+        # this is for issue #343
+
+        sysname = sysname.replace('/', '.')
+
+        for (metric, value) in items:
+            try:
+                value = float(value)
+            except Exception:
+
+                # value was not a float or anything that looks like a float
+
+                continue
+
+            metric = metric.replace('(', '_').replace(')', '')
+            metric = metric.replace(' ', '_').replace('-', '_')
+            metric = metric.replace('/', '_').replace('\\', '_')
+
+            suffix = suffix.replace('_', '-')
+            if 'cpu' in suffix or 'memory' in suffix:
+                metric = metric.replace('_', '-')
+            if 'if' in metric:
+                metric = metric.replace('_tx', '.tx')
+                metric = metric.replace('_rx', '.rx')
+            if suffix == 'load':
+                suffix = 'load.load'
+            suffix = suffix.replace('/', '$')
+
+            tmp_message = '%s.%s.%s %f %d\r\n' % (sysname, suffix,
+                                                  metric, value, timestamp)
+            self.emitfile.write(tmp_message)
+        return
+
+    # Added optional feature_type so that we can bypass feature type discovery
+    # for FILE crawlmode
+
+    def emit(
+        self,
+        feature_key,
+        feature_val,
+        feature_type=None,
+    ):
+
+        # Add metadata as first feature
+
+        if self.num_features == 0:
+            try:
+                metadata = copy.deepcopy(self.emitter_args)
+
+                # Update timestamp to the actual emit time
+
+                metadata['timestamp'] = \
+                    time.strftime('%Y-%m-%dT%H:%M:%S%z')
+                if 'extra' in metadata:
+                    del metadata['extra']
+                    if self.emitter_args['extra']:
+                        metadata.update(json.loads(self.emitter_args['extra'
+                                                                     ]))
+                if 'extra_all_features' in metadata:
+                    del metadata['extra_all_features']
+                if self.format == 'csv':
+                    self.csv_writer.writerow(
+                        ['metadata',
+                         json.dumps('metadata'),
+                         json.dumps(metadata,
+                                    separators=(',', ':'))])
+                    self.num_features += 1
+            except Exception as e:
+                logger.exception(e)
+                raise
+
+        if feature_type is None:
+            feature_type = self._get_feature_type(feature_val)
+        if isinstance(feature_val, dict):
+            feature_val_as_dict = feature_val
+        else:
+            feature_val_as_dict = feature_val._asdict()
+        if 'extra' in self.emitter_args and self.emitter_args['extra'] \
+                and 'extra_all_features' in self.emitter_args \
+                and self.emitter_args['extra_all_features'] == True:
+            feature_val_as_dict.update(json.loads(self.emitter_args['extra'
+                                                                    ]))
+        try:
+            if self.format == 'csv':
+                self.csv_writer.writerow(
+                    [feature_type,
+                     json.dumps(feature_key),
+                     json.dumps(feature_val_as_dict,
+                                separators=(',', ':'))])
+            elif self.format == 'graphite':
+                if 'namespace' in self.emitter_args:
+                    namespace = self.emitter_args['namespace']
+                else:
+                    namespace = 'undefined'
+                self.emit_dict_as_graphite(
+                    namespace,
+                    feature_type,
+                    feature_key,
+                    feature_val_as_dict)
+            else:
+                raise Exception('Unsupported emitter format.')
+            self.num_features += 1
+        except Exception as e:
+            logger.exception(e)
+            raise
+
+    def _close_file(self):
+
+        # close the output file
+
+        self.emitfile.close()
+
+    def _publish_to_stdout(self):
+        with open(self.temp_fpath, 'r') as fd:
+            if self.compress:
+                print fd.read()
+            else:
+                for line in fd.readlines():
+                    print line.strip()
+
+    def _publish_to_broker(self, url, max_emit_retries=5):
+
+        # try contacting the broker
+
+        broker_alive = False
+        retries = 0
+        while not broker_alive and retries <= max_emit_retries:
+            try:
+                retries += 1
+                requests.get(url)
+                broker_alive = True
+            except Exception:
+                if retries <= max_emit_retries:
+
+                    # Wait for (2^retries * 100) milliseconds
+
+                    wait_time = 2.0 ** retries * 0.1
+                    logger.error(
+                        'Could not connect to the broker at %s. Retry in %f '
+                        'seconds.' % (url, wait_time))
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        with open(self.temp_fpath, 'rb') as framefp:
+            headers = {'content-type': 'text/csv'}
+            if self.compress:
+                headers['content-encoding'] = 'gzip'
+            try:
+                requests.post(url, headers=headers,
+                              params=self.emitter_args, data=framefp)
+            except Exception:
+                logger.error('Could not connect to the broker at %s '
+                             % url)
+                raise
+
+    @timeout(120)
+    def _publish_to_kafka_no_retries(self, url):
+
+        if kafka_python or pykafka is None:
+            raise ImportError('Please install kafka and pykafka')
+
+        try:
+            list = url[len('kafka://'):].split('/')
+
+            if len(list) == 2:
+                kurl = list[0]
+                topic = list[1]
+            else:
+                raise Exception(
+                    'The kafka url provided does not seem to be valid: %s. '
+                    'It should be something like this: '
+                    'kafka://[ip|hostname]:[port]/[kafka_topic]. '
+                    'For example: kafka://1.1.1.1:1234/metrics' % url)
+
+            h = NullHandler()
+            logging.getLogger('kafka').addHandler(h)
+
+            # XXX We should definitely create a long lasting kafka client
+            kafka_python_client = kafka_python.KafkaClient(kurl)
+            kafka_python_client.ensure_topic_exists(topic)
+
+            kafka = pykafka.KafkaClient(hosts=kurl)
+            publish_topic_object = kafka.topics[topic]
+            # the default partitioner is random_partitioner
+            producer = publish_topic_object.get_producer()
+
+            if self.format == 'csv':
+                with open(self.temp_fpath, 'r') as fp:
+                    text = fp.read()
+                    logger.debug(producer.produce([text]))
+
+            elif self.format == 'graphite':
+
+                with open(self.temp_fpath, 'r') as fp:
+                    for line in fp.readlines():
+                        producer.produce([line])
+            else:
+                logger.debug(
+                    'Could not send data because {0} is an unknown '
+                    'format'.format(self.format))
+                raise
+
+            kafka_python_client.close()
+        except Exception as e:
+
+            # kafka.close()
+
+            logger.debug('Could not send data to {0}: {1}'.format(url,
+                                                                  e))
+            raise
+
+    def _publish_to_kafka(self, url, max_emit_retries=8):
+        broker_alive = False
+        retries = 0
+        while not broker_alive and retries <= max_emit_retries:
+            try:
+                retries += 1
+                self._publish_to_kafka_no_retries(url)
+                broker_alive = True
+            except Exception:
+                if retries <= max_emit_retries:
+
+                    # Wait for (2^retries * 100) milliseconds
+
+                    wait_time = 2.0 ** retries * 0.1
+                    logger.error(
+                        'Could not connect to the kafka server at %s. Retry '
+                        'in %f seconds.' % (url, wait_time))
+                    time.sleep(wait_time)
+                else:
+                    print 'Could not send to kafka %s after %d retries.' \
+                        % (url, max_emit_retries)
+                    exit(1)
+
+    def _publish_to_mtgraphite(self, url):
+        if not Emitter.mtgclient:
+            Emitter.mtgclient = MTGraphiteClient(url)
+        with open(self.temp_fpath, 'r') as fp:
+            num_pushed_to_queue = \
+                Emitter.mtgclient.send_messages(fp.readlines())
+            logger.debug('Pushed %d messages to mtgraphite queue'
+                         % num_pushed_to_queue)
+
+    def _write_to_file(self, url):
+        output_path = url[len('file://'):]
+        if self.compress:
+            output_path += '.gz'
+        shutil.move(self.temp_fpath, output_path)
+
+    def __exit__(
+        self,
+        typ,
+        exc,
+        trc,
+    ):
+        if exc:
+            self._close_file()
+            if os.path.exists(self.temp_fpath):
+                os.remove(self.temp_fpath)
+            return False
+        try:
+            self._close_file()
+            for url in self.urls:
+                logger.debug('Emitting frame to {0}'.format(url))
+                if url.startswith('stdout://'):
+                    self._publish_to_stdout()
+                elif url.startswith('http://'):
+                    self._publish_to_broker(url, self.max_emit_retries)
+                elif url.startswith('file://'):
+                    self._write_to_file(url)
+                elif url.startswith('kafka://'):
+                    self._publish_to_kafka(url, self.max_emit_retries)
+                elif url.startswith('mtgraphite://'):
+                    self._publish_to_mtgraphite(url)
+                else:
+                    if os.path.exists(self.temp_fpath):
+                        os.remove(self.temp_fpath)
+                    raise ValueError(
+                        'Unsupported URL protocol {0}'.format(url))
+        except Exception as e:
+            logger.exception(e)
+            raise
+        finally:
+            if os.path.exists(self.temp_fpath):
+                os.remove(self.temp_fpath)
+        self.end_time = time.time()
+        elapsed_time = self.end_time - self.begin_time
+        logger.info(
+            'Emitted {0} features in {1} seconds'.format(
+                self.num_features,
+                elapsed_time))
+        return False
