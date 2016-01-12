@@ -83,6 +83,7 @@ class MTGraphiteClient(object):
                         'len = %d', sent)
 
                 authentication_message = """"""
+                # @RICARDO need a 2T solution
                 #authentication_message += "2T" # XXX commenting out the non-supertenant option
                 authentication_message += '2S'
                 authentication_message += chr(len(self.super_tenant_id))
