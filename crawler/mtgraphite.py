@@ -49,6 +49,53 @@ class MTGraphiteClient(object):
     #   Private API  #
     # #################
 
+    def _create_identification_message(self, self_identifier):
+        identification_message = """"""
+        identification_message += '1I'
+        identification_message += chr(len(self_identifier))
+        identification_message += self_identifier
+        return identification_message
+
+    def _create_authentication_message(self,tenant_id, tenant_password, supertenant=True):
+        authentication_message = """"""
+        if supertenant:
+            authentication_message += '2S'
+        else:
+            authentication_message += '2T'
+        authentication_message += chr(len(tenant_id))
+        authentication_message += tenant_id
+        authentication_message += \
+                    chr(len(tenant_password))
+        authentication_message += tenant_password
+        return authentication_message
+
+    def _send_and_check_identification_message(self, identification_message):
+        identification_message_sent = self.conn.write(identification_message)
+
+        if identification_message_sent != len(identification_message):
+            logger.warning(
+                'Identification message not sent properly, returned '
+                'len = %d', identification_message_sent)
+            return False
+        else:
+            return True
+
+    def _send_and_check_authentication_message(self, authentication_message):
+        authentication_message_sent = self.conn.write(authentication_message)
+        logger.info(
+            'Sent authentication with mtgraphite, returned length = '
+            '%d' % authentication_message_sent)
+        if authentication_message_sent != len(authentication_message):
+            raise Exception('failed to send tenant/password')
+        chunk = self.conn.read(6)  # Expecting "1A"
+        code = bytearray(chunk)[:2]
+
+        logger.info('MTGraphite authentication server response of %s'
+                    % code)
+        if code == '0A':
+            raise Exception('Invalid tenant auth, please check the '
+                            'tenant id or password!')
+
     def _get_socket(self):
         '''Get or create a connection to a broker using host and port'''
 
@@ -72,42 +119,19 @@ class MTGraphiteClient(object):
 
                 self_identifier = str(self.conn.getsockname()[0])
                 logger.debug('self_identifier = %s', self_identifier)
-                identification_message = """"""
-                identification_message += '1I'
-                identification_message += chr(len(self_identifier))
-                identification_message += self_identifier
-                sent = self.conn.write(identification_message)
-                if sent != len(identification_message):
-                    logger.warning(
-                        'Identification message not sent properly, returned '
-                        'len = %d', sent)
+                identification_message = self._create_identification_message(self_identifier)
+                self._send_and_check_identification_message(identification_message)
 
-                authentication_message = """"""
-                # @RICARDO need a 2T solution
-                #authentication_message += "2T" # XXX commenting out the non-supertenant option
-                authentication_message += '2S'
-                authentication_message += chr(len(self.super_tenant_id))
-                authentication_message += self.super_tenant_id
-                authentication_message += \
-                    chr(len(self.super_tenant_password))
-                authentication_message += self.super_tenant_password
-                sent = self.conn.write(authentication_message)
-                logger.info(
-                    'Sent authentication with mtgraphite, returned length = '
-                    '%d' % sent)
-                if sent != len(authentication_message):
-                    raise Exception('failed to send tenant/password')
-                chunk = self.conn.read(6)  # Expecting "1A"
-                code = bytearray(chunk)[:2]
-
-                logger.info('MTGraphite authentication server response of %s'
-                            % code)
-                if code == '0A':
-                    raise Exception('Invalid tenant auth, please check the '
-                                    'tenant id or password!')
+                authentication_message = self._create_authentication_message(self.super_tenant_id, self.super_tenant_password)
+                # We check once for
+                try:
+                    self._send_and_check_authentication_message(authentication_message)
+                except Exception as e:
+                    authentication_message = self._create_authentication_message(self.super_tenant_id, self.super_tenant_password, supertenant=False)
+                    self._send_and_check_authentication_message(authentication_message)
                 return self.conn
-            except Exception as e:
 
+            except Exception as e:
                 logger.exception(e)
                 if self.conn is not None:
                     self.conn.close()
