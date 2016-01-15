@@ -5,12 +5,32 @@ import socket
 import ssl
 import struct
 import time
+import unittest
+import re
 
 # This code is based upon the Kafka producer/client classes
 
 logger = logging.getLogger('crawlutils')
 
 DEFAULT_SOCKET_TIMEOUT_SECONDS = 120
+
+class TestMTGraphiteAuth(unittest.TestCase):
+    def test_supertenant_access(self):
+        supertenant_crawler_url = "mtgraphite://metrics.stage1.opvis.bluemix.net:9095/Crawler:5KilGEQ9qExi"
+        print("Starting Super MTGraphiteClient Object")
+        graphite_client = MTGraphiteClient(supertenant_crawler_url)
+        print("Getting Socket")
+        soc = graphite_client._get_socket()
+        self.assertIsNotNone(soc)
+
+    def test_tenant_access(self):
+        tenant_crawler_url = "mtgraphite://metrics.stage1.opvis.bluemix.net:9095/a63d60f6-d9ce-402a-9d06-b9263acc15d4:n_rcmJvEpexR"
+        print("Starting MTGraphiteClient Object")
+        graphite_client = MTGraphiteClient(tenant_crawler_url)
+        print("Getting Socket")
+        soc = graphite_client._get_socket()
+        self.assertIsNotNone(soc)
+
 
 
 class MTGraphiteClient(object):
@@ -127,6 +147,7 @@ class MTGraphiteClient(object):
                 try:
                     self._send_and_check_authentication_message(authentication_message)
                 except Exception as e:
+                    print("Attempting to log in as tenant")
                     authentication_message = self._create_authentication_message(self.super_tenant_id, self.super_tenant_password, supertenant=False)
                     self._send_and_check_authentication_message(authentication_message)
                 return self.conn
@@ -137,6 +158,8 @@ class MTGraphiteClient(object):
                     self.conn.close()
                     self.conn = None
                 time.sleep(2)  # sleep for 2 seconds for now
+                return None
+
 
     def _write_messages_no_retries(self, msgset):
         s = self._get_socket()
