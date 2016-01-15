@@ -94,6 +94,7 @@ def test_emitter_graphite_simple_file():
 
 
 def test_emitter_graphite_simple_kafka():
+    # TODO: need to start a kafka container, and add code that checks that the frame is actually in kafka
     metadata = {}
     metadata['namespace'] = 'namespace777'
     with Emitter(urls=['kafka://localhost:9092/config'], emitter_args=metadata, format='graphite') as emitter:
