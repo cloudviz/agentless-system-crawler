@@ -93,8 +93,17 @@ def test_emitter_graphite_simple_file():
     print sys._getframe().f_code.co_name, 1
 
 
+def test_emitter_graphite_simple_kafka():
+    metadata = {}
+    metadata['namespace'] = 'namespace777'
+    with Emitter(urls=['kafka://localhost:9092/config'], emitter_args=metadata, format='graphite') as emitter:
+        emitter.emit("dummy_feature", {'test': 'bla', 'test2':12345, 'test3':12345.0, 'test4':12345.00000}, 'dummy_feature')
+
+
 if __name__ == '__main__':
     test_emitter_csv_simple_stdout()
     test_emitter_csv_simple_file()
+
     test_emitter_graphite_simple_stdout()
     test_emitter_graphite_simple_file()
+    #test_emitter_graphite_simple_kafka()
