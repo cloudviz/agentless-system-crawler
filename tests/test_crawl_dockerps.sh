@@ -12,7 +12,7 @@ docker rm -f test_crawl_os_container_1 2> /dev/null > /dev/null
 docker run -d --name test_crawl_os_container_1 ubuntu sleep 60 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' test_crawl_os_container_1`
 
-python2.7 ../crawler/crawler.py --crawlmode INVM \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
 	--features=dockerps | grep -c $ID
 
 docker rm -f test_crawl_os_container_1 > /dev/null

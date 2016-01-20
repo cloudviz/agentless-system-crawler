@@ -4,12 +4,12 @@ import subprocess
 
 sys.path.append('..')
 
-from crawler.emitter import Emitter
-from crawler.features_crawler import FeaturesCrawler
+from config_and_metrics_crawler.emitter import Emitter
+from config_and_metrics_crawler.features_crawler import FeaturesCrawler
 from setup_logger import setup_logger
 
-from crawler.dockercontainer import DockerContainer
-from crawler.dockerutils import exec_dockerinspect
+from config_and_metrics_crawler.dockercontainer import DockerContainer
+from config_and_metrics_crawler.dockerutils import exec_dockerinspect
 
 
 # Tests the FeaturesCrawler class

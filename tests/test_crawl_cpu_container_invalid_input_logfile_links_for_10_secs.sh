@@ -49,7 +49,7 @@ docker run -d -e LOG_LOCATIONS=${BAD_LOG_PATH_1},${GOOD_LOG_PATH},${BAD_LOG_PATH
                        echo $MSG >> ${BAD_LOG_PATH_1}; echo $MSG >> /var/log/messages; echo $MSG; echo $MSG >> ${GOOD_LOG_PATH}; \
                        sleep 6000 " 2> /dev/null > /dev/null
 
-timeout 10 python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+timeout 10 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --frequency 1 \
 	--linkContainerLogFiles --url file:///tmp/$NAME
 

@@ -37,7 +37,7 @@ docker rm -f $NAME 2> /dev/null > /dev/null
 docker run -d --name $NAME ubuntu bash -c "echo $MSG ; sleep 6000 " 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' $NAME`
 
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $ID \
 	--linkContainerLogFiles --url file:///tmp/$NAME
 

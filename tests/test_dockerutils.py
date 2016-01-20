@@ -8,7 +8,7 @@ import simplejson as json
 # sys.path.append('/home/kollerr/research/cloudsight-container/collector')
 sys.path.append('../')
 
-from crawler.dockerutils import (
+from config_and_metrics_crawler.dockerutils import (
     exec_dockerps, # wrapper
     _exec_dockerps, # fast version
     _exec_dockerps_slow, # slow version

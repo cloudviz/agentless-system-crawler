@@ -23,7 +23,7 @@ done
 ID1=`docker inspect -f '{{ .Id }}' cpu_many_containers_for_10_secs_check_user_list_1`
 ID2=`docker inspect -f '{{ .Id }}' cpu_many_containers_for_10_secs_check_user_list_2`
 
-timeout $ITERS python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+timeout $ITERS python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers ${ID1},${ID2} --numprocesses 2 \
 	--frequency 1 --url file:///tmp/cpu_many_containers_for_10_secs_check_user_list
 

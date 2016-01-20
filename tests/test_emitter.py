@@ -4,7 +4,7 @@ import sys
 #sys.path.append('/home/kollerr/research/cloudsight-container/collector')
 sys.path.append('../')
 
-from crawler.emitter import Emitter
+from config_and_metrics_crawler.emitter import Emitter
 
 # Tests the Emitter crawler class
 # Throws an AssertionError if any test fails
