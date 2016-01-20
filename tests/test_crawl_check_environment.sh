@@ -46,7 +46,7 @@ sed -i s"/<SPACE_ID>/${SPACE_ID}/" /tmp/dummy-metadata-file
 mkdir -p /openstack/nova/metadata/
 mv /tmp/dummy-metadata-file /openstack/nova/metadata/${DOCKER_ID}.json
 
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $DOCKER_ID \
 	--environment alchemy > /tmp/check_metadata_frame
 

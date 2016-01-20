@@ -12,7 +12,7 @@ UUID=`uuid`
 mkdir -p /etc/etc2
 echo $UUID >> /etc/etc2/ric_config
 
-python2.7 ../crawler/crawler.py --crawlmode MOUNTPOINT \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode MOUNTPOINT \
 	--features=config --options '{"config": {"known_config_files":["etc2/ric_config"]}}' \
 	--mountpoint /etc/ > /tmp/test_crawl_config_mountpoint_relative
 

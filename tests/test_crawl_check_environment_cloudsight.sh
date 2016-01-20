@@ -53,7 +53,7 @@ sed -i s"/<SPACE_ID_1>/${SPACE_ID_1}/" /tmp/dummy-metadata-file
 mkdir -p /openstack/nova/metadata/
 mv /tmp/dummy-metadata-file /openstack/nova/metadata/${DOCKER_ID_1}.json
 
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $DOCKER_ID_1,$DOCKER_ID_2 \
 	--environment cloudsight > /tmp/check_metadata_frame
 

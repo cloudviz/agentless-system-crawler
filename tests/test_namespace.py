@@ -5,8 +5,8 @@ import subprocess
 
 sys.path.append('../')
 
-from crawler.namespace import run_as_another_namespace
-from crawler.crawler_exceptions import CrawlTimeoutError, CrawlError
+from config_and_metrics_crawler.namespace import run_as_another_namespace
+from config_and_metrics_crawler.crawler_exceptions import CrawlTimeoutError, CrawlError
 
 all_namespaces = ["user", "pid", "uts", "ipc", "net", "mnt"]
 

@@ -47,7 +47,7 @@ docker run -d -e LOG_LOCATIONS=${BAD_LOG_PATH_1},${GOOD_LOG_PATH},${BAD_LOG_PATH
 	ubuntu bash -c "echo $MSG >> ${BAD_LOG_PATH_1}; echo $MSG >> /var/log/messages; echo $MSG; echo $MSG >> ${GOOD_LOG_PATH}; sleep 6000 " 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' $NAME`
 
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $ID \
 	--linkContainerLogFiles --url file:///tmp/$NAME
 

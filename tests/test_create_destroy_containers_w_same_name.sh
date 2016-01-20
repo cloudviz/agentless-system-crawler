@@ -36,7 +36,7 @@ MSG=`uuid`
 docker run -d --name $NAME ubuntu bash -c "echo $MSG ; sleep 1000" 2> /dev/null > /dev/null
 ID1=`docker ps | grep $NAME | awk '{print $1}'`
 
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu,interface --url file:///tmp/`uuid` \
 	--linkContainerLogFiles --frequency 1 --numprocesses 4 \
 	--url file:///tmp/$NAME --format graphite &
