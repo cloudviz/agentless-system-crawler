@@ -254,6 +254,7 @@ def snapshot_generic(
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     format='csv',
     inputfile='undefined',
+    overwrite=False,
     namespace='',
     since='BOOT',
     since_timestamp=0,
@@ -272,6 +273,7 @@ def snapshot_generic(
         'since': since,
         'since_timestamp': since_timestamp,
         'compress': compress,
+        'overwrite': overwrite,
     }
 
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
@@ -293,6 +295,7 @@ def snapshot_container(
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     format='csv',
     inputfile='undefined',
+    overwrite=False,
     container=None,
     since='BOOT',
     since_timestamp=0,
@@ -325,7 +328,11 @@ def snapshot_container(
     output_urls = []
     for url in urls:
         if url.startswith('file:'):
-            file_suffix = '{0}.{1}'.format(container.short_id, snapshot_num)
+            file_suffix = ''
+            if overwrite is True:
+                file_suffix = '{0}'.format(container.name)
+            else:
+                file_suffix = '{0}.{1}'.format(container.short_id, snapshot_num)
             output_urls.append('{0}.{1}'.format(url, file_suffix))
         else:
             output_urls.append(url)
@@ -378,6 +385,7 @@ def snapshot(
     crawlmode=Modes.INVM,
     inputfile='Undefined',
     format='csv',
+    overwrite=False,
 ):
     """Entrypoint for crawler functionality.
 
@@ -457,6 +465,7 @@ def snapshot(
                     container=container,
                     since=since,
                     since_timestamp=since_timestamp,
+                    overwrite=overwrite
                 )
 
         elif crawlmode in (Modes.INVM,
@@ -476,6 +485,7 @@ def snapshot(
                 namespace=namespace,
                 since=since,
                 since_timestamp=since_timestamp,
+                overwrite=overwrite
             )
 
         else:
