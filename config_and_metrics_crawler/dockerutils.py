@@ -449,6 +449,21 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         btrfs_path = proc.stdout.read().strip()
         rootfs_path = '/var/lib/docker/' + btrfs_path
 
+    elif driver == 'aufs':
+       # print "long_id: ", long_id
+       # XXX this looks ugly and brittle       
+        proc = subprocess.Popen(
+            'find /var/lib/docker -name "' + long_id + '*" | ' +
+            'grep mnt | ' +
+            " grep -v 'init' |  head -n 1",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        aufs_path = proc.stdout.read().strip()
+        # print "===> aufs_path: ", aufs_path
+        rootfs_path = aufs_path
+ 
+
     else:
 
         raise RuntimeError('Not supported docker storage driver.')
