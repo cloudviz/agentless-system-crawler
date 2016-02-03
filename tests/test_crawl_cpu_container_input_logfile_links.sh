@@ -29,7 +29,7 @@ print get_host_ipaddr()
 EOF
 
 read -d '' JSON_LOG_TYPES <<"EOF"
-[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/var/log/input_file_name.log"}, {"type": null, "name": "docker.log"}]
+[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "/var/log/input_file_name.log"}, {"type": null, "name": "docker.log"}]
 EOF
 
 HOST_IP=`python2.7 -c "$GET_HOST_IP_PY" 2> /dev/null`
