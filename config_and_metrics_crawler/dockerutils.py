@@ -4,6 +4,7 @@ import os
 import logging
 import subprocess
 import json
+import dateutils.parser as dp
 
 # External dependencies that must be pip install'ed separately
 
@@ -217,6 +218,9 @@ def _reformat_inspect(inspect):
     if np:
         inspect['HostConfig']['PortBindings'] = np
 
+    docker_datetime = dp.parse(inspect['Created'])
+    epoch_seconds = docker_datetime.strftime('%s')
+    inspect['Created'] = epoch_seconds
 
 def exec_dockerinspect(long_id=None):
     try:
