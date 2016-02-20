@@ -4,7 +4,7 @@ import os
 import logging
 import subprocess
 import json
-import dateutils.parser as dp
+import dateutil.parser as dp
 
 # External dependencies that must be pip install'ed separately
 
