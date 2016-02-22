@@ -111,10 +111,8 @@ def _exec_docker_history(long_id=None):
     for c in containers:
         if long_id == c['Id']:
             image = c['Image']
-            # The returned Image field is sometimes 'ID:tag' which can't
-            # be used to query in client.history()
-            if ':' in image:
-                image = image.split(':')[0]
+            # If there is no tag present on the image name, this is implicitly "latest"
+            # Docker defaults to this
             out = client.history(image)
     del client
     return out
