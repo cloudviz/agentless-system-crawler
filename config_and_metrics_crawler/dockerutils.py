@@ -175,12 +175,14 @@ def _get_docker_image_history_slow(image_id):
     for inspect in inspect_arr:
 
         # XXX what if inspect doesn;t have some of these fields
+        docker_datetime = dp.parse(inspect['Created'])
+        epoch_seconds = docker_datetime.strftime('%s')
 
         image_info = {'Tags': None,
                       'Size': inspect['Size'],
                       'Id': inspect['Id'],
                       'CreatedBy': inspect['ContainerConfig']['Cmd'],
-                      'Created': inspect['Created']}
+                      'Created': epoch_seconds}
         image_history.append(image_info)
     return image_history
 
