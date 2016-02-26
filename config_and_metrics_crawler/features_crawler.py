@@ -221,6 +221,7 @@ class FeaturesCrawler:
         root_dir_alias=None,
     ):
 
+        root_dir=str(root_dir)
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
         accessed_since = self.feature_epoch
