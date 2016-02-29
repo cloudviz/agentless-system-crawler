@@ -787,8 +787,8 @@ class FeaturesCrawler:
             distro = 'unknown'
 
         installed_since = self.feature_epoch
-        if system_type != 'linux':
-
+        if system_type != 'linux' or (system_type == 'linux' and distro == ''):
+            # Distro is blank for FROM scratch images
             # Package feature is only valid for Linux platforms.
 
             raise StopIteration()
