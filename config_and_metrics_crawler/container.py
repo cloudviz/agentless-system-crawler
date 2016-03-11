@@ -15,6 +15,8 @@ from crawler_exceptions import (
     AlchemyInvalidContainer)
 
 
+from dockerutils import get_docker_container_rootfs_path
+
 logger = logging.getLogger('crawlutils')
 
 
@@ -87,6 +89,17 @@ class Container(object):
                 logger.warning('Container %s does not have alchemy '
                                'metadata.' % self.short_id)
                 raise AlchemyInvalidMetadata()
+        elif environment == 'watson':
+            prefix_key = namespace_opts.get('containerNamespace','CRAWLER_METRIC_PREFIX')
+            config_file = namespace_opts.get('watsonPropertiesFile','/etc/csf_env.properties')
+            if config_file[0] == '/': config_file = config_file[1:]
+            rootfs = get_docker_container_rootfs_path(self.long_id)
+            namespace = None
+            if rootfs:
+                with open(os.path.join(rootfs,config_file),'r') as rp:
+                    lines = dict([l.strip().split('=') for l in rp.readlines()])
+                    namespace = ".".join([lines[p[1:]].strip('\'') for p in lines.get(prefix_key,"").split(':')])
+                    namespace += '.' + self.short_id
         else:
             raise ContainerInvalidEnvironment(
                 'Unknown environment %s' % environment)

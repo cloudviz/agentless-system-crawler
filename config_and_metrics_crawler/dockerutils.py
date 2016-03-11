@@ -5,6 +5,9 @@ import logging
 import subprocess
 import json
 import dateutil.parser as dp
+import semantic_version
+
+DOCKER_LAYER_CHANGE_VERSION_SPEC = semantic_version.Spec('>=1.10.0') # version at which docker image layer organization changed
 
 # External dependencies that must be pip install'ed separately
 
@@ -401,6 +404,18 @@ def get_docker_container_json_logs_path(long_id, inspect=None):
         return path
 
 
+def _get_docker_server_version():
+    """Run the `docker info` command to get server version
+    """
+    proc = subprocess.Popen("docker info | grep 'Server Version' | cut -d':' -f2 ", shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    server_version = proc.stdout.read().strip()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError('Could not run docker info command')
+    return server_version
+
 def get_docker_container_rootfs_path(long_id, inspect=None):
     """
     Returns the path to a container root (with ID=long_id) in the docker host
@@ -421,6 +436,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     daemon and containers.
     """
     driver = get_docker_storage_driver()
+    server_version = _get_docker_server_version()
 
     if driver == 'devicemapper':
 
@@ -454,20 +470,22 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         rootfs_path = '/var/lib/docker/' + btrfs_path
 
     elif driver == 'aufs':
-       # print "long_id: ", long_id
-       # XXX this looks ugly and brittle       
-        proc = subprocess.Popen(
-            'find /var/lib/docker -name "' + long_id + '*" | ' +
-            'grep mnt | ' +
-            " grep -v 'init' |  head -n 1",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        aufs_path = proc.stdout.read().strip()
-        # print "===> aufs_path: ", aufs_path
-        rootfs_path = aufs_path
- 
-
+        if DOCKER_LAYER_CHANGE_VERSION_SPEC.match(semantic_version.Version(server_version)):
+            proc = subprocess.Popen(
+                'cat `find /var/lib/docker -name "{}*" | grep mounts`/init-id'.format(long_id),
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            root_dir  = proc.stdout.read().strip().split('-')[0]
+            # print "===> aufs_path: ", aufs_path
+            rootfs_path = '/var/lib/docker/aufs/mnt/{}'.format(root_dir)
+        else: 
+            proc = subprocess.Popen(
+                "find /var/lib/docker -name \"{}*\" | grep mnt | grep -v 'init'  head -n 1".format(long_id),
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            rootfs_path = proc.stdout.read().strip()
     else:
 
         raise RuntimeError('Not supported docker storage driver.')
