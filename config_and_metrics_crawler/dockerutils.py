@@ -7,7 +7,7 @@ import json
 import dateutil.parser as dp
 import semantic_version
 
-DOCKER_LAYER_CHANGE_VERSION_SPEC = semantic_version.Spec('>=1.10.0') # version at which docker image layer organization changed
+VERSION_SPEC = semantic_version.Spec('>=1.10.0') # version at which docker image layer organization changed
 
 # External dependencies that must be pip install'ed separately
 
@@ -458,26 +458,38 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     elif driver == 'btrfs':
 
         # XXX this looks ugly and brittle
-        proc = subprocess.Popen(
-            'btrfs subvolume list /var/lib/docker | ' +
-            'grep ' +
-            long_id +
-            " | awk '{print $NF}' | grep -v 'init' |  head -n 1",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        btrfs_path = proc.stdout.read().strip()
-        rootfs_path = '/var/lib/docker/' + btrfs_path
+        if VERSION_SPEC.match(semantic_version.Version(server_version)):
+            proc = subprocess.Popen(
+                "cat /var/lib/docker/image/btrfs/layerdb/mounts/" +
+                long_id +
+                "/init-id | cut -d'-' -f1",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            btrfs_path = proc.stdout.read().strip()
+            rootfs_path = '/var/lib/docker/btrfs/subvolumes/' + btrfs_path
+        else:
+            proc = subprocess.Popen(
+                'btrfs subvolume list /var/lib/docker | ' +
+                'grep ' +
+                long_id +
+                " | awk '{print $NF}' | grep -v 'init' |  head -n 1",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            btrfs_path = proc.stdout.read().strip()
+            rootfs_path = '/var/lib/docker/' + btrfs_path
 
     elif driver == 'aufs':
-        if DOCKER_LAYER_CHANGE_VERSION_SPEC.match(semantic_version.Version(server_version)):
+        if VERSION_SPEC.match(semantic_version.Version(server_version)):
             proc = subprocess.Popen(
-                'cat `find /var/lib/docker -name "{}*" | grep mounts`/init-id'.format(long_id),
+                'cat `find /var/lib/docker -name "'+
+                long_id +
+                '*" | grep mounts`/init-id',
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
             root_dir  = proc.stdout.read().strip().split('-')[0]
-            # print "===> aufs_path: ", aufs_path
             rootfs_path = '/var/lib/docker/aufs/mnt/{}'.format(root_dir)
         else: 
             proc = subprocess.Popen(

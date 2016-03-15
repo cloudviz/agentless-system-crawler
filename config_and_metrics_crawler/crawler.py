@@ -530,23 +530,6 @@ if __name__ == '__main__':
         default=False,
         help='overwrite file type url parameter and strip trailing sequence number'
     )
-    parser.add_argument(
-        '--containerNamespace',
-        dest='containerNamespace',
-        type=str,
-        default='CRAWLER_METRIC_PREFIX',
-        help='If given, this argument is used to specify the environment '
-             'varibale in watson properties file that specifies the list ' 
-             'and the order of properties that defines the metric prefix'
-    )
-    parser.add_argument(
-        '--watsonPropertiesFile',
-        dest='watsonPropertiesFile',
-        type=str,
-        default='/etc/csf_env.properties',
-        help='If given, this argument is used to specify the path of the '
-             'file in container that specifies all watson properties     '
-    )
 
     args = parser.parse_args()
     params = {}
@@ -650,12 +633,6 @@ if __name__ == '__main__':
                 % e
             sys.exit(1)
     options['link_container_log_files'] = args.linkContainerLogFiles
-
-    if args.containerNamespace:
-        options['containerNamespace'] = args.containerNamespace
-
-    if args.watsonPropertiesFile:
-        options['watsonPropertiesFile'] = args.watsonPropertiesFile
 
     setup_logger('crawler-main', args.logfile)
     logger = logging.getLogger('crawler-main')

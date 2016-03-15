@@ -97,10 +97,6 @@ def get_filtered_list_of_containers(
                       'environment': environment,
                       'long_id_to_namespace_map': _map}
 
-    if environment == 'watson':
-        namespace_opts['watsonPropertiesFile'] = options.get('watsonPropertiesFile',None)
-        namespace_opts['containerNamespace'] = options.get('containerNamespace',None)
-
     user_list = options.get('docker_containers_list', 'ALL')
     partition_strategy = options.get('partition_strategy', None)
 
