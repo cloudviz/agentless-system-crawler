@@ -265,7 +265,8 @@ def abort(ID):
 
 def setup_logger(logger_name, logfile='crawler.log', process_id=None):
     _logger = logging.getLogger(logger_name)
-    _logger.setLevel(logging.INFO)
+    #_logger.setLevel(logging.INFO)
+    _logger.setLevel(logging.DEBUG)
     (logfile_name, logfile_xtnsion) = os.path.splitext(logfile)
     if process_id is None:
         fname = logfile

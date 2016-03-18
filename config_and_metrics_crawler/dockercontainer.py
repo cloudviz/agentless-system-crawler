@@ -149,6 +149,7 @@ class DockerContainer(Container):
                     'Linking container %s %s logfile %s -> %s' %
                     (self.short_id, log['name'], log['source'], log['dest']))
             except (OSError, IOError) as e:
+                logger.debug(e)
                 logger.debug('Link already exists: %s -> %s'
                              % (log['source'], log['dest']))
             except Exception as e:
@@ -293,28 +294,30 @@ class DockerContainer(Container):
         does not contain any '..' in it.
         """
         # List of maps {name:name,type:type}
-        container_logs = options['logcrawler']['default_log_files']
+        #container_logs = options['logcrawler']['default_log_files']
 
+        # following files need to be ported to envionment modules
+        # cloudsight, watson, alchemy etc.
         logs = self._parse_log_locations(
             var='LOG_LOCATIONS',
             isJson=False)
-        container_logs.extend(logs)
+        self.log_file_list.extend(logs)
 
         logs = self._parse_log_locations(
             var='LOGS_CONFIG',
             isJson=True)
-        container_logs.extend(logs)
+        self.log_file_list.extend(logs)
 
         # Finally, make sure that the paths are absolute
 
-        for log in container_logs:
+        for log in self.log_file_list:
             name = log['name']
             if not os.path.isabs(name) or '..' in name:
-                container_logs.remove(log)
+                self.log_file_list.remove(log)
                 logger.warning(
                     'User provided a log file path that is not absolute: %s' %
                     name)
-        return container_logs
+        return self.log_file_list
 
     def _get_logfiles_list(self,
                            host_log_dir,
@@ -330,8 +333,10 @@ class DockerContainer(Container):
             self.long_id, self.inspect)
 
         logs_list = []
-        for logdict in self._get_container_log_files(rootfs_path,
-                                                     options):
+
+        self._get_container_log_files(rootfs_path, options)
+
+        for logdict in self.log_file_list:
             name = logdict['name']
             _type = logdict['type']
             log_source = rootfs_path + name
@@ -368,29 +373,4 @@ class DockerContainer(Container):
         environment, this will look like this:
         `'/var/log/crawler_container_logs/127.0.0.1/my_container/'`
         """
-        container = self
-        ctr_namespace = container.namespace
-        pid = container.pid
-        short_id = container.short_id
-        long_id = container.long_id
-        if environment == 'cloudsight':
-            host_log_dir = os.path.join(host_log_basedir, ctr_namespace)
-            return host_log_dir
-        elif environment == 'alchemy':
-            if not self.is_docker_container():
-                logger.info(
-                    'Not crawling container with pid %s because it does not '
-                    'seem to be a docker container.' % pid)
-                return None
-            else:
-                if alchemy is None:
-                    raise ImportError('Please setup alchemy.py correctly.')
-                host_dir = alchemy.get_logs_dir_on_host(long_id, 'docker')
-                if not host_dir:
-                    logger.info('Container %s does not have alchemy metadata.'
-                                % short_id)
-                host_log_dir = os.path.join(host_log_basedir, host_dir)
-                return host_log_dir
-        else:
-            logger.error('Unknown environment %s' % environment)
-            return None
+        return os.path.join(host_log_basedir, self.log_prefix)

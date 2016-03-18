@@ -17,7 +17,7 @@ logger = logging.getLogger('crawlutils')
 
 
 def list_all_containers(user_list='ALL',
-                        namespace_opts={},
+                        container_opts={},
                         ):
     """
     Returns a list of all running containers, as `Container` objects.
@@ -25,7 +25,7 @@ def list_all_containers(user_list='ALL',
     A running container is defined as a process subtree with the `pid`
     namespace different to the `init` process `pid` namespace.
     """
-    all_docker_containers = list_docker_containers(namespace_opts)
+    all_docker_containers = list_docker_containers(container_opts)
 
     if user_list in ['ALL', 'all', 'All']:
         init_ns = namespace.get_pid_namespace(1)
@@ -93,9 +93,11 @@ def get_filtered_list_of_containers(
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
     metadata = options.get('metadata', {})
     _map = metadata.get('container_long_id_to_namespace_map', {})
-    namespace_opts = {'host_namespace': host_namespace,
+    container_opts = {'host_namespace': host_namespace,
                       'environment': environment,
-                      'long_id_to_namespace_map': _map}
+                      'long_id_to_namespace_map': _map,
+                      'container_logs': options['logcrawler']['default_log_files']
+                      }
 
     user_list = options.get('docker_containers_list', 'ALL')
     partition_strategy = options.get('partition_strategy', None)
@@ -105,7 +107,7 @@ def get_filtered_list_of_containers(
     num_processes = partition_strategy['args']['num_processes']
 
     filtered_list = []
-    containers_list = list_all_containers(user_list, namespace_opts)
+    containers_list = list_all_containers(user_list, container_opts)
     for container in containers_list:
 
         # The partition strategy is to split all the containers equally by
@@ -116,7 +118,7 @@ def get_filtered_list_of_containers(
         if num == process_id:
 
             try:
-                container.setup_namespace_and_metadata(namespace_opts)
+                container.setup_namespace_and_metadata(container_opts)
             except ContainerInvalidEnvironment:
                 continue
 
