@@ -85,12 +85,14 @@ class Container(object):
         # namespace than the host root namespace. So, there are other containers
         # running in teh system besides docker containers.
         if not self.is_docker_container():
+            # XXX-kollerr So if we are only doing Docker container stuff below,
+            # everything below here should be in dockercontainer.py
             raise AlchemyInvalidContainer()
 
         if environment == 'watson':
-            # XXX-kollerr only docker containers have a rootfs. This code is supposed
-            # to be docker agnostic. Moreover, this really applies to watson containers
-            # only.
+	    # XXX-kollerr only docker containers have a rootfs. This code is
+	    # supposed to be docker agnostic. Moreover, this really applies to
+	    # watson containers only.
             self.root_fs = get_docker_container_rootfs_path(self.long_id)
         else:
             self.root_fs = None
@@ -102,7 +104,7 @@ class Container(object):
             namespace = self.runtime_env.get_namespace(self.long_id, _options)
             if not namespace:
                 logger.warning('Container %s does not have alchemy '
-                           'metadata.' % self.short_id)
+                               'metadata.' % self.short_id)
                 # XXX-kollerr this should not be alchemy specific either
                 raise AlchemyInvalidMetadata()
             self.namespace = namespace
@@ -113,6 +115,8 @@ class Container(object):
             self.log_file_list = self.runtime_env.get_log_file_list(
                             self.long_id, _options)
         except ValueError:
+            # XXX-kollerr this ValueError looks suspiciously very specific
+            # to alchemy. Are you sure watson.py will be throwing ValueError?
             logger.warning('Container %s does not have a valid alchemy '
                            'metadata json file.' % self.short_id)
             raise AlchemyInvalidMetadata()
