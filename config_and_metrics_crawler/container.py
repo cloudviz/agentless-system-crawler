@@ -8,7 +8,7 @@ from crawler_exceptions import (
     AlchemyInvalidMetadata,
     AlchemyInvalidContainer)
 
-
+# XXX-kollerr anything docker specific should go to dockercontainer.py
 from dockerutils import get_docker_container_rootfs_path
 
 logger = logging.getLogger('crawlutils')
@@ -77,10 +77,23 @@ class Container(object):
         host_namespace = container_opts.get('host_namespace', 'undefined')
         environment = container_opts.get('environment', 'cloudsight')
         container_logs = container_opts.get('container_logs');
-        self.root_fs = get_docker_container_rootfs_path(self.long_id)
 
+        # XXX-kollerr only alchemy and watson containers are meant to be docker
+        # this check is wrong. This should only apply to watson and alchemy.
+        #
+        # Just in case, a linux container is any process running in a different
+        # namespace than the host root namespace. So, there are other containers
+        # running in teh system besides docker containers.
         if not self.is_docker_container():
             raise AlchemyInvalidContainer()
+
+        if environment == 'watson':
+            # XXX-kollerr only docker containers have a rootfs. This code is supposed
+            # to be docker agnostic. Moreover, this really applies to watson containers
+            # only.
+            self.root_fs = get_docker_container_rootfs_path(self.long_id)
+        else:
+            self.root_fs = None
 
         try:
             _options = {'root_fs': self.root_fs, 'type': 'docker',
@@ -90,6 +103,7 @@ class Container(object):
             if not namespace:
                 logger.warning('Container %s does not have alchemy '
                            'metadata.' % self.short_id)
+                # XXX-kollerr this should not be alchemy specific either
                 raise AlchemyInvalidMetadata()
             self.namespace = namespace
 
