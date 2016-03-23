@@ -72,7 +72,10 @@ class Container(object):
 
         _map = container_opts.get('long_id_to_namespace_map', {})
         if self.long_id in _map:
-            return _map[self.long_id]
+            self.namespace = _map[self.long_id]
+	    # XXX assert that there are no logs being linked as that won't be
+	    # supported now
+            return
 
         host_namespace = container_opts.get('host_namespace', 'undefined')
         environment = container_opts.get('environment', 'cloudsight')

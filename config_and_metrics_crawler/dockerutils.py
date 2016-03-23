@@ -155,6 +155,8 @@ def _get_docker_image_history_slow(image_id):
 
         raise RuntimeError('Could not run docker command')
 
+    # Filter out <missing> image IDs
+    history_img_ids = [img for img in history_img_ids if '<missing>' != img]
 
     proc = subprocess.Popen('docker inspect %s'
                             % ' '.join(history_img_ids), shell=True,
