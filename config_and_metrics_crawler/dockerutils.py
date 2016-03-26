@@ -310,6 +310,7 @@ def get_docker_storage_driver():
                 break
     except Exception:
         logger.debug('Could not read /proc/mounts')
+
     if driver in ('btrfs', 'devicemapper', 'aufs'):
         return driver
 
@@ -344,7 +345,7 @@ def get_docker_storage_driver():
 
     try:
         proc = subprocess.Popen(
-            "docker info | grep 'Storage Driver' | awk -F: '{print $2}'",
+            "sudo docker info | grep 'Storage Driver' | awk -F: '{print $2}'",
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
@@ -359,6 +360,7 @@ def get_docker_storage_driver():
         # We will take our risk and default to devicemapper
 
         driver = 'devicemapper'
+
     return driver
 
 
@@ -438,6 +440,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     daemon and containers.
     """
     driver = get_docker_storage_driver()
+
     server_version = _get_docker_server_version()
 
     if driver == 'devicemapper':
@@ -462,7 +465,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         # XXX this looks ugly and brittle
         if VERSION_SPEC.match(semantic_version.Version(server_version)):
             proc = subprocess.Popen(
-                "cat /var/lib/docker/image/btrfs/layerdb/mounts/" +
+                "sudo cat /var/lib/docker/image/btrfs/layerdb/mounts/" +
                 long_id +
                 "/init-id | cut -d'-' -f1",
                 shell=True,
@@ -472,7 +475,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
             rootfs_path = '/var/lib/docker/btrfs/subvolumes/' + btrfs_path
         else:
             proc = subprocess.Popen(
-                'btrfs subvolume list /var/lib/docker | ' +
+                'sudo btrfs subvolume list /var/lib/docker | ' +
                 'grep ' +
                 long_id +
                 " | awk '{print $NF}' | grep -v 'init' |  head -n 1",
@@ -485,7 +488,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     elif driver == 'aufs':
         if VERSION_SPEC.match(semantic_version.Version(server_version)):
             proc = subprocess.Popen(
-                'cat `find /var/lib/docker -name "'+
+                'sudo cat `find /var/lib/docker -name "'+
                 long_id +
                 '*" | grep mounts`/init-id',
                 shell=True,
@@ -495,7 +498,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
             rootfs_path = '/var/lib/docker/aufs/mnt/{}'.format(root_dir)
         else: 
             proc = subprocess.Popen(
-                "find /var/lib/docker -name \"{}*\" | grep mnt | grep -v 'init'  head -n 1".format(long_id),
+                "sudo find /var/lib/docker -name \"{}*\" | grep mnt | grep -v 'init' | head -n 1".format(long_id),
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
