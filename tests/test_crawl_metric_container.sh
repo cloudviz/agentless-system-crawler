@@ -13,7 +13,7 @@ docker run -d --name test_crawl_process_container_1 ubuntu sleep 60 2> /dev/null
 ID=`docker inspect -f '{{ .Id }}' test_crawl_process_container_1`
 
 # sleep should be process with pid 1 (/1)
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=metric --crawlContainers $ID | grep -c "sleep/1"
 
 docker rm -f test_crawl_process_container_1 > /dev/null

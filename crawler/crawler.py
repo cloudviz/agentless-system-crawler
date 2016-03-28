@@ -522,6 +522,13 @@ if __name__ == '__main__':
         help='Experimental feature. If specified and if running in '
              'OUTCONTAINER mode, then the crawler maintains links to '
              'container log files.')
+    parser.add_argument(
+        '--overwrite',
+        dest='overwrite',
+        action='store_true',
+        default=False,
+        help='overwrite file type url parameter and strip trailing sequence number'
+    )
 
     args = parser.parse_args()
     params = {}
@@ -564,6 +571,7 @@ if __name__ == '__main__':
         params['frequency'] = args.frequency
     if args.compress:
         options['compress'] = (args.compress == 'true')
+    params['overwrite'] = args.overwrite
     if args.crawlmode:
         params['crawlmode'] = args.crawlmode
 
