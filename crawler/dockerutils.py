@@ -4,6 +4,7 @@ import os
 import logging
 import subprocess
 import json
+import dateutil.parser as dp
 
 # External dependencies that must be pip install'ed separately
 
@@ -20,11 +21,13 @@ def exec_dockerps():
         return _exec_dockerps()
     except Exception as e:
         logger.warning('Talking to docker over the socket failed: %s' % e)
+
     try:
         return _exec_dockerps_slow()
     except Exception as e:
         logger.exception(e)
-        raise
+
+    return []
 
 
 def _exec_dockerps():
@@ -38,12 +41,16 @@ def _exec_dockerps():
 
     client = docker.Client(base_url='unix://var/run/docker.sock')
     containers = client.containers()
+    inspect_arr = []
     for container in containers:  # docker ps
         inspect = client.inspect_container(container['Id'])
         _reformat_inspect(inspect)
-        yield inspect
+        inspect_arr.append(inspect)
+
     # Is this needed?
     del client
+
+    return inspect_arr
 
 
 def _exec_dockerps_slow():
@@ -53,16 +60,30 @@ def _exec_dockerps_slow():
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     short_id_list = proc.stdout.read().strip().split()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+
+        # There is no docker command (or it just failed).
+
+        raise RuntimeError('Could not run docker command')
 
     proc = subprocess.Popen('docker inspect %s'
                             % ' '.join(short_id_list), shell=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     inspect_data = proc.stdout.read().strip()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+
+        # There is no docker command (or it just failed).
+
+        raise RuntimeError('Could not run docker command')
+
     inspect_arr = json.loads(inspect_data)
     for inspect in inspect_arr:
         _reformat_inspect(inspect)
-        yield inspect
+
+    return inspect_arr
 
 
 def exec_docker_history(long_id=None):
@@ -71,11 +92,13 @@ def exec_docker_history(long_id=None):
     except Exception as e:
         # check what exceptions can the docker client raise
         logger.warning('Talking to docker over the socket failed: %s' % e)
+
     try:
         return _exec_docker_history_slow(long_id)
     except Exception as e:
         logger.exception(e)
-        raise
+
+    return []
 
 
 def _exec_docker_history(long_id=None):
@@ -88,10 +111,8 @@ def _exec_docker_history(long_id=None):
     for c in containers:
         if long_id == c['Id']:
             image = c['Image']
-            # The returned Image field is sometimes 'ID:tag' which can't
-            # be used to query in client.history()
-            if ':' in image:
-                image = image.split(':')[0]
+            # If there is no tag present on the image name, this is implicitly "latest"
+            # Docker defaults to this
             out = client.history(image)
     del client
     return out
@@ -103,6 +124,13 @@ def _exec_docker_history_slow(long_id=None):
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     image_id = proc.stdout.read().strip()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+
+        # There is no docker command (or it just failed).
+
+        raise RuntimeError('Could not run docker command')
+
     try:
         history = _get_docker_image_history_slow(image_id)
         return history
@@ -117,6 +145,13 @@ def _get_docker_image_history_slow(image_id):
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     history_img_ids = proc.stdout.read().split()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+
+        # There is no docker command (or it just failed).
+
+        raise RuntimeError('Could not run docker command')
+
 
     proc = subprocess.Popen('docker inspect %s'
                             % ' '.join(history_img_ids), shell=True,
@@ -124,6 +159,13 @@ def _get_docker_image_history_slow(image_id):
                             stderr=subprocess.PIPE)
     image_history = []
     inspect_data = proc.stdout.read()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+
+        # There is no docker command (or it just failed).
+
+        raise RuntimeError('Could not run docker command')
+
     inspect_arr = json.loads(inspect_data)
 
     # XXX json load can fail
@@ -131,12 +173,14 @@ def _get_docker_image_history_slow(image_id):
     for inspect in inspect_arr:
 
         # XXX what if inspect doesn;t have some of these fields
+        docker_datetime = dp.parse(inspect['Created'])
+        epoch_seconds = docker_datetime.strftime('%s')
 
         image_info = {'Tags': None,
                       'Size': inspect['Size'],
                       'Id': inspect['Id'],
                       'CreatedBy': inspect['ContainerConfig']['Cmd'],
-                      'Created': inspect['Created']}
+                      'Created': epoch_seconds}
         image_history.append(image_info)
     return image_history
 
@@ -174,6 +218,9 @@ def _reformat_inspect(inspect):
     if np:
         inspect['HostConfig']['PortBindings'] = np
 
+    docker_datetime = dp.parse(inspect['Created'])
+    epoch_seconds = docker_datetime.strftime('%s')
+    inspect['Created'] = epoch_seconds
 
 def exec_dockerinspect(long_id=None):
     try:
@@ -181,11 +228,13 @@ def exec_dockerinspect(long_id=None):
     except Exception as e:
         # check what exceptions can the docker client raise
         logger.warning('Talking to docker over the socket failed: %s' % e)
+
     try:
         return _exec_dockerinspect_slow(long_id)
     except Exception as e:
         logger.exception(e)
-        raise
+
+    return {}
 
 
 def _exec_dockerinspect(long_id):
@@ -216,7 +265,7 @@ def _exec_dockerinspect_slow(long_id):
 
             # There is no docker command (or it just failed).
 
-            raise BaseException('Could not run docker inspect')
+            raise RuntimeError('Could not run docker command')
 
         inspect = json.loads(inspect_data)[0]
         _reformat_inspect(inspect)
@@ -403,6 +452,21 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
             stderr=subprocess.PIPE)
         btrfs_path = proc.stdout.read().strip()
         rootfs_path = '/var/lib/docker/' + btrfs_path
+
+    elif driver == 'aufs':
+       # print "long_id: ", long_id
+       # XXX this looks ugly and brittle       
+        proc = subprocess.Popen(
+            'find /var/lib/docker -name "' + long_id + '*" | ' +
+            'grep mnt | ' +
+            " grep -v 'init' |  head -n 1",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        aufs_path = proc.stdout.read().strip()
+        # print "===> aufs_path: ", aufs_path
+        rootfs_path = aufs_path
+ 
 
     else:
 

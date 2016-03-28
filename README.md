@@ -1,18 +1,26 @@
 Agentless System Crawler
 ========================
 
+**Disclaimer:**
+---------------
+
+```
+"The strategy is definitely: first make it work, then make it right, and, finally, make it fast."
+```
+The current state of this project is in the middle of "make it right".
+
 **Prereq:**
 -----------
 
  * Install Python 2.7.6
  * apt-get install python-dev (for installing psutil)
  * apt-get install python-pip
- * pip install simplejson
  * pip install psutil
  * pip install netifaces
  * pip install bottle
 
 **Quick test:**
+---------------
 
 ```bash
 % sudo python2.7 ./crawler/crawler.py
@@ -29,9 +37,11 @@ cpu	"cpu-0"	{"cpu_idle":61.0,"cpu_nice":0.0,"cpu_user":19.5,"cpu_wait":0.0,"cpu_
 **Agentless, out-of-band container crawling:**
 ----------------------------------------------
 
-On host machine, start a ubuntu container that idles (Read docker documents on
-how to install docker engine on the host machine)
+On host machine, start a ubuntu Docker container that idles (Read docker
+documents on how to install docker engine on the host machine). We define
+a container as any process subtree with the `pid` namespace different to the `init` process `pid` namespace
 
+# @RICARDO let's try using a python maintained container instead of ubuntu... then we can delete half of this file! - pmeckif1
 ```bash
 % docker run -d ubuntu:latest bash -c "while true; do sleep 1; done"
 ```
@@ -39,7 +49,8 @@ how to install docker engine on the host machine)
 Start crawler agent:
 
 ```bash
-% sudo python2.7 ./crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
+% cd agentless-crawler
+% ./crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
 --features os,disk,process,connection,metric,package,file,config
 --logfile /var/log/crawler.log --numprocesses 8
 ```
@@ -105,11 +116,3 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
 
 
-
-**Tests:**
-----------
-
-```bash
-% cd tests
-% bash test_all.sh
-```
