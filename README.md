@@ -52,7 +52,6 @@ container as any process subtree with the `pid` namespace different to the
 Start crawler agent:
 
 ```bash
-% cd agentless-crawler
 % sudo python2.7 crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5 --features os,disk,process,connection,metric,package,file,config --logfile /var/log/crawler.log --numprocesses 8
 ```
 
@@ -115,5 +114,3 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 
 > > package       "emacs"
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
-
-
