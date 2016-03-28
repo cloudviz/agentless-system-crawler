@@ -89,7 +89,7 @@ Now using vimdiff, you can see the 2nd snapshot has a lot of new files added to
 We will start crawler agent in manual mode this time instead of periodic mode:
 
 ```bash
-%  python2.7 crawler/crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
+% sudo python2.7 crawler/crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
 ```
 
 Install emacs (or any other package):
@@ -101,7 +101,7 @@ Install emacs (or any other package):
 Use crawler to collect information again
 
 ```bash
-%  python2.7 crawler/crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
+% sudo python2.7 crawler/crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
 ```
 
 Now we can find the differences before and after:
