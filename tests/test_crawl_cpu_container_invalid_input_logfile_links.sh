@@ -29,9 +29,10 @@ print get_host_ipaddr()
 EOF
 
 read -d '' JSON_LOG_TYPES <<"EOF"
-[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/var/log/good_log_path.log"}, {"type": null, "name": "docker.log"}]
+[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "/var/log/good_log_path.log"}, {"type": null, "name": "docker.log"}]
 EOF
 
+#[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "/var/log/input_file_name.log"}, {"type": null, "name": "docker.log"}]
 HOST_IP=`python2.7 -c "$GET_HOST_IP_PY" 2> /dev/null`
 
 MSG=`uuid`
@@ -47,7 +48,7 @@ docker run -d -e LOG_LOCATIONS=${BAD_LOG_PATH_1},${GOOD_LOG_PATH},${BAD_LOG_PATH
 	ubuntu bash -c "echo $MSG >> ${BAD_LOG_PATH_1}; echo $MSG >> /var/log/messages; echo $MSG; echo $MSG >> ${GOOD_LOG_PATH}; sleep 6000 " 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' $NAME`
 
-python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $ID \
 	--linkContainerLogFiles --url file:///tmp/$NAME
 

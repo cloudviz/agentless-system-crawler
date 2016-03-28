@@ -19,7 +19,7 @@ done
 
 IDS=`docker ps | grep test_crawl_cpu_many_containers | awk '{printf "%s,",  $1}' | sed s/,$//g`
 
-COUNT2=`timeout $ITERS python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+COUNT2=`timeout $ITERS python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $IDS --numprocesses 2 --frequency 1 | grep -c cpu-0`
 
 for i in `seq 1 $COUNT`

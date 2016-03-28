@@ -16,7 +16,7 @@ echo ble >> /etc/ric_config
 mkdir -p /root/bla
 echo bla >> /root/bla/ble
 
-python2.7 ../crawler/crawler.py \
+python2.7 ../config_and_metrics_crawler/crawler.py \
 	--features=cpu,memory,os,config,file,package,dockerps,metric,load \
 	--url file:///tmp/test_crawl_all_features_invm --options \
 	'{"config": {"known_config_files":["etc/ric_config"]}, "file": {"root_dir": "/root/bla/"}}'

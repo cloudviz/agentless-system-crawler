@@ -24,7 +24,7 @@ TMP_OUT=/tmp/`uuid`
 # Temporarily create an image that looks like a bluemix image
 docker tag ubuntu:latest $IMAGE
 
-(cd ../crawler/.
+(cd ../config_and_metrics_crawler/.
 bash crawl_docker_image.sh \
 	$IMAGE \
 	file://$FRAME \

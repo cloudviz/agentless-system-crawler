@@ -1,18 +1,29 @@
 Agentless System Crawler
 ========================
 
+**Disclaimer:**
+---------------
+
+```
+"The strategy is definitely: first make it work, then make it right, and, finally, make it fast."
+```
+The current state of this project is in the middle of "make it right".
+
 **Prereq:**
 -----------
 
  * Install Python 2.7.6
- * apt-get install python-dev (for installing psutil)
+ * apt-get install python-dev # (for installing psutil)
  * apt-get install python-pip
- * pip install simplejson
  * pip install psutil
  * pip install netifaces
  * pip install bottle
+ * pip install requests
+ * pip install python-dateutil
+
 
 **Quick test:**
+---------------
 
 ```bash
 % sudo python2.7 crawler/crawler.py
@@ -26,11 +37,13 @@ os	"linux"	{"boottime":1450194519.0,"ipaddr":["127.0.0.1","192.168.1.3","192.168
 cpu	"cpu-0"	{"cpu_idle":61.0,"cpu_nice":0.0,"cpu_user":19.5,"cpu_wait":0.0,"cpu_system":19.5,"cpu_interrupt":0.0,"cpu_steal":0.0,"cpu_used":39}
 ```
 
-**Agentless, out-of-band Docker containers crawling:**
+**Agentless, out-of-band Docker container crawling:**
 ----------------------------------------------
 
-On host machine, start a ubuntu container that idles (Read docker documents on
-how to install docker engine on the host machine)
+On the host machine, start an ubuntu Docker container that idles (Read docker
+documents on how to install docker engine on the host machine). We define a
+container as any process subtree with the `pid` namespace different to the
+`init` process `pid` namespace
 
 ```bash
 % docker run -d ubuntu:latest bash -c "while true; do sleep 1; done"
@@ -39,9 +52,8 @@ how to install docker engine on the host machine)
 Start crawler agent:
 
 ```bash
-% sudo python2.7 crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
---features os,disk,process,connection,metric,package,file,config
---logfile /var/log/crawler.log --numprocesses 8
+% cd agentless-crawler
+% sudo python2.7 crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5 --features os,disk,process,connection,metric,package,file,config --logfile /var/log/crawler.log --numprocesses 8
 ```
 
 Wait 30 seconds for crawler agent to take a snapshot of the idle container, and
@@ -51,7 +63,7 @@ then make some changes in the ubuntu container (e.g., install vim):
 % docker exec `docker ps -aq` apt-get install -y vim
 ```
 
-Wait another 30 seconds for crawler agent to take another snapshot of the
+Wait another 30 seconds for the crawler agent to take another snapshot of the
 modified container. The snapshots will be stored in
 /tmp/test.csv.[containerID].[number]. Find 2 snapshot files that was taken
 before and after vim was installed. In this example, let's assume it is
@@ -80,7 +92,7 @@ We will start crawler agent in manual mode this time instead of periodic mode:
 % sudo python2.7 crawler/crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
 ```
 
-Install emacs:
+Install emacs (or any other package):
 
 ```bash
 % apt-get install -y emacs
@@ -105,11 +117,3 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
 
 
-
-**Tests:**
-----------
-
-```bash
-% cd tests
-% bash test_all.sh
-```

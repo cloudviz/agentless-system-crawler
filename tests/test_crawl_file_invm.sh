@@ -12,7 +12,7 @@ UUID=`uuid`
 mkdir -p /bla
 touch /bla/$UUID
 
-python2.7 ../crawler/crawler.py --crawlmode INVM \
+python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
 	--features=file --options '{"file": {"root_dir": "/bla/"}}' | grep -c "/bla/$UUID"
 
 rm -rf /bla
