@@ -59,7 +59,7 @@ sleep 10
 # goes to sleep.  We start crawling after sleeping 10 seconds, for another 15
 # seconds.  So, we should collect this: 5 seconds of 0 network activity,
 # followed by 5 seconds of activity, followed by 0 activity.
-timeout 17 python2.7 ../crawler/crawler.py --crawlmode OUTCONTAINER \
+timeout 17 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=interface --crawlContainers $ID --frequency 1 | \
 	grep interface-lo | awk '{print $3}' | python2.7 -c "${PARSE_IF_NET_FRAMES_PY}"
 

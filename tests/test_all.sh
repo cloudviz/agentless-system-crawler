@@ -6,7 +6,7 @@ NC='\033[0m' # No Color
 
 DEBUG=0
 
-for i in `ls test*.sh | grep -v test_all.sh`
+for i in `ls test*.sh | grep -v test_all.sh | grep -v kafka | grep -v test_alchemy_crawler_services`
 do
 	printf "%s " $i
         if [ $DEBUG == "1" ]

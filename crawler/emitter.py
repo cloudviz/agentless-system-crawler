@@ -9,6 +9,7 @@ import time
 import csv
 import copy
 from mtgraphite import MTGraphiteClient
+from timeout import timeout
 import json
 
 # External dependencies that must be pip install'ed separately
@@ -291,9 +292,10 @@ class Emitter:
                              % url)
                 raise
 
+    @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
 
-        if kafka_python or pykafka is None:
+        if kafka_python is None or pykafka is None:
             raise ImportError('Please install kafka and pykafka')
 
         try:

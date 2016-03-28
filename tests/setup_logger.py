@@ -1,6 +1,7 @@
 import logging
 import os
 import logging.handlers
+import sys
 
 
 def setup_logger(logger_name, logfile='crawler.log'):
@@ -16,3 +17,12 @@ def setup_logger(logger_name, logfile='crawler.log'):
     _logger.addHandler(h)
 
 
+def setup_logger_stdout(logger_name):
+    _logger = logging.getLogger(logger_name)
+    _logger.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    _logger.addHandler(ch)

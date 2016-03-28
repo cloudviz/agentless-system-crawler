@@ -80,7 +80,7 @@ CpuFeature = namedtuple('CpuFeature', [
     'cpu_system',
     'cpu_interrupt',
     'cpu_steal',
-    'cpu_used',
+    'cpu_util',
 ])
 InterfaceFeature = namedtuple('InterfaceFeature', [
     'if_octets_tx',

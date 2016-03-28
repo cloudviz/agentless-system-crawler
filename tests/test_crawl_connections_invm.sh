@@ -8,7 +8,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-COUNT=`python2.7 ../crawler/crawler.py --crawlmode INVM \
+COUNT=`python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
 	--features=connection | grep -c ^connection`
 
 # Any VM should have at least a pair of connections
