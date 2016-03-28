@@ -26,7 +26,7 @@ The current state of this project is in the middle of "make it right".
 ---------------
 
 ```bash
-% sudo python2.7 ./crawler/crawler.py
+% sudo python2.7 crawler/crawler.py
 ```
 
 This should print something like this on stdout:
@@ -53,9 +53,7 @@ Start crawler agent:
 
 ```bash
 % cd agentless-crawler
-% ./crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5
---features os,disk,process,connection,metric,package,file,config
---logfile /var/log/crawler.log --numprocesses 8
+% sudo python2.7 crawler/crawler.py --crawlmode OUTCONTAINER --url file:///tmp/test.csv --frequency 5 --features os,disk,process,connection,metric,package,file,config --logfile /var/log/crawler.log --numprocesses 8
 ```
 
 Wait 30 seconds for crawler agent to take a snapshot of the idle container, and
@@ -91,7 +89,7 @@ Now using vimdiff, you can see the 2nd snapshot has a lot of new files added to
 We will start crawler agent in manual mode this time instead of periodic mode:
 
 ```bash
-% sudo python2.7 crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
+%  python2.7 crawler/crawler.py --url "file:///tmp/before.csv"  --features os,disk,process,package
 ```
 
 Install emacs (or any other package):
@@ -103,7 +101,7 @@ Install emacs (or any other package):
 Use crawler to collect information again
 
 ```bash
-% sudo python2.7 crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
+%  python2.7 crawler/crawler.py --url "file:///tmp/after.csv" --features os,disk,process,package
 ```
 
 Now we can find the differences before and after:
