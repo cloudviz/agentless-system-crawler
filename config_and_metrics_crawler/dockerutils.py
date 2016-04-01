@@ -442,6 +442,8 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     driver = get_docker_storage_driver()
 
     server_version = _get_docker_server_version()
+    if server_version == "":
+        server_version = "1.9.0"
 
     if driver == 'devicemapper':
 
