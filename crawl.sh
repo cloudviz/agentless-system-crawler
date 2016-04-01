@@ -11,23 +11,32 @@ case "$1" in
 		docker run -it crawler --help
 	;;
 	host*)
-		docker run --privileged --net=host --pid=host \
-			-v /cgroup:/cgroup \
-			-v /sys/fs/cgroup:/sys/fs/cgroup \
+		docker run \
+			--privileged \
+			--net=host \
+			--pid=host \
+			-v /cgroup:/cgroup:ro \
+			-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
 			-v /var/run/docker.sock:/var/run/docker.sock \
 			-it crawler --crawlmode INVM ${CRAWLER_ARGS}
 	;;
 	containers*)
-		docker run --privileged --net=host --pid=host \
-			-v /cgroup:/cgroup \
-			-v /sys/fs/cgroup:/sys/fs/cgroup \
+		docker run \
+			--privileged \
+			--net=host \
+			--pid=host \
+			-v /cgroup:/cgroup:ro \
+			-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
 			-v /var/run/docker.sock:/var/run/docker.sock \
 			-it crawler --crawlmode OUTCONTAINER ${CRAWLER_ARGS}
 	;;
 	none*)
-		docker run --privileged --net=host --pid=host \
-			-v /cgroup:/cgroup \
-			-v /sys/fs/cgroup:/sys/fs/cgroup \
+		docker run \
+			--privileged \
+			--net=host \
+			--pid=host \
+			-v /cgroup:/cgroup:ro \
+			-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
 			-v /var/run/docker.sock:/var/run/docker.sock \
 			--entrypoint=/bin/bash \
 			-it crawler
