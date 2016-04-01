@@ -75,7 +75,7 @@ cpu "cpu-0" {"cpu_idle":61.0,"cpu_nice":0.0,"cpu_user":19.5,"cpu_wait":0.0,"cpu_
 To crawl all Docker containers running on the host use the following command:
 ```
 $ CRAWLER --crawlmode OUTCONTAINER \
-          --url file://output/test.csv
+          --url file://output/test.csv \
           --features os,disk,process,connection,metric,package,file,config \
           --logfile output/crawler.log
 ```
@@ -88,7 +88,7 @@ a file called `output/test.csv.[containerID].[number]`.
 To crawl all Docker containers running on the host use the following command:
 ```
 $ CRAWLER --crawlmode OUTCONTAINER \
-          --url file://output/test.csv
+          --url file://output/test.csv \
           --frequency 5 \
           --features os,disk,process,connection,metric,package,file,config \
           --logfile output/crawler.log \
