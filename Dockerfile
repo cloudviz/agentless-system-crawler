@@ -1,29 +1,14 @@
-FROM ubuntu
-RUN apt-get -y update && apt-get -y upgrade
-RUN apt-get install -y build-essential checkinstall \
-    libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev \
-    tk-dev libgdbm-dev libc6-dev libbz2-dev \
-    wget
+FROM python:2.7
 
-ENV pyVer=2.7.5
-RUN cd /tmp && \
-    wget http://python.org/ftp/python/$pyVer/Python-${pyVer}.tgz && \
-    tar -xvf Python-${pyVer}.tgz && \
-    cd Python-${pyVer} && \
-    ./configure && \
-    make && \
-    checkinstall && \
-    rm -rf /tmp/*
+WORKDIR /crawler
 
-RUN apt-get install -y python-dev python-pip
-RUN pip install psutil && \
-    pip install netifaces && \
-    pip install bottle && \
-    pip install requests && \
-    pip install python-dateutil
+COPY crawler/requirements.txt /crawler/requirements.txt
+RUN pip install -r requirements.txt
 
-RUN mkdir /crawler
-COPY . /crawler/
-WORKDIR /crawler/
+ADD crawler /crawler
 
-ENTRYPOINT [ "python", "crawler/crawler.py" ]
+ENV DOCKER_VERSION 1.6.2
+ADD https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}.tgz /docker.tgz
+RUN (cd /; tar xzvf /docker.tgz)
+
+ENTRYPOINT [ "python2.7", "crawler.py" ]
