@@ -1,9 +1,0 @@
-deprecated/
-*.pyc
-utils/
-binaries/
-kafka-producer.py
-timeout.py
-alchemy.py
-*.json
-*.sh
