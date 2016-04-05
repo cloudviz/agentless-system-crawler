@@ -11,6 +11,8 @@ import copy
 from mtgraphite import MTGraphiteClient
 from timeout import timeout
 import json
+import multiprocessing
+import sys
 
 # External dependencies that must be pip install'ed separately
 
@@ -34,11 +36,40 @@ from misc import NullHandler
 logger = logging.getLogger('crawlutils')
 
 
+def kafka_send(kurl, temp_fpath, format, topic):
+    try:
+        kafka_python_client = kafka_python.KafkaClient(kurl)
+        kafka_python_client.ensure_topic_exists(topic)
+        kafka = pykafka.KafkaClient(hosts=kurl)
+
+        publish_topic_object = kafka.topics[topic]
+        # the default partitioner is random_partitioner
+        producer = publish_topic_object.get_producer()
+
+        if format == 'csv':
+            with open(temp_fpath, 'r') as fp:
+                text = fp.read()
+                producer.produce([text])
+
+        elif format == 'graphite':
+
+            with open(temp_fpath, 'r') as fp:
+                for line in fp.readlines():
+                    producer.produce([line])
+        else:
+            raise
+        sys.exit(0)
+    except Exception as e:
+
+        print e
+        # kafka.close()
+        sys.exit(1)
+
+
 class Emitter:
 
     """Class that abstracts the outputs supported by the crawler, like
     stdout, or kafka.
-
     An object of this class is created for every frame emitted. A frame is
     emitted for every container and at every crawling interval.
     """
@@ -292,6 +323,7 @@ class Emitter:
                              % url)
                 raise
 
+
     @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
 
@@ -314,11 +346,24 @@ class Emitter:
             h = NullHandler()
             logging.getLogger('kafka').addHandler(h)
 
+            try:
+                child_process = multiprocessing.Process(
+                    name='kafka-emitter', target=kafka_send, args=(
+                        kurl, self.temp_fpath, self.format, topic))
+                child_process.start()
+                child_process.join(30)
+            except OSError:
+                queue.close()
+                raise
+
+            return
+
             # XXX We should definitely create a long lasting kafka client
             kafka_python_client = kafka_python.KafkaClient(kurl)
             kafka_python_client.ensure_topic_exists(topic)
 
             kafka = pykafka.KafkaClient(hosts=kurl)
+
             publish_topic_object = kafka.topics[topic]
             # the default partitioner is random_partitioner
             producer = publish_topic_object.get_producer()
@@ -339,7 +384,7 @@ class Emitter:
                     'format'.format(self.format))
                 raise
 
-            kafka_python_client.close()
+            #kafka_python_client.close()
         except Exception as e:
 
             # kafka.close()
@@ -356,7 +401,8 @@ class Emitter:
                 retries += 1
                 self._publish_to_kafka_no_retries(url)
                 broker_alive = True
-            except Exception:
+            except Exception as e:
+                print e
                 if retries <= max_emit_retries:
 
                     # Wait for (2^retries * 100) milliseconds
@@ -429,3 +475,4 @@ class Emitter:
                 self.num_features,
                 elapsed_time))
         return False
+
