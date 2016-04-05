@@ -458,7 +458,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         if not inspect:
             inspect = exec_dockerinspect(long_id)
         logger.info('get_docker_container_rootfs_path: long_id=' +
-            long_id + ', inspect=' + inspect)
+            long_id + ', inspect=' + json.dumps(inspect))
 
         pid = inspect['State']['Pid']
 
