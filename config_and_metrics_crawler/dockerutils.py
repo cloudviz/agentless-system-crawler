@@ -391,6 +391,9 @@ def get_docker_container_json_logs_path(long_id, inspect=None):
     if not inspect:
         inspect = exec_dockerinspect(long_id)
 
+    #this should be in debug mode, for now info: sastry
+    logger.info('get_docker_container_json_logs_path: long_id=' +
+        long_id + 'inspect=' + inspect)
     path = inspect['LogPath']
 
     if path == '<no value>' or not os.path.isfile(path):
@@ -445,10 +448,17 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     if server_version == "":
         server_version = "1.9.0"
 
+    # should be debug, for now info
+    logger.info('get_docker_container_rootfs_path: long_id=' +
+        long_id + ', deriver=' + driver +
+        ', server_version=' + server_version)
+
     if driver == 'devicemapper':
 
         if not inspect:
             inspect = exec_dockerinspect(long_id)
+        logger.info('get_docker_container_rootfs_path: long_id=' +
+            long_id + ', inspect=' + inspect)
 
         pid = inspect['State']['Pid']
 

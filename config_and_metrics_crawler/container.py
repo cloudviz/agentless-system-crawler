@@ -54,6 +54,8 @@ class Container(object):
         return str(self.__dict__)
 
     def setup_namespace_and_metadata(self, container_opts={}):
+        logger.info('setup_namespace_and_metadata: long_id=' +
+                       self.long_id)
         environment = container_opts.get('environment', 'cloudsight')
         runtime_env = None
         try:
