@@ -11,7 +11,7 @@ fi
 COUNT=`python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
 	--features=package |  grep -c ^package`
 
-if [ $COUNT -gt "500" ]
+if [ $COUNT -gt "20" ]
 then
 	echo 1
 else
