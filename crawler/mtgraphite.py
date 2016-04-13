@@ -14,41 +14,6 @@ logger = logging.getLogger('crawlutils')
 
 DEFAULT_SOCKET_TIMEOUT_SECONDS = 120
 
-class TestMTGraphiteAuth(unittest.TestCase):
-    def test_supertenant_access(self):
-        supertenant_crawler_url = "mtgraphite://metrics.stage1.opvis.bluemix.net:9095/Crawler:5KilGEQ9qExi"
-        print("Starting Super MTGraphiteClient Object")
-        graphite_client = MTGraphiteClient(supertenant_crawler_url)
-        print("Getting Socket")
-        soc = graphite_client._get_socket()
-        self.assertIsNotNone(soc)
-
-    def test_dev_access(self):
-        tenant_crawler_url = "mtgraphite://metrics.stage1.opvis.bluemix.net:9095/a63d60f6-d9ce-402a-9d06-b9263acc15d4:n_rcmJvEpexR"
-        print("Starting MTGraphiteClient Object")
-        graphite_client = MTGraphiteClient(tenant_crawler_url)
-        print("Getting Socket")
-        soc = graphite_client._get_socket()
-        self.assertIsNotNone(soc)
-
-    def test_prestage_access(self):
-        tenant_crawler_url = "mtgraphite://metrics.stage1.opvis.bluemix.net:9095/759f5f8c-7c74-4a9e-8eea-1a3963bedf63:OU5Q1HfU83RS"
-        print("Starting MTGraphiteClient Object")
-        graphite_client = MTGraphiteClient(tenant_crawler_url)
-        print("Getting Socket")
-        soc = graphite_client._get_socket()
-        self.assertIsNotNone(soc)
-
-    def test_supertentant_prod_access(self):
-        tenant_crawler_url = "mtgraphite://metrics.opvis.bluemix.net:9095/Crawler:5KilGEQ9qExi"
-        print("Starting MTGraphiteClient Object")
-        graphite_client = MTGraphiteClient(tenant_crawler_url)
-        print("Getting Socket")
-        soc = graphite_client._get_socket()
-        self.assertIsNotNone(soc)
-
-
-
 class MTGraphiteClient(object):
 
     """
