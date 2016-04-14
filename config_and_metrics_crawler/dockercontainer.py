@@ -360,7 +360,7 @@ class DockerContainer(Container):
                   'dest': dest_unglob}
                if log not in logs_list:
                   logs_list.append(log)
-        logger.info('GLOB LOGSLIST %s' % logs_list) 
+        logger.debug('GLOB LOGSLIST %s' % logs_list) 
         docker_log_source = get_docker_container_json_logs_path(
             self.long_id, self.inspect)
         name = 'docker.log'
