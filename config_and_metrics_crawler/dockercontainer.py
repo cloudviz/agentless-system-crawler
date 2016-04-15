@@ -348,18 +348,26 @@ class DockerContainer(Container):
                source_unglob_list = glob.glob(log_source)
             else:
                source_unglob_list = [ log_source ]
+
             logger.debug('GLOB LIST %s' % source_unglob_list) 
             for source_unglob in source_unglob_list:
                logger.debug('SOURCE GLOB %s' % source_unglob) 
-               dest_unglob = host_log_dir + source_unglob.split(rootfs_path, 1)[1]
+               if rootfs_path in source_unglob:
+                   dest_unglob = host_log_dir + source_unglob.split(rootfs_path, 1)[1]
+               else:
+                   dest_unglob = host_log_dir + source_unglob
+
                logger.debug('DEST GLOB %s' % dest_unglob) 
+
                log = {
                   'name': name,
                   'type': _type,
                   'source': source_unglob,
                   'dest': dest_unglob}
+
                if log not in logs_list:
                   logs_list.append(log)
+
         logger.debug('GLOB LOGSLIST %s' % logs_list) 
         docker_log_source = get_docker_container_json_logs_path(
             self.long_id, self.inspect)
