@@ -31,10 +31,7 @@ def GetProcessEnv(pid=1):
     except:
         return env
     for e in envlist:
-        if '=' in e:
-            (k, v) = e.split('=', 1)
-        else:
-            (k, v) = (e, '')
+        (k, _, v) = e.partition('=')
         (k, v) = (k.strip(), v.strip())
         if not k:
             continue
