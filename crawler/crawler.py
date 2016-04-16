@@ -128,17 +128,12 @@ def snapshot():
         except:
             pass  # benign- no json payload found in the request
         if bottle.request.query:
-            value = bottle.request.query.get('url', None)
-            if value:
-                args['url'] = value
-            value = bottle.request.query.get('namespace', None)
-            if value:
-                args['namespace'] = value
-            value = bottle.request.query.get('features', None)
-            if value:
-                args['features'] = value
+            for key in ('url', 'namespace', 'features'):
+                value = bottle.request.query.get(key, None)
+                if value:
+                    args[key] = value
             value = bottle.request.query.get('since', None)
-            if value and value in ['EPOCH', 'BOOT', 'LASTSNAPSHOT']:
+            if value in ('EPOCH', 'BOOT', 'LASTSNAPSHOT'):
                 args['since'] = value
             value = bottle.request.query.get('frequency', None)
             if value:
