@@ -67,7 +67,7 @@ class Container(object):
         namespace = None
 
         if environment == 'cloudsight':
-            name = (self.name if len(self.name) > 0 else self.short_id)
+            name = self.name or self.short_id
             name = (name[1:] if name[0] == '/' else name)
             namespace = host_namespace + '/' + name
         elif environment == 'alchemy':
