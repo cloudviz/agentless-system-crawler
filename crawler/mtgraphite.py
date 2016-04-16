@@ -32,10 +32,8 @@ class MTGraphiteClient(object):
         #  mtgraphite://<host>:<port>/<super_tenant_id>:<password>
 
         list = host_url[len('mtgraphite://'):].split('/', 1)
-        self.host = list[0].split(':')[0]
-        self.port = list[0].split(':')[1]
-        self.super_tenant_id = list[1].split(':', 1)[0]
-        self.super_tenant_password = list[1].split(':', 1)[1]
+        self.host, _, self.port = list[0].partition(':')
+        self.super_tenant_id, _, self.super_tenant_password = list[1].partition(':')
 
         # create a connection only when we need it, but keep it alive
 
@@ -59,10 +57,7 @@ class MTGraphiteClient(object):
 
     def _create_authentication_message(self,tenant_id, tenant_password, supertenant=True):
         authentication_message = """"""
-        if supertenant:
-            authentication_message += '2S'
-        else:
-            authentication_message += '2T'
+        authentication_message += '2S' if supertenant else '2T'
         authentication_message += chr(len(tenant_id))
         authentication_message += tenant_id
         authentication_message += \
@@ -135,7 +130,7 @@ class MTGraphiteClient(object):
 
             except Exception as e:
                 logger.exception(e)
-                if self.conn is not None:
+                if self.conn:
                     self.conn.close()
                     self.conn = None
                 time.sleep(2)  # sleep for 2 seconds for now
@@ -217,7 +212,7 @@ class MTGraphiteClient(object):
     # ################
 
     def close(self):
-        if self.conn is not None:
+        if self.conn:
             try:
                 self.conn.close()
             except Exception as e:
@@ -252,7 +247,7 @@ class MTGraphiteClient(object):
                                           self.batch_send_every_n,
                                           time.time(),
                                           self.next_timeout))
-        if len(messages) > 0:
+        if messages:
             self.msgset.extend(messages)
         if len(self.msgset) > self.batch_send_every_n or time.time() \
                 > self.next_timeout:
@@ -278,9 +273,5 @@ class MTGraphiteClient(object):
 
         returns: a string that contains the message you want to send.
         """
-        if timestamp:
-            return '%s.%s.%s %d %d\r\n' % (space_id, group_id, metric_type,
-                                           value, timestamp)
-        else:
-            return '%s.%s.%s %d %d\r\n' % (space_id, group_id, metric_type,
-                                           value, int(time.time()))
+        return '%s.%s.%s %d %d\r\n' % (space_id, group_id, metric_type,
+                                       value, timestamp or int(time.time()))
