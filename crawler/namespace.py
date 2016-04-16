@@ -20,16 +20,7 @@ except Exception as e:
     logger.warning('Can not crawl containers as there is no libc: %s' % e)
     raise e
 
-ALL_NAMESPACES = [
-    'user',
-    'pid',
-    'uts',
-    'ipc',
-    'net',
-    'mnt',
-]
-
-
+ALL_NAMESPACES = 'user pid uts ipc net mnt'.split()
 IN_CONTAINER_TIMEOUT = 10
 
 
