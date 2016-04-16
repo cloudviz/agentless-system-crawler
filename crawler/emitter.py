@@ -60,11 +60,7 @@ class Emitter:
 
         self.urls = urls
         self.emitter_args = emitter_args
-        if 'compress' in emitter_args:
-            compress = emitter_args['compress']
-        else:
-            compress = False
-        self.compress = compress
+        self.compress = emitter_args.get('compress', False)
         self.format = format
         self.max_emit_retries = max_emit_retries
         self.mtgclient = None
@@ -126,11 +122,7 @@ class Emitter:
         data,
         timestamp=None,
     ):
-        if timestamp is None:
-            timestamp = int(time.time())
-        else:
-            timestamp = int(timestamp)
-
+        timestamp = int(timestamp or time.time())
         try:
             items = data.items()
         except:
@@ -206,8 +198,7 @@ class Emitter:
                 logger.exception(e)
                 raise
 
-        if feature_type is None:
-            feature_type = self._get_feature_type(feature_val)
+        feature_type = feature_type or self._get_feature_type(feature_val)
         if isinstance(feature_val, dict):
             feature_val_as_dict = feature_val
         else:
@@ -300,8 +291,7 @@ class Emitter:
             list = url[len('kafka://'):].split('/')
 
             if len(list) == 2:
-                kurl = list[0]
-                topic = list[1]
+                kurl, topic = list
             else:
                 raise Exception(
                     'The kafka url provided does not seem to be valid: %s. '
