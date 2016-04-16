@@ -14,7 +14,7 @@ The current state of this project is in the middle of "make it right".
 To run the crawler you'll need to do the following steps in the environment
 in which you want it to run:
 
- * Install Python 2.7.5
+ * Install Python 2.7.11
  * apt-get install python-dev
  * apt-get install python-pip
  * pip install psutil
