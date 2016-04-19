@@ -221,7 +221,7 @@ class FeaturesCrawler:
         root_dir_alias=None,
     ):
 
-        root_dir=str(root_dir)
+        root_dir = str(root_dir)
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
         accessed_since = self.feature_epoch
@@ -938,9 +938,15 @@ class FeaturesCrawler:
                 free = psutil.virtual_memory().free
             except Exception as e:
                 free = 'unknown'
+            try:
+                # XXX would be better to check if used and free are not
+                # 'unknown'.
+                util_percentage = float(used) / (free + used)
+            except Exception as e:
+                util_percentage = 'unknown'
 
             feature_attributes = MemoryFeature(used, buffered, cached,
-                                               free)
+                                               free, util_percentage)
         elif self.crawl_mode == Modes.OUTVM:
 
             (domain_name, kernel_version, distro, arch) = self.vm
@@ -950,7 +956,8 @@ class FeaturesCrawler:
                 sys.memory_used,
                 sys.memory_buffered,
                 sys.memory_cached,
-                sys.memory_free)
+                sys.memory_free,
+                sys.memory_free / (sys.memory_used + sys.memory_buffered))
         elif self.crawl_mode == Modes.OUTCONTAINER:
 
             used = buffered = cached = free = 'unknown'
@@ -973,11 +980,18 @@ class FeaturesCrawler:
                     used = int(f.readline().strip())
 
                 host_free = psutil.virtual_memory().free
-
                 container_total = used + min(host_free, limit - used)
                 free = container_total - used
-                feature_attributes = MemoryFeature(used, buffered,
-                                                   cached, free)
+
+                try:
+                    # XXX would be better to check if used and free are not
+                    # 'unknown'.
+                    util_percentage = float(used) / (free + used)
+                except Exception as e:
+                    util_percentage = 'unknown'
+
+                feature_attributes = MemoryFeature(
+                    used, buffered, cached, free, util_percentage)
             except Exception as e:
 
                 logger.error('Error crawling memory', exc_info=True)
