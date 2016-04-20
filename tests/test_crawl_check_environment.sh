@@ -66,7 +66,7 @@ docker rm -f ${CONTAINER_NAME} > /dev/null
 #}
 
 TIMESTAMP_DAY_PART=`date +"%Y-%m-%dT"`
-NAMESPACE=${SPACE_ID}_0000_${CONTAINER_ID}
+NAMESPACE=${SPACE_ID}.0000.${CONTAINER_ID}
 
 grep ^metadata /tmp/check_metadata_frame \
 			| grep '"system_type":"container"' \
