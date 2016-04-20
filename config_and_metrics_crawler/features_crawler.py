@@ -938,11 +938,10 @@ class FeaturesCrawler:
                 free = psutil.virtual_memory().free
             except Exception as e:
                 free = 'unknown'
-            try:
-                # XXX would be better to check if used and free are not
-                # 'unknown'.
+
+            if 'unknown' not in [used, free] and (free + used) > 0:
                 util_percentage = float(used) / (free + used)
-            except Exception as e:
+            else:
                 util_percentage = 'unknown'
 
             feature_attributes = MemoryFeature(used, buffered, cached,
@@ -983,11 +982,9 @@ class FeaturesCrawler:
                 container_total = used + min(host_free, limit - used)
                 free = container_total - used
 
-                try:
-                    # XXX would be better to check if used and free are not
-                    # 'unknown'.
+                if 'unknown' not in [used, free] and (free + used) > 0:
                     util_percentage = float(used) / (free + used)
-                except Exception as e:
+                else:
                     util_percentage = 'unknown'
 
                 feature_attributes = MemoryFeature(
