@@ -30,7 +30,7 @@ ALL_NAMESPACES = [
 ]
 
 
-IN_CONTAINER_TIMEOUT = 10
+IN_CONTAINER_TIMEOUT = 30
 
 
 def get_pid_namespace(pid):
