@@ -515,6 +515,8 @@ class FeaturesCrawler:
     def crawl_disk_partitions(self):
         for (key, feature) in self._crawl_wrapper(
                 self._crawl_disk_partitions, ALL_NAMESPACES):
+            # replace '.' in key with # for avoiding unnecessary hierarchy
+            key = key.replace('.','#')
             yield (key, feature)
 
     def _crawl_disk_partitions(self):
