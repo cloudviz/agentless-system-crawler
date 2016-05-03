@@ -1,0 +1,46 @@
+
+Crawler REST API (when started in network pull mode)
+----------------------------------------------------
+
+
+1. /getsnapshot[?features=FEATURES][&since=SINCE]
+
+   Returns a snapshot of FEATURES touched since SINCE as a text/csv stream.
+   
+   FEATURES is a comma-separated list of one or more of these feature-types:
+      os,disk,process,connection,metric,file,config,package.
+   It defaults to os,disk,process,conneciton.
+
+   SINCE is one of BOOT,EPOCH. It defaults to BOOT.
+
+   Example: /getsnapshot?features=process,connection
+
+2. /snapshot[?url=URL][&namespace=NAMESPACE][&features=FEATURES][&since=SINCE][&frequency=FREQUENCY][&compress=COMPRESS]
+
+   Emits a snapshot of FEATURES to URL every FREQUENCY seconds.
+   
+   SINCE limits the features to those touched since EPOCH,BOOT,LASTSNAPSHOT. It defaults to BOOT.
+   
+   COMPRESS is one of true,false and determines whether to gzip-compress the output data. It defaults to true.
+
+   If FEATURES includes "file" or "config" you can optionally provide additional JSON options in the HTTP POST body.
+   These default to:
+      { 
+         "file": {"root_dir": "/", "exclude_dirs": ["boot","dev","proc","sys","mnt","tmp"]},
+         "config": {"root_dir": "/", "known_config_files": ["etc/passwd","etc/hosts","etc/mtab","etc/group"],
+                    "discover_config_files": true}
+      }
+    
+    Example: /snapshot?url=http://foo/bar&features=process,connection,metric&frequency=60
+
+3. /status
+
+   Returns a JSON dictionary of active snapshot tasks
+
+4. /abort/ID
+   
+   Attempts to terminate snapshot task ID
+
+5. /help
+   
+   Show this API help
