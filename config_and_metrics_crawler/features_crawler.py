@@ -940,7 +940,7 @@ class FeaturesCrawler:
                 free = 'unknown'
 
             if 'unknown' not in [used, free] and (free + used) > 0:
-                util_percentage = float(used) / (free + used)
+                util_percentage = float(used) / (free + used) * 100.0
             else:
                 util_percentage = 'unknown'
 
@@ -983,7 +983,7 @@ class FeaturesCrawler:
                 free = container_total - used
 
                 if 'unknown' not in [used, free] and (free + used) > 0:
-                    util_percentage = float(used) / (free + used)
+                    util_percentage = float(used) / (free + used) * 100.0
                 else:
                     util_percentage = 'unknown'
 
