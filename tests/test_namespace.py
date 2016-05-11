@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # start a container
     proc = subprocess.Popen(
-            "docker run -d ubuntu sleep 60",
+            "docker run -d ubuntu sleep 300",
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     long_id = proc.stdout.read().strip()
     proc = subprocess.Popen(                                                  
