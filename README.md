@@ -15,8 +15,8 @@ This is a package used to deploy the regcrawler on VA infrastructure.
 VA Config & Metrics Crawlers
 ----------------------------
 <pre>
-cd config_and_metrics_crawlers
-docker build
+packaging/create_config_and_metrics_crawler_image.sh
+packaging/push_config_and_metrics_crawler_image_to_registry.sh
 </pre>
 This is a container that runs the config & metrics crawler on VA infrastructure.
 
