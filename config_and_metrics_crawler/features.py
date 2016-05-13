@@ -68,7 +68,8 @@ ConnectionFeature = namedtuple('ConnectionFeature', [
     'connstatus',
 ])
 PackageFeature = namedtuple('PackageFeature', ['installed', 'pkgname',
-                                               'pkgsize', 'pkgversion'])
+                                               'pkgsize', 'pkgversion',
+                                               'pkgarchitecture'])
 MemoryFeature = namedtuple('MemoryFeature', [
     'memory_used',
     'memory_buffered',
