@@ -391,9 +391,6 @@ def get_docker_container_json_logs_path(long_id, inspect=None):
     if not inspect:
         inspect = exec_dockerinspect(long_id)
 
-    #this should be in debug mode, for now info: sastry
-    logger.info('get_docker_container_json_logs_path: long_id=' +
-        long_id + 'inspect=' + inspect)
     path = inspect['LogPath']
 
     if path == '<no value>' or not os.path.isfile(path):
@@ -422,6 +419,7 @@ def _get_docker_server_version():
     if proc.returncode != 0:
         raise RuntimeError('Could not run docker info command')
     return server_version
+
 
 def get_docker_container_rootfs_path(long_id, inspect=None):
     """
@@ -457,8 +455,6 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
 
         if not inspect:
             inspect = exec_dockerinspect(long_id)
-        logger.info('get_docker_container_rootfs_path: long_id=' +
-            long_id + ', inspect=' + json.dumps(inspect))
 
         pid = inspect['State']['Pid']
 
