@@ -39,7 +39,7 @@ def _exec_dockerps():
     if docker is None:
         raise ImportError('Please install the Docker python client.')
 
-    client = docker.Client(base_url='unix://var/run/docker.sock')
+    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
     containers = client.containers()
     inspect_arr = []
     for container in containers:  # docker ps
@@ -105,7 +105,7 @@ def _exec_docker_history(long_id=None):
     if docker is None:
         raise ImportError('Please install the Docker python client.')
 
-    client = docker.Client(base_url='unix://var/run/docker.sock')
+    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
     containers = client.containers()
     out = None
     for c in containers:
@@ -241,7 +241,7 @@ def _exec_dockerinspect(long_id):
     if docker is None:
         raise ImportError('Please install the Docker python client.')
 
-    client = docker.Client(base_url='unix://var/run/docker.sock')
+    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
     containers = client.containers()
     out = None
     for c in containers:  # docker ps
