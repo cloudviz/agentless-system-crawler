@@ -399,7 +399,7 @@ def snapshot(
     :param features: List of features to crawl.
     :param options: Tree of options with details like what config files.
     :param since: Calculate deltas or not. XXX needs some work.
-    :param frequency: Sleep duration between iterations. -1 means just one run.
+    :param frequency: Target time period for iterations. -1 means just one run.
     :param crawlmode: What's the system we want to crawl.
     :param inputfile: Applies to mode.FILE. The frame emitted is this file.
     :param format: The format of the frame, defaults to csv.
@@ -413,6 +413,7 @@ def snapshot(
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
 
     since_timestamp, last_snapshot_time = get_initial_since_values(since)
+    next_iteration_time = None
 
     snapshot_num = 0
 
@@ -491,14 +492,27 @@ def snapshot(
         else:
             raise RuntimeError('Unknown Mode')
 
-        # Frequency <= 0 means only one run.
-
-        if frequency < 0 or should_exit:
-            logger.info('Bye')
-            break
-
         if since == 'LASTSNAPSHOT':
             # Subsequent snapshots will update this value.
             since_timestamp = snapshot_time
-        time.sleep(frequency)
+
+        # Frequency <= 0 means only one run.
+        if frequency < 0 or should_exit:
+            logger.info('Bye')
+            break
+        elif frequency == 0:
+            continue
+
+        if next_iteration_time is None:
+            next_iteration_time = snapshot_time + frequnecy
+        else:
+            next_iteration_time = next_iteration_time + frequnecy
+
+        while next_iteration_time + frequency < time.time():
+            next_iteration_time = next_iteration_time + frequency
+
+        time_to_sleep = next_iteration_time - time.time()
+        if time_to_sleep > 0:
+            time.sleep(time_to_sleep)
+
         snapshot_num += 1
