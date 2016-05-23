@@ -28,6 +28,14 @@ using the provided `Dockerfile`:
 
 `docker build -t crawler .`
 
+or run:
+
+`make build`
+
+To run the test cases, run:
+
+`make test`
+
 **Running the Crawler:**
 ------------------------
 To run the crawler use:
