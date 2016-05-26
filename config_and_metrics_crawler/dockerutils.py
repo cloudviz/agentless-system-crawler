@@ -18,25 +18,7 @@ def exec_dockerps():
     containers = client.containers()
     inspect_arr = []
     for container in containers:
-        inspect = client.inspect_container(container['Id'])
-        _reformat_inspect(inspect)
-
-        repo_tag = ''
-        image_name = inspect['Config']['Image']
-        if ':' in image_name:
-            if not '/' in image_name.rsplit(':', 1)[1]:
-                image_name = image_name.rsplit(':', 1)[0]
-
-        for image in client.images(image_name):
-            if image['Id'] == inspect['Image']:
-                repo_tag = image['RepoTags'][0]
-
-        inspect['docker_image_long_name'] = repo_tag
-        inspect['docker_image_short_name'] = os.path.basename(repo_tag)
-        inspect['docker_image_tag'] = repo_tag.rsplit(':', 1)[1]
-        inspect['docker_image_registry'] = os.path.dirname(repo_tag).split('/')[0]
-        inspect['owner_namespace'] = os.path.basename(os.path.dirname(repo_tag))
-
+        inspect = exec_dockerinspect(container['Id'])
         inspect_arr.append(inspect)
 
     return inspect_arr
@@ -92,16 +74,39 @@ def _reformat_inspect(inspect):
 
 def exec_dockerinspect(long_id=None):
     client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
-    containers = client.containers()
-    out = None
-    for c in containers:  # docker ps
-        if not long_id or long_id == c['Id']:
-            inspect = client.inspect_container(c['Id'])
-            _reformat_inspect(inspect)
-            out = inspect
-            break
-    del client
-    return out
+
+    if not long_id:
+        containers = client.containers()
+        if len(containers) < 1:
+            return None
+        long_id = client.containers[0]['Id']
+
+    inspect = client.inspect_container(long_id)
+    _reformat_inspect(inspect)
+
+    repo_tag = ''
+    image_name = inspect['Config']['Image']
+    if ':' in image_name:
+        if not '/' in image_name.rsplit(':', 1)[1]:
+            image_name = image_name.rsplit(':', 1)[0]
+
+    for image in client.images(image_name):
+        if image['Id'] == inspect['Image']:
+            repo_tag = image['RepoTags'][0]
+
+    inspect['docker_image_long_name'] = repo_tag
+    inspect['docker_image_short_name'] = os.path.basename(repo_tag)
+    if ':' in repo_tag and not '/' in repo_tag.rsplit(':', 1)[1]:
+        inspect['docker_image_tag'] = repo_tag.rsplit(':', 1)[1]
+    else:
+        inspect['docker_image_tag'] = ''
+    inspect['docker_image_registry'] = os.path.dirname(repo_tag).split('/')[0]
+    try:
+        inspect['owner_namespace'] = os.path.dirname(repo_tag).split('/', 1)[1]
+    except IndexError:
+        inspect['owner_namespace'] = ''
+
+    return inspect
 
 def get_docker_storage_driver():
     """

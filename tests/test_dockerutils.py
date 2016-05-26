@@ -3,21 +3,15 @@ import subprocess
 import logging
 import time
 import sys
-import simplejson as json
+import json
 
 # sys.path.append('/home/kollerr/research/cloudsight-container/collector')
 sys.path.append('../')
 
 from config_and_metrics_crawler.dockerutils import (
     exec_dockerps, # wrapper
-    _exec_dockerps, # fast version
-    _exec_dockerps_slow, # slow version
     exec_docker_history,
-    _exec_docker_history,
-    _exec_docker_history_slow,
     exec_dockerinspect,
-    _exec_dockerinspect,
-    _exec_dockerinspect_slow,
 )
 
 #image = "d55e68e6cc9c"
@@ -33,25 +27,6 @@ def test_dockerps(long_id):
             found = True
     print sys._getframe().f_code.co_name, int(found)
 
-
-def test_dockerps_fast(long_id):
-    found = False
-    for inspect in _exec_dockerps():
-        c_long_id = inspect['Id']
-        if long_id == c_long_id:
-            found = True
-    print sys._getframe().f_code.co_name, int(found)
-
-
-def test_dockerps_slow(long_id):
-    found = False
-    for inspect in _exec_dockerps_slow():
-        c_long_id = inspect['Id']
-        if long_id == c_long_id:
-            found = True
-    print sys._getframe().f_code.co_name, int(found)
-
-
 def test_docker_history(long_id):
     global image
     global image_id
@@ -60,43 +35,10 @@ def test_docker_history(long_id):
     found = image_id in history[0]['Id']
     print sys._getframe().f_code.co_name, int(found)
 
-
-def test_docker_history_fast(long_id):
-    global image
-    global image_id
-    found = False
-    history = _exec_docker_history(long_id)
-    found = image_id in history[0]['Id']
-    print sys._getframe().f_code.co_name, int(found)
-
-
-def test_docker_history_slow(long_id):
-    global image
-    global image_id
-    found = False
-    history = _exec_docker_history_slow(long_id)
-    found = image_id in history[0]['Id']
-    print sys._getframe().f_code.co_name, int(found)
-
-
 def test_dockerinspect(long_id):
     global image
     found = False
     inspect_image = exec_dockerinspect(long_id)['Image']
-    found = image_id in inspect_image
-    print sys._getframe().f_code.co_name, int(found)
-
-def test_dockerinspect_fast(long_id):
-    global image
-    found = False
-    inspect_image = _exec_dockerinspect(long_id)['Image']
-    found = image_id in inspect_image
-    print sys._getframe().f_code.co_name, int(found)
-
-def test_dockerinspect_slow(long_id):
-    global image
-    found = False
-    inspect_image = _exec_dockerinspect_slow(long_id)['Image']
     found = image_id in inspect_image
     print sys._getframe().f_code.co_name, int(found)
 
@@ -122,14 +64,8 @@ if __name__ == '__main__':
     image_id = proc.stdout.read().strip()
 
     test_dockerps(long_id)
-    test_dockerps_fast(long_id)
-    test_dockerps_slow(long_id)
     test_docker_history(long_id)
-    test_docker_history_fast(long_id)
-    test_docker_history_slow(long_id)
     test_dockerinspect(long_id)
-    test_dockerinspect_fast(long_id)
-    test_dockerinspect_slow(long_id)
 
     # stop the container
     proc = subprocess.Popen(

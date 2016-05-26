@@ -510,9 +510,9 @@ def snapshot(
             continue
 
         if next_iteration_time is None:
-            next_iteration_time = snapshot_time + frequnecy
+            next_iteration_time = snapshot_time + frequency
         else:
-            next_iteration_time = next_iteration_time + frequnecy
+            next_iteration_time = next_iteration_time + frequency
 
         while next_iteration_time + frequency < time.time():
             next_iteration_time = next_iteration_time + frequency
