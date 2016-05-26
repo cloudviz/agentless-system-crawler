@@ -71,6 +71,7 @@ class DockerContainer(Container):
         self.docker_image_short_name = inspect['docker_image_short_name']
         self.docker_image_tag = inspect['docker_image_tag']
         self.docker_image_registry = inspect['docker_image_registry']
+        self.owner_namespace = inspect['owner_namespace']
 
         # This short ID is mainly used for logging purposes
 
