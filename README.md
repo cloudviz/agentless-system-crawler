@@ -134,7 +134,7 @@ Now using vimdiff, you can see the 2nd snapshot has a lot of new files added to
 $ vimdiff test.csv.9348177d4c8e.4.sorted test.csv.9348177d4c8e.5.sorted
 ```
 
-Finally, erase the test container:
+Finally, delete the test container:
 ```
 sudo docker rm -f test
 ```
