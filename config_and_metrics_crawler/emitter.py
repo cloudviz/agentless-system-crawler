@@ -255,8 +255,8 @@ class Emitter:
                 print fd.read()
             else:
                 for line in fd.readlines():
-                    sys.stdout.flush()
                     print line.strip()
+                    sys.stdout.flush()
 
     def _publish_to_broker(self, url, max_emit_retries=5):
 
