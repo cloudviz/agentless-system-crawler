@@ -408,8 +408,8 @@ if __name__ == '__main__':
         dest='frequency',
         type=int,
         default=None,
-        help='Interval in secs between successive snapshots. Defaults to -1 '
-             'which means only run one iteration.')
+        help='Target time period for iterations. Defaults to -1 which '
+             'means only run one iteration.')
     parser.add_argument(
         '--compress',
         dest='compress',
