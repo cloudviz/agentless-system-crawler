@@ -91,7 +91,7 @@ $ CRAWLER --crawlmode OUTCONTAINER \
 This will take a snapshot of the existing containers and put the results in
 a file called `output/test.csv.[containerID].[number]`.
 
-**Continuous Docker Container Crawling:**
+**Continuous Container Crawling:**
 -----------------------------------------
 To crawl all Docker containers running on the host use the following command:
 ```
