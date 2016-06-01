@@ -8,6 +8,7 @@ import shutil
 import time
 import csv
 import copy
+import sys
 from mtgraphite import MTGraphiteClient
 from timeout import timeout
 import json
@@ -255,6 +256,7 @@ class Emitter:
             else:
                 for line in fd.readlines():
                     print line.strip()
+                    sys.stdout.flush()
 
     def _publish_to_broker(self, url, max_emit_retries=5):
 
