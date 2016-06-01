@@ -86,7 +86,7 @@ def exec_dockerinspect(long_id=None):
 
     try:
         repo_tag = client.inspect_image(inspect['Image'])['RepoTags'][0]
-    except KeyError, IndexError:
+    except (KeyError, IndexError):
         repo_tag = ''
 
     inspect['docker_image_long_name'] = repo_tag
