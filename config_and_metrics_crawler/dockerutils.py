@@ -84,15 +84,10 @@ def exec_dockerinspect(long_id=None):
     inspect = client.inspect_container(long_id)
     _reformat_inspect(inspect)
 
-    repo_tag = ''
-    image_name = inspect['Config']['Image']
-    if ':' in image_name:
-        if not '/' in image_name.rsplit(':', 1)[1]:
-            image_name = image_name.rsplit(':', 1)[0]
-
-    for image in client.images(image_name):
-        if image['Id'] == inspect['Image']:
-            repo_tag = image['RepoTags'][0]
+    try:
+        repo_tag = client.inspect_image(inspect['Image'])['RepoTags'][0]
+    except KeyError, IndexError:
+        repo_tag = ''
 
     inspect['docker_image_long_name'] = repo_tag
     inspect['docker_image_short_name'] = os.path.basename(repo_tag)
