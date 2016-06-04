@@ -26,25 +26,24 @@ in which you want it to run:
 If you want to run the crawler in a container then build the `crawler` image
 using the provided `Dockerfile`:
 
-`docker build -t crawler .`
+`sudo docker build -t crawler .`
 
 or run:
 
-`make build`
+`sudo make build`
 
 To run the test cases, run:
 
-`make test`
+`sudo make test`
 
 **Running the Crawler:**
 ------------------------
-To run the crawler use:
+To run the crawler natively on the Docker host system, use:
 ```
 sudo python crawler/crawlyer.py ...
 ```
-if running it natively on the Docker host system. 
 
-Use:
+To run the crawler in a container use:
 ```
 sudo docker run \
     --privileged \
@@ -56,10 +55,9 @@ sudo docker run \
     -v $PWD/output:/crawler/output \
     -it crawler ...
 ```
-if running it from within a container.
 
 Note: this assumes a directory called `output` is present to store the output
-of the crawler scans.
+of the crawler scans, so you may need to create (`mkdir output`) first.
 
 The following examples will use `CRAWLER` as a short-hand notation to mean
 one of the above commands.
