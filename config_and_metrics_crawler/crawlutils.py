@@ -323,13 +323,15 @@ def snapshot_container(
         'container_image': container.image,
         'extra': extra_metadata,
         'extra_all_features': extra_metadata_for_all,
-        'owner_namespace': container.owner_namespace,
-        'docker_image_long_name': container.docker_image_long_name,
-        'docker_image_short_name': container.docker_image_short_name,
-        'docker_image_tag': container.docker_image_tag,
-        'docker_image_registry': container.docker_image_registry,
         'uuid': str(uuid.uuid4())
     }
+
+    if container.is_docker_container():
+        metadata['owner_namespace'] = container.owner_namespace
+        metadata['docker_image_long_name'] = container.docker_image_long_name
+        metadata['docker_image_short_name'] = container.docker_image_short_name
+        metadata['docker_image_tag'] = container.docker_image_tag
+        metadata['docker_image_registry'] = container.docker_image_registry
 
     output_urls = []
     for url in urls:
