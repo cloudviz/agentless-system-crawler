@@ -28,7 +28,7 @@ HOST_IP=`python2.7 -c "$GET_HOST_IP_PY" 2> /dev/null`
 NAME=test_create_destroy_container_with_input_logfiles
 
 # Cleanup
-rm -f /tmp/$NAME*
+rm -rf /tmp/$NAME*
 rm -rf /var/log/crawler_container_logs/$HOST_IP/$NAME/
 docker rm -f $NAME 2> /dev/null > /dev/null
 
