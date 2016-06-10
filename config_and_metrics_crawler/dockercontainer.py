@@ -192,7 +192,7 @@ class DockerContainer(Container):
         try:
             shutil.rmtree(host_log_dir)
         except (IOError, OSError) as e:
-            logger.error('Could not delete directory: %s', % host_log_dir)
+            logger.error('Could not delete directory: %s' % host_log_dir)
             pass
 
     def _log_locations_json_sanity_check(self, data):
