@@ -26,23 +26,24 @@ in which you want it to run:
 If you want to run the crawler in a container then build the `crawler` image
 using the provided `Dockerfile`:
 
-`docker build -t crawler .`
+`sudo docker build -t crawler .`
 
 or run:
 
-`make build`
+`sudo make build`
 
 To run the test cases, run:
 
-`make test`
+`sudo make test`
 
 **Running the Crawler:**
 ------------------------
-To run the crawler use:
+To run the crawler natively on the Docker host system, use:
 ```
 sudo python crawler/crawlyer.py ...
 ```
-if running it natively on the Docker host system. Or use:
+
+To run the crawler in a container use:
 ```
 sudo docker run \
     --privileged \
@@ -54,10 +55,9 @@ sudo docker run \
     -v $PWD/output:/crawler/output \
     -it crawler ...
 ```
-if running it from within a Docker container.
 
 Note: this assumes a directory called `output` is present to store the output
-of the crawler scans.
+of the crawler scans, so you may need to create (`mkdir output`) first.
 
 The following examples will use `CRAWLER` as a short-hand notation to mean
 one of the above commands.
@@ -78,9 +78,9 @@ os "linux" {"boottime":1450194519.0,"ipaddr":["127.0.0.1","192.168.1.3","192.168
 cpu "cpu-0" {"cpu_idle":61.0,"cpu_nice":0.0,"cpu_user":19.5,"cpu_wait":0.0,"cpu_system":19.5,"cpu_interrupt":0.0,"cpu_steal":0.0,"cpu_used":39}
 ```
 
-**Crawling Docker Containers:**
+**Crawling Containers:**
 -------------------------------
-To crawl all Docker containers running on the host use the following command:
+To crawl all containers running on the host use the following command:
 ```
 $ CRAWLER --crawlmode OUTCONTAINER \
           --url file://output/test.csv \
@@ -91,9 +91,9 @@ $ CRAWLER --crawlmode OUTCONTAINER \
 This will take a snapshot of the existing containers and put the results in
 a file called `output/test.csv.[containerID].[number]`.
 
-**Continuous Docker Container Crawling:**
+**Continuous Container Crawling:**
 -----------------------------------------
-To crawl all Docker containers running on the host use the following command:
+To crawl all containers running on the host use the following command:
 ```
 $ CRAWLER --crawlmode OUTCONTAINER \
           --url file://output/test.csv \
@@ -134,7 +134,7 @@ Now using vimdiff, you can see the 2nd snapshot has a lot of new files added to
 $ vimdiff test.csv.9348177d4c8e.4.sorted test.csv.9348177d4c8e.5.sorted
 ```
 
-Finally, erase the test container:
+Finally, delete the test container:
 ```
 sudo docker rm -f test
 ```
