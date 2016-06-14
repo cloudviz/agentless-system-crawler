@@ -522,7 +522,7 @@ class FeaturesCrawler:
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
         logger.debug('Crawling Disk partitions')
-        for partition in psutil.disk_partitions():
+        for partition in psutil.disk_partitions(all=True):
             try:
                 pdiskusage = psutil.disk_usage(partition.mountpoint)
                 yield (partition.mountpoint, DiskFeature(

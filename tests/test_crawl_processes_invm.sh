@@ -10,4 +10,4 @@ fi
 
 # In a VM process with pid 1 should be init
 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
-	--features=process | grep -c 'process\s"init/1"'
+	--features=process | grep -c '/1"'
