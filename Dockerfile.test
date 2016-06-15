@@ -6,17 +6,9 @@ RUN apt-get -y update && apt-get -y upgrade
 RUN apt-get install -y build-essential checkinstall \
 	libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev \
 	tk-dev libgdbm-dev libc6-dev libbz2-dev \
-	wget curl uuid netcat
+	wget curl uuid netcat python2.7
 
 RUN curl -fsSL https://get.docker.com/ | sh
-
-ENV pyVer=2.7.5
-RUN wget http://python.org/ftp/python/$pyVer/Python-${pyVer}.tgz && \
-    tar -xvf Python-${pyVer}.tgz && \
-	cd Python-${pyVer} && \
-	./configure && \
-	make && \
-	checkinstall
 
 RUN mkdir /crawler
 COPY . /crawler/
