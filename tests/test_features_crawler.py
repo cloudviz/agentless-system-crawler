@@ -1,75 +1,70 @@
-from capturing import Capturing
-import sys
+import unittest
+import docker
+import requests.exceptions
+import tempfile
+import os
+import shutil
 import subprocess
+import sys
 
 sys.path.append('..')
 
-from config_and_metrics_crawler.emitter import Emitter
-from config_and_metrics_crawler.features_crawler import FeaturesCrawler
-from setup_logger import setup_logger
+from crawler.emitter import Emitter
+from crawler.features_crawler import FeaturesCrawler
 
-from config_and_metrics_crawler.dockercontainer import DockerContainer
-from config_and_metrics_crawler.dockerutils import exec_dockerinspect
+from crawler.dockercontainer import DockerContainer
+from crawler.dockerutils import exec_dockerinspect
 
 
 # Tests the FeaturesCrawler class
 # Throws an AssertionError if any test fails
 
-def test_features_crawler_crawl_invm_cpu():
-    crawler = FeaturesCrawler(crawl_mode='INVM')
-    cores = len(list(crawler.crawl_cpu()))
-    assert cores > 0
-    print sys._getframe().f_code.co_name, 1
+# Tests conducted with a single container running.
+class FeaturesCrawlerTests(unittest.TestCase):
+    image_name = 'alpine:latest'
 
-def test_features_crawler_crawl_invm_mem():
-    crawler = FeaturesCrawler(crawl_mode='INVM')
-    cores = len(list(crawler.crawl_memory()))
-    assert cores > 0
-    print sys._getframe().f_code.co_name, 1
+    def setUp(self):
+        self.docker = docker.Client(base_url='unix://var/run/docker.sock', version='auto')
+        try:
+            if len(self.docker.containers()) != 0:
+                raise Exception("Sorry, this test requires a machine with no docker containers running.")
+        except requests.exceptions.ConnectionError as e:
+            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
 
-def test_features_crawler_crawl_outcontainer_cpu():
-    # Start a dummy container
-    proc = subprocess.Popen(
-            "docker run -d ubuntu sleep 60",
-            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    long_id = proc.stdout.read().strip()
-    c = DockerContainer(long_id)
-    
-    crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
-    #for key, feature in crawler.crawl_cpu():
-    #    print key, feature
-    cores = len(list(crawler.crawl_cpu()))
-    # Kill the dummy container
-    proc = subprocess.Popen(
-            "docker rm -f %s" % long_id,
-            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    long_id = proc.stdout.read().strip()
-    assert cores > 0
-    print sys._getframe().f_code.co_name, 1
+        self.docker.pull(repository='alpine', tag='latest')
+        self.container = self.docker.create_container(image=self.image_name, command='/bin/sleep 60')
+        self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
+        self.docker.start(container=self.container['Id'])
 
-def test_features_crawler_crawl_outcontainer_mem():
-    # Start a dummy container
-    proc = subprocess.Popen(
-            "docker run -d ubuntu sleep 60",
-            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    long_id = proc.stdout.read().strip()
-    c = DockerContainer(long_id)
+    def tearDown(self):
+        self.docker.stop(container=self.container['Id'])
+        self.docker.remove_container(container=self.container['Id'])
 
-    crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
-    output = "%s" % list(crawler.crawl_memory())
-    #print output
-    # Kill the dummy container
-    proc = subprocess.Popen(
-            "docker rm -f %s" % long_id,
-            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    long_id = proc.stdout.read().strip()
-    assert 'memory_used' in output
-    print sys._getframe().f_code.co_name, 1
+        shutil.rmtree(self.tempd)
 
+    def test_features_crawler_crawl_invm_cpu(self):
+        crawler = FeaturesCrawler(crawl_mode='INVM')
+        cores = len(list(crawler.crawl_cpu()))
+        assert cores > 0
 
-if __name__ == '__main__':
-    setup_logger("crawlutils", "tester.log")
-    test_features_crawler_crawl_invm_cpu()
-    test_features_crawler_crawl_outcontainer_cpu()
-    test_features_crawler_crawl_invm_mem()
-    test_features_crawler_crawl_outcontainer_mem()
+    def test_features_crawler_crawl_invm_mem(self):
+        crawler = FeaturesCrawler(crawl_mode='INVM')
+        cores = len(list(crawler.crawl_memory()))
+        assert cores > 0
+
+    def test_features_crawler_crawl_outcontainer_cpu(self):
+        c = DockerContainer(self.container['Id'])
+        crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
+        for key, feature in crawler.crawl_cpu():
+            print key, feature
+        cores = len(list(crawler.crawl_cpu()))
+        assert cores > 0
+
+    def test_features_crawler_crawl_outcontainer_mem(self):
+        c = DockerContainer(self.container['Id'])
+        crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
+        output = "%s" % list(crawler.crawl_memory())
+        assert 'memory_used' in output
+
+    if __name__ == '__main__':
+        unittest.main()

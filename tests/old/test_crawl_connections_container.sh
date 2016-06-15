@@ -9,7 +9,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 docker rm -f test_crawl_file_container_1 2> /dev/null > /dev/null
-docker run -d --name test_crawl_file_container_1 ubuntu bash -c "nc -l -p 7777; sleep 60" 2> /dev/null > /dev/null
+docker run -d --name test_crawl_file_container_1 ubuntu:14.04 bash -c "nc -l -p 7777; sleep 60" 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' test_crawl_file_container_1`
 
 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
