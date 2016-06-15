@@ -3,7 +3,6 @@ import subprocess
 import logging
 import time
 import sys
-import simplejson as json
 
 # sys.path.append('/home/kollerr/research/cloudsight-container/collector')
 sys.path.append('../')
@@ -123,13 +122,13 @@ if __name__ == '__main__':
 
     test_dockerps(long_id)
     test_dockerps_fast(long_id)
-    test_dockerps_slow(long_id)
+    #test_dockerps_slow(long_id)
     test_docker_history(long_id)
     test_docker_history_fast(long_id)
-    test_docker_history_slow(long_id)
+    #test_docker_history_slow(long_id)
     test_dockerinspect(long_id)
     test_dockerinspect_fast(long_id)
-    test_dockerinspect_slow(long_id)
+    #test_dockerinspect_slow(long_id)
 
     # stop the container
     proc = subprocess.Popen(

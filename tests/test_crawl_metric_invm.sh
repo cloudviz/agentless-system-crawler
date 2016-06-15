@@ -9,4 +9,4 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
-	--features=metric | grep 'metric\s"init/1"' | grep -c cpupct
+	--features=metric | grep '/1"' | grep -c cpupct
