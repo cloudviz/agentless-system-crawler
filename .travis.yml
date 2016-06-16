@@ -1,12 +1,28 @@
+sudo: required
 language: python
+
+services:
+  - docker
+
+env:
+  global:
+    - DOCKER_VERSION=1.10.1-0~trusty
+
 python:
-  - "2.6"
   - "2.7"
-  - "3.4"
-  - "3.5"
-  - "3.5-dev" # 3.5 development branch
-  - "nightly" # currently points to 3.6-dev
+
+before_install:  
+    # list docker-engine versions
+    - apt-cache madison docker-engine
+
+    # upgrade docker-engine to specific version
+    - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
+
 # command to install dependencies
-install: "pip install -r requirements-test.txt"
+# TODO: having issues with the bottle package if we don't run sudo pip install.
+# It's mysterious and should be fixed eventually.
+install: "pip install -r requirements-test.txt; sudo pip install -r requirements-test.txt"
+
 # command to run tests
-script: py.test
+script:
+- sudo `which py.test`
