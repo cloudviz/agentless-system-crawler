@@ -1,4 +1,4 @@
-Agentless System Crawler
+Agentless System Crawler [![Build Status](https://travis-ci.org/cloudviz/agentless-system-crawler.svg?branch=master)](https://travis-ci.org/cloudviz/agentless-system-crawler)
 ========================
 
 **Disclaimer:**
