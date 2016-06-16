@@ -1,33 +1,28 @@
-FROM ubuntu
-WORKDIR /tmp/
-RUN apt-get -y update && apt-get -y upgrade
-RUN apt-get install -y build-essential checkinstall \
-	libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev \
-	tk-dev libgdbm-dev libc6-dev libbz2-dev \
-	wget curl uuid
+FROM alpine:3.3
 
-RUN curl -fsSL https://get.docker.com/ | sh
+RUN apk --no-cache add --repository http://dl-cdn.alpinelinux.org/alpine/edge/main libseccomp
+RUN apk --no-cache add --repository http://dl-cdn.alpinelinux.org/alpine/edge/community docker
 
-ENV pyVer=2.7.5
-RUN wget http://python.org/ftp/python/$pyVer/Python-${pyVer}.tgz && \
-    tar -xvf Python-${pyVer}.tgz && \
-	cd Python-${pyVer} && \
-	./configure && \
-	make && \
-	checkinstall
+RUN apk add --update \
+    python \
+    python-dev \
+    py-pip \
+    build-base \
+    linux-headers \
+    docker \
+  && pip install --upgrade pip \
+  && rm -rf /var/cache/apk/*
+ 
+COPY crawler/requirements.txt /requirements.txt
+COPY tests/requirements.txt /requirements-test.txt
+RUN pip install -r requirements.txt && pip install -r requirements-test.txt
 
-RUN apt-get install -y python-dev python-pip
-RUN pip install psutil && \
-    pip install netifaces && \
-	pip install bottle && \
-	pip install requests && \
-	pip install python-dateutil
+WORKDIR /crawler
 
-RUN mkdir /crawler
-COPY . /crawler/
-WORKDIR /crawler/
+COPY . /crawler
+RUN pip install -r crawler/requirements.txt
+RUN pip install -r tests/requirements.txt
 
-RUN pip2 install --no-index --find-links="packaging/python_packages/" psutil bottle requests pydoubles netifaces kafka-python docker-py pykafka
-
-WORKDIR tests
-CMD (docker daemon > ../docker.out 2>&1 &) && sleep 5 && ./test_all.sh
+CMD (docker daemon > ../docker.out 2>&1 &) && \
+	sleep 5 && \
+	py.test 
