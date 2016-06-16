@@ -6,5 +6,5 @@ build:
 	docker build -t crawler .
 
 test:
-	docker build -t test -f Dockerfile.test .
-	docker run --privileged -ti test
+	docker build -t agentless-system-crawler-test -f Dockerfile.test .
+	docker run --privileged -ti agentless-system-crawler-test
