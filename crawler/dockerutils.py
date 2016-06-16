@@ -349,7 +349,7 @@ def get_docker_storage_driver():
 
     # Step 3, we default to "devicemapper" (last resort)
 
-    if driver not in ('btrfs', 'devicemapper', 'aufs'):
+    if driver not in ('btrfs', 'devicemapper', 'aufs', 'vfs'):
 
         # We will take our risk and default to devicemapper
 
@@ -466,7 +466,17 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         aufs_path = proc.stdout.read().strip()
         # print "===> aufs_path: ", aufs_path
         rootfs_path = aufs_path
- 
+
+    elif driver == 'vfs':
+        proc = subprocess.Popen(
+            "cat /var/lib/docker/image/vfs/layerdb/mounts/" +
+            long_id +
+            "/init-id | cut -d'-' -f1",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        vfs_path = proc.stdout.read().strip()
+        rootfs_path = '/var/lib/docker/vfs/dir/' + vfs_path
 
     else:
 
