@@ -46,7 +46,7 @@ print int(cond1 and cond2)
 EOF
 
 docker rm -f test_crawl_interface_container_1 2> /dev/null > /dev/null
-docker run -d --name test_crawl_interface_container_1 ubuntu \
+docker run -d --name test_crawl_interface_container_1 ubuntu:14.04 \
 	bash -c "sleep 15; ping -c5 localhost; sleep 60" 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' test_crawl_interface_container_1`
 
