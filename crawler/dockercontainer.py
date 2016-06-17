@@ -91,7 +91,6 @@ class DockerContainer(Container):
                 return path
 
         # Try getting the mount point from /proc/mounts
-
         try:
             # XXX don't start a process just for this
             proc = subprocess.Popen(
@@ -110,8 +109,11 @@ class DockerContainer(Container):
                             self.long_id, node)
 
     def get_cpu_cgroup_path(self, node='cpuacct.usage'):
-        return os.path.join(self.get_cgroup_dir('cpuacct'), 'docker',
-                            self.long_id, node)
+        cgroup_dir = self.get_cgroup_dir('cpuacct')
+        if not cgroup_dir:
+            # In kernels 4.x, the node is actually called 'cpu,cpuacct'
+            cgroup_dir = self.get_cgroup_dir('cpu,cpuacct')
+        return os.path.join(cgroup_dir, 'docker', self.long_id, node)
 
     def __str__(self):
         return str(self.__dict__)
