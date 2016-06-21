@@ -116,11 +116,9 @@ class FeaturesCrawler:
     # mountpoint only used for out-of-band crawling
 
     def crawl_os(self, mountpoint=None, avoid_setns=False):
-        if not (avoid_setns and self.crawl_mode == Modes.OUTCONTAINER):
-            for (key, feature) in self._crawl_wrapper(
-                    self._crawl_os, ALL_NAMESPACES, mountpoint):
-                yield (key, feature)
-        else:
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
             mountpoint = dockerutils.get_docker_container_rootfs_path(
                              self.container.long_id)
             self.crawl_mode = Modes.MOUNTPOINT
@@ -129,6 +127,10 @@ class FeaturesCrawler:
                     yield (key, feature)
             finally:
                 self.crawl_mode = Modes.OUTCONTAINER
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_os, ALL_NAMESPACES, mountpoint):
+                yield (key, feature)
 
 
     def _crawl_os(self, mountpoint=None):
@@ -795,10 +797,14 @@ class FeaturesCrawler:
                         self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
                     yield (key, feature)
             except CrawlError as e:
+		# Raise the exception unless we are crawling containers, in
+		# that case, retry the crawl avoiding the setns() syscall. This
+		# is needed for PPC where we can not jump into the container
+		# and run its apt or rpm commands.
                 if self.crawl_mode != Modes.OUTCONTAINER:
                     raise e
                 else:
-                    avoid_setns
+                    avoid_setns = True
 
 	# If we are here it's because we have to retry avoiding setns(), or we
 	# were asked to avoid it
