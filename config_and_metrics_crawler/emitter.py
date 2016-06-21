@@ -276,9 +276,9 @@ class Emitter:
                                   params=self.emitter_args, data=framefp)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
-		    # if the frame has garbage, let's not even try to send it
-		    # again
-                    pass
+                # if the frame has garbage, let's not even try to send it
+                # again
+                pass
             except Exception as e:
                 if retries <= max_emit_retries:
 
@@ -291,7 +291,6 @@ class Emitter:
                     time.sleep(wait_time)
                 else:
                     raise
-
 
     @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
