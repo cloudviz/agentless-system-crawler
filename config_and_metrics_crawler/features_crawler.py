@@ -223,18 +223,20 @@ class FeaturesCrawler:
         avoid_setns=False,
     ):
 
-        if not (avoid_setns and self.crawl_mode == Modes.OUTCONTAINER):
-            for (key, feature) in self._crawl_wrapper(
-                    self._crawl_files,
-                    ['mnt'],
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            root_dir = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            for (key, feature) in self._crawl_files(
                     root_dir,
                     exclude_dirs,
                     root_dir_alias):
                 yield (key, feature)
         else:
-            root_dir = dockerutils.get_docker_container_rootfs_path(
-                             self.container.long_id)
-            for (key, feature) in self._crawl_files(
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_files,
+                    ['mnt'],
                     root_dir,
                     exclude_dirs,
                     root_dir_alias):
@@ -430,10 +432,12 @@ class FeaturesCrawler:
         discover_config_files=False,
         avoid_setns=False
     ):
-        if not (avoid_setns and self.crawl_mode == Modes.OUTCONTAINER):
-            for (key, feature) in self._crawl_wrapper(
-                    self._crawl_config_files,
-                    ['mnt'],
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            root_dir = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            for (key, feature) in self._crawl_config_files(
                     root_dir,
                     exclude_dirs,
                     root_dir_alias,
@@ -441,9 +445,9 @@ class FeaturesCrawler:
                     discover_config_files):
                 yield (key, feature)
         else:
-            root_dir = dockerutils.get_docker_container_rootfs_path(
-                             self.container.long_id)
-            for (key, feature) in self._crawl_config_files(
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_config_files,
+                    ['mnt'],
                     root_dir,
                     exclude_dirs,
                     root_dir_alias,
