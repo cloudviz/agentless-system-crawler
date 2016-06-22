@@ -273,14 +273,14 @@ class Emitter:
             except requests.exceptions.RequestException as e:
                 logger.exception(e)
                 logger.error("POST to %s resulted in exception (attempt %d of %d)" % (url, attempt + 1, max_emit_retries))
+                time.sleep(2.0 ** attempt * 0.1)
                 continue
 
             if response.status_code != requests.codes.ok:
                 logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
+                time.sleep(2.0 ** attempt * 0.1)
             else:
                 break
-
-            time.sleep(2.0 ** attempt * 0.1)
 
     @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
