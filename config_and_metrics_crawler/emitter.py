@@ -273,6 +273,7 @@ class Emitter:
             except requests.exceptions.RequestException as e:
                 logger.exception(e)
                 logger.error("POST to %s resulted in exception (attempt %d of %d)" % (url, attempt + 1, max_emit_retries))
+                continue
 
             if response.status_code != requests.codes.ok:
                 logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
