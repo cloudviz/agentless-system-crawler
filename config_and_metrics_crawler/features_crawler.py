@@ -800,6 +800,7 @@ class FeaturesCrawler:
                 for (key, feature) in self._crawl_wrapper(
                         self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
                     yield (key, feature)
+                return
             except CrawlError as e:
 		# Raise the exception unless we are crawling containers, in
 		# that case, retry the crawl avoiding the setns() syscall. This
