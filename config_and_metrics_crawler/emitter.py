@@ -259,38 +259,27 @@ class Emitter:
                     sys.stdout.flush()
 
     def _publish_to_broker(self, url, max_emit_retries=5):
-
-        # try contacting the broker
-
-        broker_alive = False
-        retries = 0
-        while not broker_alive and retries <= max_emit_retries:
+        for attempt in range(max_emit_retries):
             try:
-                retries += 1
-                broker_alive = True
                 headers = {'content-type': 'text/csv'}
                 if self.compress:
                     headers['content-encoding'] = 'gzip'
                 with open(self.temp_fpath, 'rb') as framefp:
-                    requests.post(url, headers=headers,
-                                  params=self.emitter_args, data=framefp)
+                    response = requests.post(url, headers=headers, params=self.emitter_args, data=framefp)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
-                # if the frame has garbage, let's not even try to send it
-                # again
-                pass
-            except Exception as e:
-                if retries <= max_emit_retries:
+                logger.error("POST to %s resulted in exception (attempt %d of %d), will not re-try" % (url, attempt + 1, max_emit_retries))
+                break
+            except requests.exceptions.RequestException as e:
+                logger.exception(e)
+                logger.error("POST to %s resulted in exception (attempt %d of %d)" % (url, attempt + 1, max_emit_retries))
 
-                    # Wait for (2^retries * 100) milliseconds
+            if response.status_code != requests.codes.ok:
+                logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
+            else:
+                break
 
-                    wait_time = 2.0 ** retries * 0.1
-                    logger.error(
-                        'Could not connect to the broker at %s. Retry in %f '
-                        'seconds.' % (url, wait_time))
-                    time.sleep(wait_time)
-                else:
-                    raise
+            time.sleep(2.0 ** attempt * 0.1)
 
     @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
