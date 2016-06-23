@@ -12,15 +12,17 @@ DEFAULT_METADATA = {'container_long_id_to_namespace_map': {},
 DEFAULT_LINK_CONTAINER_LOG_FILES = False
 DEFAULT_MOUNTPOINT = 'Undefined'
 DEFAULT_DOCKER_CONTAINERS_LIST = 'ALL'
+DEFAULT_AVOID_SETNS = False
 
 DEFAULT_CRAWL_OPTIONS = {
-    'os': {},
+    'os': {'avoid_setns': DEFAULT_AVOID_SETNS},
     'disk': {},
-    'package': {},
+    'package': {'avoid_setns': DEFAULT_AVOID_SETNS},
     'process': {},
     'metric': {},
     'connection': {},
-    'file': {'root_dir': '/', 'exclude_dirs': [
+    'file': {'root_dir': '/', 'avoid_setns': DEFAULT_AVOID_SETNS,
+        'exclude_dirs': [
         'boot',
         'dev',
         'proc',
@@ -32,7 +34,7 @@ DEFAULT_CRAWL_OPTIONS = {
         'usr/share/doc',
         'usr/share/mime',
     ]},
-    'config': {
+    'config': {'avoid_setns': DEFAULT_AVOID_SETNS,
         'root_dir': '/',
         'exclude_dirs': [
             'dev',
