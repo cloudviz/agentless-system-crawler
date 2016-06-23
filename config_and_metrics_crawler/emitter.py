@@ -267,9 +267,19 @@ class Emitter:
         while not broker_alive and retries <= max_emit_retries:
             try:
                 retries += 1
-                requests.get(url)
                 broker_alive = True
-            except Exception:
+                headers = {'content-type': 'text/csv'}
+                if self.compress:
+                    headers['content-encoding'] = 'gzip'
+                with open(self.temp_fpath, 'rb') as framefp:
+                    requests.post(url, headers=headers,
+                                  params=self.emitter_args, data=framefp)
+            except requests.exceptions.ChunkedEncodingError as e:
+                logger.exception(e)
+                # if the frame has garbage, let's not even try to send it
+                # again
+                pass
+            except Exception as e:
                 if retries <= max_emit_retries:
 
                     # Wait for (2^retries * 100) milliseconds
@@ -281,18 +291,6 @@ class Emitter:
                     time.sleep(wait_time)
                 else:
                     raise
-
-        with open(self.temp_fpath, 'rb') as framefp:
-            headers = {'content-type': 'text/csv'}
-            if self.compress:
-                headers['content-encoding'] = 'gzip'
-            try:
-                requests.post(url, headers=headers,
-                              params=self.emitter_args, data=framefp)
-            except Exception:
-                logger.error('Could not connect to the broker at %s '
-                             % url)
-                raise
 
     @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
