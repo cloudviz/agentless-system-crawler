@@ -1,1 +1,2 @@
 pytest
+flake8==2.6.0

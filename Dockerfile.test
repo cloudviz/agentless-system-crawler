@@ -23,4 +23,5 @@ COPY . /crawler
 
 CMD (docker daemon > ../docker.out 2>&1 &) && \
 	sleep 5 && \
+        flake8 --max-complexity 10 . || true && \
 	py.test 
