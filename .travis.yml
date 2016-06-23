@@ -34,4 +34,5 @@ script:
 
 after_success:
   - flake8 --max-complexity 10 .
+  - pylint crawler
   - codecov
