@@ -464,6 +464,9 @@ def snapshot(
                     # pretty much always).
                     container.link_logfiles(options=options)
 
+                # no feature crawling 
+                if 'nofeatures' in features:
+                    continue
                 snapshot_container(
                     urls=urls,
                     snapshot_num=snapshot_num,

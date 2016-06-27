@@ -483,6 +483,7 @@ if __name__ == '__main__':
         default=defaults.DEFAULT_ENVIRONMENT,
         choices=[
             'cloudsight',
+            'watson',
             'alchemy'],
         help='If given, this argument is used to specify the environment '
              'where the crawler is running. Defaults to cloudsight, which '
