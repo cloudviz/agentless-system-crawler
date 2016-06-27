@@ -1,0 +1,9 @@
+*.pyc
+*.log
+.*
+*~
+!.gitignore
+!.ssh
+apps/search/dist
+apps/search/*egg-info
+**/.DS_Store

@@ -408,8 +408,8 @@ if __name__ == '__main__':
         dest='frequency',
         type=int,
         default=None,
-        help='Interval in secs between successive snapshots. Defaults to -1 '
-             'which means only run one iteration.')
+        help='Target time period for iterations. Defaults to -1 which '
+             'means only run one iteration.')
     parser.add_argument(
         '--compress',
         dest='compress',
@@ -529,6 +529,15 @@ if __name__ == '__main__':
         default=False,
         help='overwrite file type url parameter and strip trailing sequence number'
     )
+    parser.add_argument(
+        '--avoidSetns',
+        dest='avoid_setns',
+        action='store_true',
+        default=False,
+	help='Avoids the use of the setns() syscall to crawl containers. '
+             'Some features like process will not work with this option. '
+             'Only applies to the OUTCONTAINER mode'
+    )
 
     args = parser.parse_args()
     params = {}
@@ -617,6 +626,11 @@ if __name__ == '__main__':
                 options['docker_containers_list'] = args.crawlContainers
             if not args.numprocesses:
                 args.numprocesses = multiprocessing.cpu_count()
+            if args.avoid_setns:
+                options['os']['avoid_setns'] = args.avoid_setns
+                options['config']['avoid_setns'] = args.avoid_setns
+                options['file']['avoid_setns'] = args.avoid_setns
+                options['package']['avoid_setns'] = args.avoid_setns
     if args.format:
         params['format'] = args.format
     if args.environment:

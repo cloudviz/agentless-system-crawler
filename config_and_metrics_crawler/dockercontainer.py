@@ -67,6 +67,11 @@ class DockerContainer(Container):
         self.network_settings = inspect['NetworkSettings']
         self.cmd = inspect['Config']['Cmd']
         self.inspect = inspect
+        self.docker_image_long_name = inspect['docker_image_long_name']
+        self.docker_image_short_name = inspect['docker_image_short_name']
+        self.docker_image_tag = inspect['docker_image_tag']
+        self.docker_image_registry = inspect['docker_image_registry']
+        self.owner_namespace = inspect['owner_namespace']
 
         # This short ID is mainly used for logging purposes
 
@@ -180,14 +185,14 @@ class DockerContainer(Container):
         logger.info('Un-linking log files for container %s.'
                     % self.short_id)
 
+        logger.info('Trying to delete this directory and its symlinks: %s.'
+                    % host_log_dir)
+        assert(host_log_dir.startswith('/var/log/crawler_container_logs/'))
+
         try:
-            shutil.rmtree('/tmp/' + self.namespace)
+            shutil.rmtree(host_log_dir)
         except (IOError, OSError) as e:
-            pass
-        try:
-            shutil.move(host_log_dir, '/tmp/' + self.namespace)
-        except (IOError, OSError) as e:
-            logger.exception(e)
+            logger.error('Could not delete directory: %s' % host_log_dir)
             pass
 
     def _log_locations_json_sanity_check(self, data):

@@ -115,10 +115,23 @@ class FeaturesCrawler:
     # crawl the OS information
     # mountpoint only used for out-of-band crawling
 
-    def crawl_os(self, mountpoint=None):
-        for (key, feature) in self._crawl_wrapper(
-                self._crawl_os, ALL_NAMESPACES, mountpoint):
-            yield (key, feature)
+    def crawl_os(self, mountpoint=None, avoid_setns=False):
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            mountpoint = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            self.crawl_mode = Modes.MOUNTPOINT
+            try:
+                for (key, feature) in self._crawl_os(mountpoint):
+                    yield (key, feature)
+            finally:
+                self.crawl_mode = Modes.OUTCONTAINER
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_os, ALL_NAMESPACES, mountpoint):
+                yield (key, feature)
+
 
     def _crawl_os(self, mountpoint=None):
 
@@ -166,6 +179,7 @@ class FeaturesCrawler:
             feature_attributes = OSFeature(  # boot time unknown for img
                                              # live IP unknown for img
                 'unsupported',
+                'unsupported',
                 '0.0.0.0',
                 platform_outofband.linux_distribution(
                     prefix=mountpoint)[0],
@@ -206,14 +220,28 @@ class FeaturesCrawler:
         root_dir='/',
         exclude_dirs=['proc', 'mnt', 'dev', 'tmp'],
         root_dir_alias=None,
+        avoid_setns=False,
     ):
-        for (key, feature) in self._crawl_wrapper(
-                self._crawl_files,
-                ['mnt'],
-                root_dir,
-                exclude_dirs,
-                root_dir_alias):
-            yield (key, feature)
+
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            root_dir = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            for (key, feature) in self._crawl_files(
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias):
+                yield (key, feature)
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_files,
+                    ['mnt'],
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias):
+                yield (key, feature)
+
 
     def _crawl_files(
         self,
@@ -223,12 +251,11 @@ class FeaturesCrawler:
     ):
 
         root_dir = str(root_dir)
-        assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
         accessed_since = self.feature_epoch
         saved_args = locals()
         logger.debug('crawl_files: %s' % (saved_args))
-        if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT]:
+        if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT, Modes.OUTCONTAINER]:
             try:
                 assert os.path.isdir(root_dir)
                 if root_dir_alias is None:
@@ -403,18 +430,31 @@ class FeaturesCrawler:
         root_dir_alias=None,
         known_config_files=[],
         discover_config_files=False,
+        avoid_setns=False
     ):
-        for (
-                key,
-                feature) in self._crawl_wrapper(
-                self._crawl_config_files,
-                ['mnt'],
-                root_dir,
-                exclude_dirs,
-                root_dir_alias,
-                known_config_files,
-                discover_config_files):
-            yield (key, feature)
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            root_dir = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            for (key, feature) in self._crawl_config_files(
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias,
+                    known_config_files,
+                    discover_config_files):
+                yield (key, feature)
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_config_files,
+                    ['mnt'],
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias,
+                    known_config_files,
+                    discover_config_files):
+                yield (key, feature)
+
 
     def _crawl_config_files(
         self,
@@ -424,8 +464,6 @@ class FeaturesCrawler:
         known_config_files=[],
         discover_config_files=False,
     ):
-
-        assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
         saved_args = locals()
         logger.debug('Crawling config files: %s' % (saved_args))
@@ -755,26 +793,33 @@ class FeaturesCrawler:
 
     # crawl Linux package database
 
-    def crawl_packages(self, dbpath=None, root_dir='/'):
-        try:
-            for (key, feature) in self._crawl_wrapper(
-                    self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
-                yield (key, feature)
-        except CrawlError as e:
-            if self.crawl_mode == Modes.OUTCONTAINER:
+    def crawl_packages(self, dbpath=None, root_dir='/', avoid_setns=False):
 
-		# If we failed with OUTCONTAINER, it's most likely because the
-		# container is based on a different architecture image, e.g.
-		# the image is PPC, and the host is x86. If that is the case,
-		# let's try a different crawling approach that doesn't "jump"
-		# to the container namespaces.
-
-                root_dir = dockerutils.get_docker_container_rootfs_path(
-                        self.container.long_id)
-                for (key, feature) in self._crawl_packages(dbpath, root_dir):
+        if not (avoid_setns and self.crawl_mode == Modes.OUTCONTAINER):
+            try:
+                for (key, feature) in self._crawl_wrapper(
+                        self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
                     yield (key, feature)
-            else:
-                raise e
+                return
+            except CrawlError as e:
+		# Raise the exception unless we are crawling containers, in
+		# that case, retry the crawl avoiding the setns() syscall. This
+		# is needed for PPC where we can not jump into the container
+		# and run its apt or rpm commands.
+                if self.crawl_mode != Modes.OUTCONTAINER:
+                    raise e
+                else:
+                    avoid_setns = True
+
+	# If we are here it's because we have to retry avoiding setns(), or we
+	# were asked to avoid it
+        assert(avoid_setns and self.crawl_mode == Modes.OUTCONTAINER)
+
+        root_dir = dockerutils.get_docker_container_rootfs_path(
+                self.container.long_id)
+        for (key, feature) in self._crawl_packages(dbpath, root_dir):
+            yield (key, feature)
+
 
     def _crawl_packages(self, dbpath=None, root_dir='/'):
 
