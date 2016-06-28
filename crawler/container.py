@@ -74,29 +74,39 @@ class Container(object):
 
         _map = container_opts.get('long_id_to_namespace_map', {})
         if self.long_id in _map:
-            return _map[self.long_id]
+            self.namespace = _map[self.long_id]
+	    # XXX assert that there are no logs being linked as that won't be
+	    # supported now
+            return
 
-        host_namespace = namespace_opts.get('host_namespace', 'undefined')
-        environment = namespace_opts.get('environment', 'cloudsight')
-        namespace = None
+        host_namespace = container_opts.get('host_namespace', 'undefined')
+        environment = container_opts.get('environment', 'cloudsight')
+        container_logs = container_opts.get('container_logs');
 
-        if environment == 'cloudsight':
-            name = self.name or self.short_id
-            name = (name[1:] if name[0] == '/' else name)
-            namespace = host_namespace + '/' + name
-        elif environment == 'alchemy':
-            if not self.is_docker_container():
-                raise AlchemyInvalidContainer()
+        # XXX-kollerr only alchemy and watson containers are meant to be docker
+        # this check is wrong. This should only apply to watson and alchemy.
+        #
+        # Just in case, a linux container is any process running in a different
+        # namespace than the host root namespace. So, there are other containers
+        # running in teh system besides docker containers.
+        if not self.is_docker_container():
+            # XXX-kollerr So if we are only doing Docker container stuff below,
+            # everything below here should be in dockercontainer.py
+            raise AlchemyInvalidContainer()
 
-            if alchemy is None:
-                raise ImportError('Please setup alchemy.py correctly.')
+        if environment == 'watson':
+	    # XXX-kollerr only docker containers have a rootfs. This code is
+	    # supposed to be docker agnostic. Moreover, this really applies to
+	    # watson containers only.
+            self.root_fs = get_docker_container_rootfs_path(self.long_id)
+        else:
+            self.root_fs = None
 
-            try:
-                namespace = alchemy.get_namespace(self.long_id, 'docker')
-            except ValueError:
-                logger.warning('Container %s does not have a valid alchemy '
-                               'metadata json file.' % self.short_id)
-                raise AlchemyInvalidMetadata()
+        try:
+            _options = {'root_fs': self.root_fs, 'type': 'docker',
+                'name': self.name, 'host_namespace': host_namespace,
+                'container_logs': container_logs}
+            namespace = self.runtime_env.get_namespace(self.long_id, _options)
             if not namespace:
                 logger.warning('Container %s does not have alchemy '
                                'metadata.' % self.short_id)

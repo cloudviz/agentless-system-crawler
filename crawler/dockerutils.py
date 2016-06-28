@@ -7,6 +7,8 @@ import dateutil.parser as dp
 import semantic_version
 import docker
 
+VERSION_SPEC = semantic_version.Spec('>=1.10.0') # version at which docker image layer organization changed
+
 logger = logging.getLogger('crawlutils')
 
 def exec_dockerps():

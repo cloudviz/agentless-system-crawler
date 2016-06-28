@@ -10,7 +10,6 @@ import csv
 import copy
 import sys
 from mtgraphite import MTGraphiteClient
-from timeout import timeout
 import json
 import multiprocessing
 
@@ -341,7 +340,6 @@ class Emitter:
                 raise
 
 
-    @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
 
         if kafka_python is None or pykafka is None:
@@ -367,7 +365,7 @@ class Emitter:
                     name='kafka-emitter', target=kafka_send, args=(
                         kurl, self.temp_fpath, self.format, topic))
                 child_process.start()
-                child_process.join(30)
+                child_process.join(120)
             except OSError:
                 queue.close()
                 raise
