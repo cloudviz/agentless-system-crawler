@@ -21,7 +21,7 @@ except Exception as e:
     raise e
 
 ALL_NAMESPACES = 'user pid uts ipc net mnt'.split()
-IN_CONTAINER_TIMEOUT = 10
+IN_CONTAINER_TIMEOUT = 30
 
 
 def get_pid_namespace(pid):

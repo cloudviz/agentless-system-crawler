@@ -8,8 +8,11 @@ import shutil
 import time
 import csv
 import copy
+import sys
 from mtgraphite import MTGraphiteClient
+from timeout import timeout
 import json
+import multiprocessing
 
 # External dependencies that must be pip install'ed separately
 
@@ -31,6 +34,36 @@ from misc import NullHandler
 
 
 logger = logging.getLogger('crawlutils')
+
+
+def kafka_send(kurl, temp_fpath, format, topic):
+    try:
+        kafka_python_client = kafka_python.KafkaClient(kurl)
+        kafka_python_client.ensure_topic_exists(topic)
+        kafka = pykafka.KafkaClient(hosts=kurl)
+
+        publish_topic_object = kafka.topics[topic]
+        # the default partitioner is random_partitioner
+        producer = publish_topic_object.get_producer()
+
+        if format == 'csv':
+            with open(temp_fpath, 'r') as fp:
+                text = fp.read()
+                producer.produce([text])
+
+        elif format == 'graphite':
+
+            with open(temp_fpath, 'r') as fp:
+                for line in fp.readlines():
+                    producer.produce([line])
+        else:
+            raise
+        sys.exit(0)
+    except Exception as e:
+
+        print e
+        # kafka.close()
+        sys.exit(1)
 
 
 class Emitter:
@@ -245,6 +278,31 @@ class Emitter:
             else:
                 for line in fd.readlines():
                     print line.strip()
+                    sys.stdout.flush()
+
+    def _publish_to_broker(self, url, max_emit_retries=5):
+        for attempt in range(max_emit_retries):
+            try:
+                headers = {'content-type': 'text/csv'}
+                if self.compress:
+                    headers['content-encoding'] = 'gzip'
+                with open(self.temp_fpath, 'rb') as framefp:
+                    response = requests.post(url, headers=headers, params=self.emitter_args, data=framefp)
+            except requests.exceptions.ChunkedEncodingError as e:
+                logger.exception(e)
+                logger.error("POST to %s resulted in exception (attempt %d of %d), will not re-try" % (url, attempt + 1, max_emit_retries))
+                break
+            except requests.exceptions.RequestException as e:
+                logger.exception(e)
+                logger.error("POST to %s resulted in exception (attempt %d of %d)" % (url, attempt + 1, max_emit_retries))
+                time.sleep(2.0 ** attempt * 0.1)
+                continue
+
+            if response.status_code != requests.codes.ok:
+                logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
+                time.sleep(2.0 ** attempt * 0.1)
+            else:
+                break
 
     def _publish_to_broker(self, url, max_emit_retries=5):
 
@@ -282,6 +340,8 @@ class Emitter:
                              % url)
                 raise
 
+
+    @timeout(120)
     def _publish_to_kafka_no_retries(self, url):
 
         if kafka_python is None or pykafka is None:
@@ -302,32 +362,16 @@ class Emitter:
             h = NullHandler()
             logging.getLogger('kafka').addHandler(h)
 
-            # XXX We should definitely create a long lasting kafka client
-            kafka_python_client = kafka_python.KafkaClient(kurl)
-            kafka_python_client.ensure_topic_exists(topic)
-
-            kafka = pykafka.KafkaClient(hosts=kurl)
-            publish_topic_object = kafka.topics[topic]
-            # the default partitioner is random_partitioner
-            producer = publish_topic_object.get_producer()
-
-            if self.format == 'csv':
-                with open(self.temp_fpath, 'r') as fp:
-                    text = fp.read()
-                    logger.debug(producer.produce([text]))
-
-            elif self.format == 'graphite':
-
-                with open(self.temp_fpath, 'r') as fp:
-                    for line in fp.readlines():
-                        producer.produce([line])
-            else:
-                logger.debug(
-                    'Could not send data because {0} is an unknown '
-                    'format'.format(self.format))
+            try:
+                child_process = multiprocessing.Process(
+                    name='kafka-emitter', target=kafka_send, args=(
+                        kurl, self.temp_fpath, self.format, topic))
+                child_process.start()
+                child_process.join(30)
+            except OSError:
+                queue.close()
                 raise
 
-            kafka_python_client.close()
         except Exception as e:
 
             # kafka.close()
@@ -335,29 +379,6 @@ class Emitter:
             logger.debug('Could not send data to {0}: {1}'.format(url,
                                                                   e))
             raise
-
-    def _publish_to_kafka(self, url, max_emit_retries=8):
-        broker_alive = False
-        retries = 0
-        while not broker_alive and retries <= max_emit_retries:
-            try:
-                retries += 1
-                self._publish_to_kafka_no_retries(url)
-                broker_alive = True
-            except Exception:
-                if retries <= max_emit_retries:
-
-                    # Wait for (2^retries * 100) milliseconds
-
-                    wait_time = 2.0 ** retries * 0.1
-                    logger.error(
-                        'Could not connect to the kafka server at %s. Retry '
-                        'in %f seconds.' % (url, wait_time))
-                    time.sleep(wait_time)
-                else:
-                    print 'Could not send to kafka %s after %d retries.' \
-                        % (url, max_emit_retries)
-                    exit(1)
 
     def _publish_to_mtgraphite(self, url):
         if not Emitter.mtgclient:

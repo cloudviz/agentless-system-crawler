@@ -57,7 +57,10 @@ class MTGraphiteClient(object):
 
     def _create_authentication_message(self,tenant_id, tenant_password, supertenant=True):
         authentication_message = """"""
-        authentication_message += '2S' if supertenant else '2T'
+        if supertenant:
+            authentication_message += '2S'
+        else:
+            authentication_message += '2T'
         authentication_message += chr(len(tenant_id))
         authentication_message += tenant_id
         authentication_message += \

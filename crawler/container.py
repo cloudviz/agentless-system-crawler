@@ -2,18 +2,14 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
-
-try:
-    import alchemy
-except ImportError:
-    alchemy = None
-
 import defaults
 from crawler_exceptions import (
     ContainerInvalidEnvironment,
     AlchemyInvalidMetadata,
     AlchemyInvalidContainer)
 
+# XXX-kollerr anything docker specific should go to dockercontainer.py
+from dockerutils import get_docker_container_rootfs_path
 
 logger = logging.getLogger('crawlutils')
 
@@ -29,7 +25,7 @@ class Container(object):
     def __init__(
         self,
         pid,
-        namespace_opts={},
+        container_opts={},
     ):
         self.pid = str(pid)
         self.short_id = str(hash(pid))
@@ -37,6 +33,10 @@ class Container(object):
         self.name = str(pid)
         self.namespace = None
         self.image = None
+        self.root_fs = None
+        self.runtime_env = None
+        self.log_prefix = None
+        self.log_file_list = None
 
     def __eq__(self, other):
         """
@@ -53,12 +53,26 @@ class Container(object):
     def __str__(self):
         return str(self.__dict__)
 
-    def setup_namespace_and_metadata(self, namespace_opts={}):
-        self.namespace = self._get_namespace(namespace_opts)
+    def setup_namespace_and_metadata(self, container_opts={}):
+        logger.info('setup_namespace_and_metadata: long_id=' +
+                       self.long_id)
+        environment = container_opts.get('environment', 'cloudsight')
+        runtime_env = None
+        try:
+            if environment == 'cloudsight':
+                import cloudsight as runtime_env
+            elif environment == 'watson':
+                import watson as runtime_env
+            elif environment == 'alchemy':
+                import alchemy as runtime_env
+            else:
+                raise ContainerInvalidEnvironment(
+                    'Unknown environment %s' % environment)
+            self.runtime_env = runtime_env
+        except ImportError:
+            raise ImportError('Please setup {}.py correctly.'.format(environment))
 
-    def _get_namespace(self, namespace_opts={}):
-
-        _map = namespace_opts.get('long_id_to_namespace_map', {})
+        _map = container_opts.get('long_id_to_namespace_map', {})
         if self.long_id in _map:
             return _map[self.long_id]
 
@@ -86,14 +100,23 @@ class Container(object):
             if not namespace:
                 logger.warning('Container %s does not have alchemy '
                                'metadata.' % self.short_id)
+                # XXX-kollerr this should not be alchemy specific either
                 raise AlchemyInvalidMetadata()
-        else:
-            raise ContainerInvalidEnvironment(
-                'Unknown environment %s' % environment)
-        return namespace
+            self.namespace = namespace
+
+            self.log_prefix = self.runtime_env.get_container_log_prefix(
+                            self.long_id, _options)
+
+            self.log_file_list = self.runtime_env.get_log_file_list(
+                            self.long_id, _options)
+        except ValueError:
+            # XXX-kollerr this ValueError looks suspiciously very specific
+            # to alchemy. Are you sure watson.py will be throwing ValueError?
+            logger.warning('Container %s does not have a valid alchemy '
+                           'metadata json file.' % self.short_id)
+            raise AlchemyInvalidMetadata()
 
     # Find the mount point of the specified cgroup
-
     def get_cgroup_dir(self, dev=''):
         raise NotImplementedError()
 
