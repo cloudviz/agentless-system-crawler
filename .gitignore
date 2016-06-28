@@ -1,14 +1,2 @@
-<<<<<<< HEAD
 .vagrant/*
 *.pyc
-=======
-*.pyc
-*.log
-.*
-*~
-!.gitignore
-!.ssh
-apps/search/dist
-apps/search/*egg-info
-**/.DS_Store
->>>>>>> merged-bluemix-watson_master
