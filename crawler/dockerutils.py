@@ -3,109 +3,31 @@
 import os
 import logging
 import subprocess
-import json
 import dateutil.parser as dp
+import semantic_version
+import docker
 
-# External dependencies that must be pip install'ed separately
-
-try:
-    import docker
-except ImportError:
-    docker = None
+VERSION_SPEC = semantic_version.Spec('>=1.10.0') # version at which docker image layer organization changed
 
 logger = logging.getLogger('crawlutils')
 
-
 def exec_dockerps():
-    try:
-        return _exec_dockerps()
-    except Exception as e:
-        logger.warning('Talking to docker over the socket failed: %s' % e)
-
-    try:
-        return _exec_dockerps_slow()
-    except Exception as e:
-        logger.exception(e)
-
-    return []
-
-
-def _exec_dockerps():
     """
     Returns a list of docker inspect jsons, one for each container.
 
     This call executes the `docker inspect` command every time it is invoked.
     """
-    if docker is None:
-        raise ImportError('Please install the Docker python client.')
-
-    client = docker.Client(base_url='unix://var/run/docker.sock')
+    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
     containers = client.containers()
     inspect_arr = []
-    for container in containers:  # docker ps
-        inspect = client.inspect_container(container['Id'])
-        _reformat_inspect(inspect)
+    for container in containers:
+        inspect = exec_dockerinspect(container['Id'])
         inspect_arr.append(inspect)
 
-    # Is this needed?
-    del client
-
     return inspect_arr
-
-
-def _exec_dockerps_slow():
-    """Run the `docker ps` command as a subprocess.
-    """
-    proc = subprocess.Popen('docker ps -q', shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    short_id_list = proc.stdout.read().strip().split()
-    (out, err) = proc.communicate()
-    if proc.returncode != 0:
-
-        # There is no docker command (or it just failed).
-
-        raise RuntimeError('Could not run docker command')
-
-    proc = subprocess.Popen('docker inspect %s'
-                            % ' '.join(short_id_list), shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    inspect_data = proc.stdout.read().strip()
-    (out, err) = proc.communicate()
-    if proc.returncode != 0:
-
-        # There is no docker command (or it just failed).
-
-        raise RuntimeError('Could not run docker command')
-
-    inspect_arr = json.loads(inspect_data)
-    for inspect in inspect_arr:
-        _reformat_inspect(inspect)
-
-    return inspect_arr
-
 
 def exec_docker_history(long_id=None):
-    try:
-        return _exec_docker_history(long_id)
-    except Exception as e:
-        # check what exceptions can the docker client raise
-        logger.warning('Talking to docker over the socket failed: %s' % e)
-
-    try:
-        return _exec_docker_history_slow(long_id)
-    except Exception as e:
-        logger.exception(e)
-
-    return []
-
-
-def _exec_docker_history(long_id=None):
-    if docker is None:
-        raise ImportError('Please install the Docker python client.')
-
-    client = docker.Client(base_url='unix://var/run/docker.sock')
+    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
     containers = client.containers()
     out = None
     for c in containers:
@@ -116,74 +38,6 @@ def _exec_docker_history(long_id=None):
             out = client.history(image)
     del client
     return out
-
-
-def _exec_docker_history_slow(long_id=None):
-    proc = subprocess.Popen('docker inspect --format {{.Image}} %s'
-                            % long_id, shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    image_id = proc.stdout.read().strip()
-    (out, err) = proc.communicate()
-    if proc.returncode != 0:
-
-        # There is no docker command (or it just failed).
-
-        raise RuntimeError('Could not run docker command')
-
-    try:
-        history = _get_docker_image_history_slow(image_id)
-        return history
-    except Exception:
-        logger.error('Error executing docker history', exc_info=True)
-        raise
-
-
-def _get_docker_image_history_slow(image_id):
-    proc = subprocess.Popen('docker history -q --no-trunc %s'
-                            % image_id, shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    history_img_ids = proc.stdout.read().split()
-    (out, err) = proc.communicate()
-    if proc.returncode != 0:
-
-        # There is no docker command (or it just failed).
-
-        raise RuntimeError('Could not run docker command')
-
-
-    proc = subprocess.Popen('docker inspect %s'
-                            % ' '.join(history_img_ids), shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    image_history = []
-    inspect_data = proc.stdout.read()
-    (out, err) = proc.communicate()
-    if proc.returncode != 0:
-
-        # There is no docker command (or it just failed).
-
-        raise RuntimeError('Could not run docker command')
-
-    inspect_arr = json.loads(inspect_data)
-
-    # XXX json load can fail
-
-    for inspect in inspect_arr:
-
-        # XXX what if inspect doesn;t have some of these fields
-        docker_datetime = dp.parse(inspect['Created'])
-        epoch_seconds = docker_datetime.strftime('%s')
-
-        image_info = {'Tags': None,
-                      'Size': inspect['Size'],
-                      'Id': inspect['Id'],
-                      'CreatedBy': inspect['ContainerConfig']['Cmd'],
-                      'Created': epoch_seconds}
-        image_history.append(image_info)
-    return image_history
-
 
 def _fold_port_key(ports_dict):
     if not ports_dict:
@@ -223,57 +77,35 @@ def _reformat_inspect(inspect):
     inspect['Created'] = epoch_seconds
 
 def exec_dockerinspect(long_id=None):
-    try:
-        return _exec_dockerinspect(long_id)
-    except Exception as e:
-        # check what exceptions can the docker client raise
-        logger.warning('Talking to docker over the socket failed: %s' % e)
+    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
+
+    if not long_id:
+        containers = client.containers()
+        if len(containers) < 1:
+            return None
+        long_id = client.containers[0]['Id']
+
+    inspect = client.inspect_container(long_id)
+    _reformat_inspect(inspect)
 
     try:
-        return _exec_dockerinspect_slow(long_id)
-    except Exception as e:
-        logger.exception(e)
+        repo_tag = client.inspect_image(inspect['Image'])['RepoTags'][0]
+    except (KeyError, IndexError):
+        repo_tag = ''
 
-    return {}
-
-
-def _exec_dockerinspect(long_id):
-    if docker is None:
-        raise ImportError('Please install the Docker python client.')
-
-    client = docker.Client(base_url='unix://var/run/docker.sock')
-    containers = client.containers()
-    out = None
-    for c in containers:  # docker ps
-        if not long_id or long_id == c['Id']:
-            inspect = client.inspect_container(c['Id'])
-            _reformat_inspect(inspect)
-            out = inspect
-            break
-    del client
-    return out
-
-
-def _exec_dockerinspect_slow(long_id):
+    inspect['docker_image_long_name'] = repo_tag
+    inspect['docker_image_short_name'] = os.path.basename(repo_tag)
+    if ':' in repo_tag and not '/' in repo_tag.rsplit(':', 1)[1]:
+        inspect['docker_image_tag'] = repo_tag.rsplit(':', 1)[1]
+    else:
+        inspect['docker_image_tag'] = ''
+    inspect['docker_image_registry'] = os.path.dirname(repo_tag).split('/')[0]
     try:
-        proc = subprocess.Popen('docker inspect %s' % long_id,
-                                shell=True, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        inspect_data = proc.stdout.read().strip()
-        (out, err) = proc.communicate()
-        if proc.returncode != 0:
+        inspect['owner_namespace'] = os.path.dirname(repo_tag).split('/', 1)[1]
+    except IndexError:
+        inspect['owner_namespace'] = ''
 
-            # There is no docker command (or it just failed).
-
-            raise RuntimeError('Could not run docker command')
-
-        inspect = json.loads(inspect_data)[0]
-        _reformat_inspect(inspect)
-        return inspect
-    except Exception:
-        logger.error('Error executing dockerinspect', exc_info=True)
-        raise
-
+    return inspect
 
 def get_docker_storage_driver():
     """
@@ -305,6 +137,7 @@ def get_docker_storage_driver():
                 break
     except Exception:
         logger.debug('Could not read /proc/mounts')
+
     if driver in ('btrfs', 'devicemapper', 'aufs'):
         return driver
 
@@ -401,6 +234,19 @@ def get_docker_container_json_logs_path(long_id, inspect=None):
         return path
 
 
+def _get_docker_server_version():
+    """Run the `docker info` command to get server version
+    """
+    proc = subprocess.Popen("docker info | grep 'Server Version' | cut -d':' -f2 ", shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    server_version = proc.stdout.read().strip()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError('Could not run docker info command')
+    return server_version
+
+
 def get_docker_container_rootfs_path(long_id, inspect=None):
     """
     Returns the path to a container root (with ID=long_id) in the docker host
@@ -422,6 +268,15 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     """
     driver = get_docker_storage_driver()
 
+    server_version = _get_docker_server_version()
+    if server_version == "":
+        server_version = "1.9.0"
+
+    # should be debug, for now info
+    logger.info('get_docker_container_rootfs_path: long_id=' +
+        long_id + ', deriver=' + driver +
+        ', server_version=' + server_version)
+
     if driver == 'devicemapper':
 
         if not inspect:
@@ -442,30 +297,46 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     elif driver == 'btrfs':
 
         # XXX this looks ugly and brittle
-        proc = subprocess.Popen(
-            'btrfs subvolume list /var/lib/docker | ' +
-            'grep ' +
-            long_id +
-            " | awk '{print $NF}' | grep -v 'init' |  head -n 1",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        btrfs_path = proc.stdout.read().strip()
-        rootfs_path = '/var/lib/docker/' + btrfs_path
+        if VERSION_SPEC.match(semantic_version.Version(server_version)):
+            proc = subprocess.Popen(
+                "cat /var/lib/docker/image/btrfs/layerdb/mounts/" +
+                long_id +
+                "/init-id | cut -d'-' -f1",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            btrfs_path = proc.stdout.read().strip()
+            rootfs_path = '/var/lib/docker/btrfs/subvolumes/' + btrfs_path
+        else:
+            proc = subprocess.Popen(
+                'btrfs subvolume list /var/lib/docker | ' +
+                'grep ' +
+                long_id +
+                " | awk '{print $NF}' | grep -v 'init' |  head -n 1",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            btrfs_path = proc.stdout.read().strip()
+            rootfs_path = '/var/lib/docker/' + btrfs_path
 
     elif driver == 'aufs':
-       # print "long_id: ", long_id
-       # XXX this looks ugly and brittle       
-        proc = subprocess.Popen(
-            'find /var/lib/docker -name "' + long_id + '*" | ' +
-            'grep mnt | ' +
-            " grep -v 'init' |  head -n 1",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        aufs_path = proc.stdout.read().strip()
-        # print "===> aufs_path: ", aufs_path
-        rootfs_path = aufs_path
+        if VERSION_SPEC.match(semantic_version.Version(server_version)):
+            proc = subprocess.Popen(
+                'cat `find /var/lib/docker -name "'+
+                long_id +
+                '*" | grep mounts`/init-id',
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            root_dir  = proc.stdout.read().strip().split('-')[0]
+            rootfs_path = '/var/lib/docker/aufs/mnt/{}'.format(root_dir)
+        else: 
+            proc = subprocess.Popen(
+                "find /var/lib/docker -name \"{}*\" | grep mnt | grep -v 'init' | head -n 1".format(long_id),
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            rootfs_path = proc.stdout.read().strip()
 
     elif driver == 'vfs':
         proc = subprocess.Popen(

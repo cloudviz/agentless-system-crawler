@@ -1462,7 +1462,7 @@ def uname(prefix='/mnt/CrawlDisk'):
             match = re.search('(.*linu.*?)-(.*)', kernel_images[0])
             if match:
                 release = match.group(0x2)
-    except IOError:
+    except (IOError, OSError) as e:
 
                     # /boot doesn't even exist
 
