@@ -32,6 +32,7 @@ from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
                       DockerHistoryFeature)
 import misc
 from crawlmodes import Modes
+from package_utils import get_rpm_packages, get_dpkg_packages
 
 
 logger = logging.getLogger('crawlutils')
@@ -114,10 +115,23 @@ class FeaturesCrawler:
     # crawl the OS information
     # mountpoint only used for out-of-band crawling
 
-    def crawl_os(self, mountpoint=None):
-        for (key, feature) in self._crawl_wrapper(
-                self._crawl_os, ALL_NAMESPACES, mountpoint):
-            yield (key, feature)
+    def crawl_os(self, mountpoint=None, avoid_setns=False):
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            mountpoint = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            self.crawl_mode = Modes.MOUNTPOINT
+            try:
+                for (key, feature) in self._crawl_os(mountpoint):
+                    yield (key, feature)
+            finally:
+                self.crawl_mode = Modes.OUTCONTAINER
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_os, ALL_NAMESPACES, mountpoint):
+                yield (key, feature)
+
 
     def _crawl_os(self, mountpoint=None):
 
@@ -165,6 +179,7 @@ class FeaturesCrawler:
             feature_attributes = OSFeature(  # boot time unknown for img
                                              # live IP unknown for img
                 'unsupported',
+                'unsupported',
                 '0.0.0.0',
                 platform_outofband.linux_distribution(
                     prefix=mountpoint)[0],
@@ -205,14 +220,28 @@ class FeaturesCrawler:
         root_dir='/',
         exclude_dirs=['proc', 'mnt', 'dev', 'tmp'],
         root_dir_alias=None,
+        avoid_setns=False,
     ):
-        for (key, feature) in self._crawl_wrapper(
-                self._crawl_files,
-                ['mnt'],
-                root_dir,
-                exclude_dirs,
-                root_dir_alias):
-            yield (key, feature)
+
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            root_dir = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            for (key, feature) in self._crawl_files(
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias):
+                yield (key, feature)
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_files,
+                    ['mnt'],
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias):
+                yield (key, feature)
+
 
     def _crawl_files(
         self,
@@ -221,13 +250,12 @@ class FeaturesCrawler:
         root_dir_alias=None,
     ):
 
-        root_dir=str(root_dir)
-        assert(self.crawl_mode is not Modes.OUTCONTAINER)
+        root_dir = str(root_dir)
 
         accessed_since = self.feature_epoch
         saved_args = locals()
         logger.debug('crawl_files: %s' % (saved_args))
-        if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT]:
+        if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT, Modes.OUTCONTAINER]:
             try:
                 assert os.path.isdir(root_dir)
                 if root_dir_alias is None:
@@ -402,18 +430,31 @@ class FeaturesCrawler:
         root_dir_alias=None,
         known_config_files=[],
         discover_config_files=False,
+        avoid_setns=False
     ):
-        for (
-                key,
-                feature) in self._crawl_wrapper(
-                self._crawl_config_files,
-                ['mnt'],
-                root_dir,
-                exclude_dirs,
-                root_dir_alias,
-                known_config_files,
-                discover_config_files):
-            yield (key, feature)
+        if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
+            root_dir = dockerutils.get_docker_container_rootfs_path(
+                             self.container.long_id)
+            for (key, feature) in self._crawl_config_files(
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias,
+                    known_config_files,
+                    discover_config_files):
+                yield (key, feature)
+        else:
+            for (key, feature) in self._crawl_wrapper(
+                    self._crawl_config_files,
+                    ['mnt'],
+                    root_dir,
+                    exclude_dirs,
+                    root_dir_alias,
+                    known_config_files,
+                    discover_config_files):
+                yield (key, feature)
+
 
     def _crawl_config_files(
         self,
@@ -423,8 +464,6 @@ class FeaturesCrawler:
         known_config_files=[],
         discover_config_files=False,
     ):
-
-        assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
         saved_args = locals()
         logger.debug('Crawling config files: %s' % (saved_args))
@@ -515,6 +554,8 @@ class FeaturesCrawler:
     def crawl_disk_partitions(self):
         for (key, feature) in self._crawl_wrapper(
                 self._crawl_disk_partitions, ALL_NAMESPACES):
+            # replace '.' in key with # for avoiding unnecessary hierarchy
+            key = key.replace('.','#')
             yield (key, feature)
 
     def _crawl_disk_partitions(self):
@@ -754,14 +795,35 @@ class FeaturesCrawler:
 
     # crawl Linux package database
 
-    def crawl_packages(self, dbpath=None, root_dir='/'):
-        for (key, feature) in self._crawl_wrapper(
-                self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
+    def crawl_packages(self, dbpath=None, root_dir='/', avoid_setns=False):
+
+        if not (avoid_setns and self.crawl_mode == Modes.OUTCONTAINER):
+            try:
+                for (key, feature) in self._crawl_wrapper(
+                        self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
+                    yield (key, feature)
+                return
+            except CrawlError as e:
+		# Raise the exception unless we are crawling containers, in
+		# that case, retry the crawl avoiding the setns() syscall. This
+		# is needed for PPC where we can not jump into the container
+		# and run its apt or rpm commands.
+                if self.crawl_mode != Modes.OUTCONTAINER:
+                    raise e
+                else:
+                    avoid_setns = True
+
+	# If we are here it's because we have to retry avoiding setns(), or we
+	# were asked to avoid it
+        assert(avoid_setns and self.crawl_mode == Modes.OUTCONTAINER)
+
+        root_dir = dockerutils.get_docker_container_rootfs_path(
+                self.container.long_id)
+        for (key, feature) in self._crawl_packages(dbpath, root_dir):
             yield (key, feature)
 
-    def _crawl_packages(self, dbpath=None, root_dir='/'):
 
-        assert(self.crawl_mode is not Modes.OUTCONTAINER)
+    def _crawl_packages(self, dbpath=None, root_dir='/'):
 
         # package attributes: ["installed", "name", "size", "version"]
 
@@ -773,6 +835,15 @@ class FeaturesCrawler:
                          self.crawl_mode + ')')
             system_type = platform.system().lower()
             distro = platform.linux_distribution()[0].lower()
+            reload_needed = False
+        elif self.crawl_mode == Modes.OUTCONTAINER:
+
+            logger.debug('Using outcontainer state information (crawl mode: ' +
+                         self.crawl_mode + ')')
+
+            system_type = 'linux'
+            distro = ''
+            reload_needed = True
         elif self.crawl_mode == Modes.MOUNTPOINT:
             logger.debug('Using disk image information (crawl mode: ' +
                          self.crawl_mode + ')')
@@ -780,15 +851,16 @@ class FeaturesCrawler:
                 platform_outofband.system(prefix=root_dir).lower()
             distro = platform_outofband.linux_distribution(prefix=root_dir)[
                 0].lower()
+            reload_needed = False
         else:
             logger.error('Unsupported crawl mode: ' + self.crawl_mode +
                          '. Skipping package crawl.')
             system_type = 'unknown'
             distro = 'unknown'
+            reload_needed = True
 
         installed_since = self.feature_epoch
-        if system_type != 'linux' or (system_type == 'linux' and distro == ''):
-            # Distro is blank for FROM scratch images
+        if system_type != 'linux':
             # Package feature is only valid for Linux platforms.
 
             raise StopIteration()
@@ -799,7 +871,6 @@ class FeaturesCrawler:
             pkg_manager = 'dpkg'
         elif distro.startswith('red hat') or distro in ['redhat',
                                                         'fedora', 'centos']:
-
             pkg_manager = 'rpm'
         elif os.path.exists(os.path.join(root_dir, 'var/lib/dpkg')):
             pkg_manager = 'dpkg'
@@ -810,102 +881,17 @@ class FeaturesCrawler:
             if pkg_manager == 'dpkg':
                 if not dbpath:
                     dbpath = 'var/lib/dpkg'
-                if os.path.isabs(dbpath):
-                    logger.warning(
-                        'dbpath: ' +
-                        dbpath +
-                        ' is defined absolute. Ignoring prefix: ' +
-                        root_dir +
-                        '.')
-
-                # Update for a different route.
-
-                dbpath = os.path.join(root_dir, dbpath)
-                if installed_since > 0:
-                    logger.warning(
-                        'dpkg does not provide install-time, defaulting to '
-                        'all packages installed since epoch')
-                try:
-                    dpkg = subprocess.Popen(['dpkg-query', '-W',
-                                             '--admindir={0}'.format(dbpath),
-                                             '-f=${Package}|${Version}'
-                                             '|${Installed-Size}\n'
-                                             ], stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE)
-                    dpkglist = dpkg.stdout.read().strip('\n')
-                except OSError as e:
-                    logger.error(
-                        'Failed to launch dpkg query for packages. Check if '
-                        'dpkg-query is installed: [Errno: %d] ' %
-                        e.errno + e.strerror + ' [Exception: ' +
-                        type(e).__name__ + ']')
-                    dpkglist = None
-                if dpkglist:
-                    for dpkginfo in dpkglist.split('\n'):
-                        (name, version, size) = dpkginfo.split(r'|')
-
-            # dpkg does not provide any installtime field
-            # feature_key = '{0}/{1}'.format(name, version) -->
-            # changed to below per Suriya's request
-
-                        feature_key = '{0}'.format(name, version)
-                        yield (feature_key, PackageFeature(None, name,
-                                                           size, version))
+                for (key, feature) in get_dpkg_packages(
+                        root_dir, dbpath, installed_since):
+                    yield (key, feature)
             elif pkg_manager == 'rpm':
                 if not dbpath:
                     dbpath = 'var/lib/rpm'
-                if os.path.isabs(dbpath):
-                    logger.warning(
-                        'dbpath: ' +
-                        dbpath +
-                        ' is defined absolute. Ignoring prefix: ' +
-                        root_dir +
-                        '.')
-                # update for a different route
-                dbpath = os.path.join(root_dir, dbpath)
-                try:
-                    rpm = subprocess.Popen([
-                        'rpm',
-                        '--dbpath',
-                        dbpath,
-                        '-qa',
-                        '--queryformat',
-                        '%{installtime}|%{name}|%{version}'
-                        '-%{release}|%{size}\n',
-                    ], stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-                    rpmlist = rpm.stdout.read().strip('\n')
-                except OSError as e:
-                    logger.error(
-                        'Failed to launch rpm query for packages. Check if '
-                        'rpm is installed: [Errno: %d] ' %
-                        e.errno + e.strerror + ' [Exception: ' +
-                        type(e).__name__ + ']')
-                    rpmlist = None
-                if rpmlist:
-                    for rpminfo in rpmlist.split('\n'):
-                        (installtime, name, version, size) = \
-                            rpminfo.split(r'|')
-
-            # if int(installtime) <= installed_since: --> this
-            # barfs for sth like: 1376416422. Consider try: xxx
-            # except ValueError: pass
-
-                        if installtime <= installed_since:
-                            continue
-
-            # feature_key = '{0}/{1}'.format(name, version) -->
-            # changed to below per Suriya's request
-
-                        feature_key = '{0}'.format(name, version)
-                        yield (feature_key,
-                               PackageFeature(installtime,
-                                              name, size, version))
+                for (key, feature) in get_rpm_packages(
+                        root_dir, dbpath, installed_since, reload_needed):
+                    yield (key, feature)
             else:
-                raise CrawlError(
-                    Exception(
-                        'Unsupported package manager for Linux distro %s' %
-                        distro))
+                logger.warning('Unsupported package manager for Linux distro')
         except Exception as e:
             logger.error('Error crawling package %s'
                          % ((name if name else 'Unknown')),
@@ -939,8 +925,13 @@ class FeaturesCrawler:
             except Exception as e:
                 free = 'unknown'
 
+            if 'unknown' not in [used, free] and (free + used) > 0:
+                util_percentage = float(used) / (free + used) * 100.0
+            else:
+                util_percentage = 'unknown'
+
             feature_attributes = MemoryFeature(used, buffered, cached,
-                                               free)
+                                               free, util_percentage)
         elif self.crawl_mode == Modes.OUTVM:
 
             (domain_name, kernel_version, distro, arch) = self.vm
@@ -950,7 +941,8 @@ class FeaturesCrawler:
                 sys.memory_used,
                 sys.memory_buffered,
                 sys.memory_cached,
-                sys.memory_free)
+                sys.memory_free,
+                sys.memory_free / (sys.memory_used + sys.memory_buffered))
         elif self.crawl_mode == Modes.OUTCONTAINER:
 
             used = buffered = cached = free = 'unknown'
@@ -973,11 +965,16 @@ class FeaturesCrawler:
                     used = int(f.readline().strip())
 
                 host_free = psutil.virtual_memory().free
-
                 container_total = used + min(host_free, limit - used)
                 free = container_total - used
-                feature_attributes = MemoryFeature(used, buffered,
-                                                   cached, free)
+
+                if 'unknown' not in [used, free] and (free + used) > 0:
+                    util_percentage = float(used) / (free + used) * 100.0
+                else:
+                    util_percentage = 'unknown'
+
+                feature_attributes = MemoryFeature(
+                    used, buffered, cached, free, util_percentage)
             except Exception as e:
 
                 logger.error('Error crawling memory', exc_info=True)
