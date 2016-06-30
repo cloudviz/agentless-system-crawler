@@ -1,2 +1,4 @@
 -rcrawler/requirements.txt
 simplejson==3.8.2
+flake8==2.6.0
+pylint==1.5.6
