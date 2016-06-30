@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
+import sys
+import inspect
 import logging
 import socket
 import subprocess
@@ -203,3 +205,9 @@ def is_process_running(pid):
         return False
     else:
         return True
+
+
+def execution_path(filename):
+    # if filename is an absolute path, os.path.join will return filename
+    return os.path.join(os.path.dirname(inspect.getfile(sys._getframe(1))),
+                        filename)
