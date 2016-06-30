@@ -1,2 +1,11 @@
 .vagrant/*
-*.pyc
+## python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+# distribution
+build/
+dist/
+eggs/
+.eggs/
+
