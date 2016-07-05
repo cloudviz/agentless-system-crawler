@@ -53,14 +53,24 @@ class Container(object):
     def __str__(self):
         return str(self.__dict__)
 
-    def setup_namespace_and_metadata(self,
-                                     container_opts={},
-                                     runtime_env=None):
+    def setup_namespace_and_metadata(self, container_opts={}):
         logger.info('setup_namespace_and_metadata: long_id=' +
                        self.long_id)
-
-        self.runtime_env = runtime_env
-        assert(runtime_env)
+        environment = container_opts.get('environment', 'cloudsight')
+        runtime_env = None
+        try:
+            if environment == 'cloudsight':
+                import cloudsight as runtime_env
+            elif environment == 'watson':
+                import watson as runtime_env
+            elif environment == 'alchemy':
+                import alchemy as runtime_env
+            else:
+                raise ContainerInvalidEnvironment(
+                    'Unknown environment %s' % environment)
+            self.runtime_env = runtime_env
+        except ImportError:
+            raise ImportError('Please setup {}.py correctly.'.format(environment))
 
         _map = container_opts.get('long_id_to_namespace_map', {})
         if self.long_id in _map:
@@ -96,8 +106,7 @@ class Container(object):
             _options = {'root_fs': self.root_fs, 'type': 'docker',
                 'name': self.name, 'host_namespace': host_namespace,
                 'container_logs': container_logs}
-            namespace = self.runtime_env.get_container_namespace(
-                                                    self.long_id, _options)
+            namespace = self.runtime_env.get_namespace(self.long_id, _options)
             if not namespace:
                 logger.warning('Container %s does not have alchemy '
                                'metadata.' % self.short_id)
@@ -108,7 +117,7 @@ class Container(object):
             self.log_prefix = self.runtime_env.get_container_log_prefix(
                             self.long_id, _options)
 
-            self.log_file_list = self.runtime_env.get_container_log_file_list(
+            self.log_file_list = self.runtime_env.get_log_file_list(
                             self.long_id, _options)
         except ValueError:
             # XXX-kollerr this ValueError looks suspiciously very specific

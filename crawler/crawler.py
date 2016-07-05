@@ -277,7 +277,6 @@ def setup_logger(logger_name, logfile='crawler.log', process_id=None):
 
 def crawler_worker(process_id, logfile, params):
     setup_logger('crawlutils', logfile, process_id)
-    setup_logger('yapsy', logfile, process_id)
 
     # Starting message
 
@@ -477,19 +476,17 @@ if __name__ == '__main__':
         dest='environment',
         type=str,
         default=defaults.DEFAULT_ENVIRONMENT,
-        help='This speficies some environment specific behavior, like how '
-             'to name a container. The way to add a new behavior is by '
-             'implementing a plugin (see plugins/cloudsight_environment.py '
-             'as an example. Defaults to "cloudsight".',
-    )
-    parser.add_argument(
-        '--plugins',
-        dest='plugin_places',
-        type=str,
-        default=defaults.DEFAULT_PLUGIN_PLACES,
-        help='This is a comma separated list of directories where to find '
-             'plugins. Each path can be an absolute, or a relative to the '
-             'location of the crawler.py.',
+        choices=[
+            'cloudsight',
+            'watson',
+            'alchemy'],
+        help='If given, this argument is used to specify the environment '
+             'where the crawler is running. Defaults to cloudsight, which '
+             'means that there is nothing special about the environment. '
+             'The alchemy environment on the other hand is "special". When '
+             'running in this environment, the crawler will grab alchemy '
+             'metadata about the container (or VM) from some known files '
+             'in the host.',
     )
     parser.add_argument(
         '--numprocesses',
@@ -634,8 +631,6 @@ if __name__ == '__main__':
         params['format'] = args.format
     if args.environment:
         options['environment'] = args.environment
-    if args.plugin_places:
-        options['plugin_places'] = args.plugin_places
     if args.extraMetadataFile:
         metadata = options['metadata']
         metadata['extra_metadata_for_all'] = args.extraMetadataForAll

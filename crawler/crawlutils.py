@@ -26,7 +26,6 @@ except Exception as e:
 # External dependencies that must be pip install'ed separately
 
 import psutil
-from yapsy.PluginManager import PluginManager
 
 from emitter import Emitter
 from features_crawler import FeaturesCrawler
@@ -34,8 +33,6 @@ from containers import get_filtered_list_of_containers
 import defaults
 import misc
 from crawlmodes import Modes
-from runtime_environment import IRuntimeEnvironment
-from crawler_exceptions import RuntimeEnvironmentPluginNotFound
 
 logger = logging.getLogger('crawlutils')
 
@@ -51,26 +48,6 @@ def signal_handler_exit(signum, stack):
     logger.info('Got signal to exit ..')
     should_exit = True
 
-
-def load_env_plugin(plugin_places=[misc.execution_path('plugins')],
-                    environment='cloudsight'):
-    pm = PluginManager(plugin_info_ext='plugin')
-
-    # Normalize the paths to the location of this file.
-    # XXX-ricarkol: there has to be a better way to do this.
-    plugin_places = [misc.execution_path(x) for x in plugin_places]
-
-    pm.setPluginPlaces(plugin_places)
-    pm.setCategoriesFilter({"RuntimeEnvironment" : IRuntimeEnvironment})
-    pm.collectPlugins()
-
-    for env_plugin in pm.getAllPlugins():
-       # There should be only one plugin of the given category and type;
-       # but in case there are more, pick the first one.
-       if env_plugin.plugin_object.get_environment_name() == environment:
-           return env_plugin.plugin_object
-    raise RuntimeEnvironmentPluginNotFound('Could not find a valid runtime '
-                                 'environment plugin at %s' % plugin_places)
 
 def snapshot_single_frame(
     emitter,
@@ -442,10 +419,6 @@ def snapshot(
 
     assert('metadata' in options)
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
-    plugin_places = options.get('plugin_places',
-                                defaults.DEFAULT_PLUGIN_PLACES).split(',')
-    runtime_env = load_env_plugin(plugin_places=plugin_places,
-                                  environment=environment)
 
     since_timestamp, last_snapshot_time = get_initial_since_values(since)
     next_iteration_time = None
@@ -458,8 +431,7 @@ def snapshot(
     signal.signal(signal.SIGHUP, signal_handler_exit)
 
     if crawlmode == Modes.OUTCONTAINER:
-        containers = get_filtered_list_of_containers(options, namespace,
-                                                     runtime_env)
+        containers = get_filtered_list_of_containers(options, namespace)
 
     # This is the main loop of the system, taking a snapshot and sleeping at
     # every iteration.
@@ -471,7 +443,7 @@ def snapshot(
         if crawlmode == Modes.OUTCONTAINER:
 
             curr_containers = get_filtered_list_of_containers(
-                                              options, namespace, runtime_env)
+                options, namespace)
             deleted = [c for c in containers if c not in curr_containers]
             containers = curr_containers
 
