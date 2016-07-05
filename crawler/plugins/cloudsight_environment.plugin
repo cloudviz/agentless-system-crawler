@@ -1,8 +1,0 @@
-[Core]
-Name = Cloudsight Environment
-Module = cloudsight_environment
-
-[Documentation]
-Author = IBM
-Version = 0.1
-Description = Default environment

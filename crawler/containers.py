@@ -83,7 +83,6 @@ def list_all_containers(user_list='ALL',
 def get_filtered_list_of_containers(
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     host_namespace=misc.get_host_ipaddr(),
-    runtime_env = None
 ):
     """
     Returns a partition of all the Container objects currently running in the
@@ -91,8 +90,6 @@ def get_filtered_list_of_containers(
 
     The partitioning is given by `partition_strategy`.
     """
-    assert(runtime_env)
-
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
     metadata = options.get('metadata', {})
     _map = metadata.get('container_long_id_to_namespace_map', {})
@@ -121,8 +118,7 @@ def get_filtered_list_of_containers(
         if num == process_id:
 
             try:
-                container.setup_namespace_and_metadata(container_opts,
-                                                       runtime_env)
+                container.setup_namespace_and_metadata(container_opts)
             except ContainerInvalidEnvironment:
                 continue
 

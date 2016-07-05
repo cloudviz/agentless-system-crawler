@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 DEFAULT_ENVIRONMENT = 'cloudsight'
-DEFAULT_PLUGIN_PLACES = './plugins'
 DEFAULT_COMPRESS = False
 DEFAULT_PARTITION_STRATEGY = {'name': 'equally_by_pid',
                               'args': {'process_id': 0,

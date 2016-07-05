@@ -35,9 +35,3 @@ class AlchemyInvalidContainer(ContainerInvalidEnvironment):
     """Invalid or non-present alchemy metadata file."""
 
     pass
-
-class RuntimeEnvironmentPluginNotFound(Exception):
-
-    """Invalid or non-present plugin for the given environment."""
-
-    pass
