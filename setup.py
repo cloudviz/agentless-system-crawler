@@ -21,4 +21,7 @@ setup(
     setup_requires=['pytest-runner>=2.0,<3dev',],
     tests_require=['pytest',],
     use_2to3=True,
+
+    data_files=[('plugins', ['plugins/cloudsight_environment.plugin',
+                             'plugins/cloudsight_environment.py'])]
 )
