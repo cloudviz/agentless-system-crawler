@@ -5,6 +5,7 @@ import tempfile
 import os
 import shutil
 import subprocess
+import multiprocessing
 
 # Tests for crawlers in kraken crawlers configuration.
 
@@ -96,7 +97,9 @@ class SingleContainerTests(unittest.TestCase):
 		'partition_strategy': {
 		    'args': {
 			'process_id': 0,
-			'num_processes': 1
+			'num_processes': 1,
+			'eventQ':multiprocessing.JoinableQueue(),
+			'delList':multiprocessing.Manager().list()
 		    },
 		    'name': 'equally_by_pid'
 		},
