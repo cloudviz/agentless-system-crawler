@@ -303,8 +303,8 @@ def start_autonomous_crawler(num_processes, logfile):
 
     if params['crawlmode'] == 'OUTCONTAINER':
         jobs = []
-	syncQ = multiprocessing.JoinableQueue()
-	delList = multiprocessing.Manager().list()
+        syncQ = multiprocessing.JoinableQueue()
+        delList = multiprocessing.Manager().list()
 
         for index in xrange(num_processes):
             # XXX use options.get() instead
@@ -312,8 +312,8 @@ def start_autonomous_crawler(num_processes, logfile):
             partition_args = options['partition_strategy']['args']
             partition_args['process_id'] = index
             partition_args['num_processes'] = num_processes
-	    partition_args['eventQ'] = syncQ
-	    partition_args['delList'] = delList
+            partition_args['eventQ'] = syncQ
+            partition_args['delList'] = delList
 
             p = multiprocessing.Process(
                 name='crawler-%s' %
@@ -363,7 +363,7 @@ def start_autonomous_crawler(num_processes, logfile):
             time.sleep(0.1)
 	
         logger.info('terminating docker-monitor process.(pid=%s)'%(eventProc.pid))
-	eventProc.terminate()
+        eventProc.terminate()
 
         logger.info('Exiting as there are no more processes running.')
     else:
