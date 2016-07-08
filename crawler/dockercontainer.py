@@ -344,33 +344,37 @@ class DockerContainer(Container):
         for logdict in self.log_file_list:
             name = logdict['name']
             _type = logdict['type']
-            log_source = rootfs_path + name
-            log_dest = host_log_dir + name
-            if "*" in log_source:
-               source_unglob_list = glob.glob(log_source)
-            else:
-               source_unglob_list = [ log_source ]
 
-            logger.debug('GLOB LIST %s' % source_unglob_list) 
-            for source_unglob in source_unglob_list:
-               logger.debug('SOURCE GLOB %s' % source_unglob) 
-               if rootfs_path in source_unglob:
-                   dest_unglob = host_log_dir + source_unglob.split(rootfs_path, 1)[1]
-               else:
-                   dest_unglob = host_log_dir + source_unglob
+            # assuming mount source or destination does not contain '*'
+            for mount in self.inspect['Mounts']:
+                if name.startswith(mount['Destination']):
+                    lname = name.replace(mount['Destination'], mount['Source'])
+                    if "*" in lname:
+                        src_dest = [(s, s.replace(mount['Source'],\
+                             mount['Destination'])) for s in glob.glob(lname)]
+                    else:
+                        src_dest = [(lname, name)]
+                else:
+                    lname = rootfs_path + name
+                    if "*" in lname:
+                        src_dest = [(s, s.split(rootfs_path, 1)[1]) \
+                            for s in glob.glob(lname)]
+                    else:
+                        src_dest = [(lname, name)]
 
-               logger.debug('DEST GLOB %s' % dest_unglob) 
-
+            for log_src, log_dest in src_dest:
+               log_dest = host_log_dir + log_dest
                log = {
                   'name': name,
                   'type': _type,
-                  'source': source_unglob,
-                  'dest': dest_unglob}
+                  'source': log_src,
+                  'dest': log_dest}
 
                if log not in logs_list:
                   logs_list.append(log)
 
-        logger.debug('GLOB LOGSLIST %s' % logs_list) 
+        logger.info('logmap %s' % logs_list)
+
         docker_log_source = get_docker_container_json_logs_path(
             self.long_id, self.inspect)
         name = 'docker.log'
