@@ -350,28 +350,28 @@ class DockerContainer(Container):
                 if name.startswith(mount['Destination']):
                     lname = name.replace(mount['Destination'], mount['Source'])
                     if "*" in lname:
-                        src_dest = [(s, s.replace(mount['Source'],\
-                             mount['Destination'])) for s in glob.glob(lname)]
+                        src_dest = [(s, s.replace(mount['Source'], mount[
+                                     'Destination'])) for s in glob.glob(lname)]
                     else:
                         src_dest = [(lname, name)]
                 else:
                     lname = rootfs_path + name
                     if "*" in lname:
-                        src_dest = [(s, s.split(rootfs_path, 1)[1]) \
-                            for s in glob.glob(lname)]
+                        src_dest = [(s, s.split(rootfs_path, 1)[1])
+                                    for s in glob.glob(lname)]
                     else:
                         src_dest = [(lname, name)]
 
             for log_src, log_dest in src_dest:
-               log_dest = host_log_dir + log_dest
-               log = {
-                  'name': name,
-                  'type': _type,
-                  'source': log_src,
-                  'dest': log_dest}
+                log_dest = host_log_dir + log_dest
+                log = {
+                    'name': name,
+                    'type': _type,
+                    'source': log_src,
+                    'dest': log_dest}
 
-               if log not in logs_list:
-                  logs_list.append(log)
+                if log not in logs_list:
+                    logs_list.append(log)
 
         logger.info('logmap %s' % logs_list)
 
