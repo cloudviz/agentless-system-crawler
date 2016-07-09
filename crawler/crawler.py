@@ -16,10 +16,9 @@ import traceback
 import multiprocessing
 import tempfile
 import argparse
-import cPickle as pickle
+# import cPickle as pickle
 import json
 import copy
-
 
 # External dependencies that must be pip install'ed separately
 
@@ -295,7 +294,7 @@ def start_autonomous_crawler(num_processes, logfile):
     if params['crawlmode'] == 'OUTCONTAINER':
         jobs = []
 
-        for index in xrange(num_processes):
+        for index in range(num_processes):
             # XXX use options.get() instead
             options['partition_strategy']['name'] = 'equally_by_pid'
             partition_args = options['partition_strategy']['args']
@@ -353,7 +352,7 @@ if __name__ == '__main__':
 
     euid = os.geteuid()
     if euid != 0:
-        print 'Need to run this as root.'
+        print('Need to run this as root.')
         exit(1)
 
     parser = argparse.ArgumentParser()
@@ -533,7 +532,7 @@ if __name__ == '__main__':
         dest='avoid_setns',
         action='store_true',
         default=False,
-	help='Avoids the use of the setns() syscall to crawl containers. '
+        help='Avoids the use of the setns() syscall to crawl containers. '
              'Some features like process will not work with this option. '
              'Only applies to the OUTCONTAINER mode'
     )
@@ -585,11 +584,11 @@ if __name__ == '__main__':
 
         if args.crawlmode == 'MOUNTPOINT':
             if not args.mountpoint:
-                print ('Need to specify mountpoint location (--mountpoint) '
-                       'for MOUNTPOINT mode')
+                print('Need to specify mountpoint location (--mountpoint) '
+                      'for MOUNTPOINT mode')
                 sys.exit(1)
             if not os.path.exists(args.mountpoint):
-                print (
+                print(
                     'Mountpoint location %s does not exist.' %
                     (args.mountpoint))
                 sys.exit(1)
@@ -606,19 +605,19 @@ if __name__ == '__main__':
             options['config']['root_dir_alias'] = '/'
 
         elif args.crawlmode == 'DEVICE':
-            print ('NOT IMPLEMENTED! Will Need to specify device location for '
-                   'DEVICE mode')
+            print('NOT IMPLEMENTED! Will Need to specify device location for '
+                  'DEVICE mode')
             sys.exit(1)
         elif args.crawlmode == 'FILE':
             if args.inputfile:
                 params['inputfile'] = args.inputfile
             else:
-                print ('Need to specify frame file location (--inputfile) '
-                       'for FILE mode')
+                print('Need to specify frame file location (--inputfile) '
+                      'for FILE mode')
                 sys.exit(1)
         elif args.crawlmode == 'ISCSI':
-            print ('NOT IMPLEMENTED! Will Need to somehow specify connection '
-                   'info for ISCSI mode')
+            print('NOT IMPLEMENTED! Will Need to somehow specify connection '
+                  'info for ISCSI mode')
             sys.exit(1)
         if args.crawlmode == 'OUTCONTAINER':
             if args.crawlContainers:
@@ -643,8 +642,7 @@ if __name__ == '__main__':
             with open(args.extraMetadataFile, 'r') as fp:
                 metadata['extra_metadata'] = fp.read()
         except Exception as e:
-            print 'Could not read the feature metadata json file: %s' \
-                % e
+            print('Could not read the feature metadata json file: %s' % e)
             sys.exit(1)
     options['link_container_log_files'] = args.linkContainerLogFiles
 
@@ -659,11 +657,11 @@ if __name__ == '__main__':
 # Not used right now
 
 def crawler_in_pull_mode():
-    print ''
-    print 'Starting crawler at URL http://{0}:{1}'.format(CRAWLER_HOST,
-                                                          CRAWLER_PORT)
-    print 'Log output will be in /var/log/crawler.log'
-    print ''
+    print('')
+    print('Starting crawler at URL http://{0}:{1}'.format(CRAWLER_HOST,
+                                                          CRAWLER_PORT))
+    print('Log output will be in /var/log/crawler.log')
+    print('')
     logging.basicConfig(
         filename='/var/log/crawler.log',
         filemode='w',

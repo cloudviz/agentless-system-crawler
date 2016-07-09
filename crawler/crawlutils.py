@@ -6,7 +6,6 @@
 # the host machine. This code is portable across OS platforms (Linux, Windows)
 #
 
-
 import sys
 import os
 import logging
@@ -61,16 +60,18 @@ def load_env_plugin(plugin_places=[misc.execution_path('plugins')],
     plugin_places = [misc.execution_path(x) for x in plugin_places]
 
     pm.setPluginPlaces(plugin_places)
-    pm.setCategoriesFilter({"RuntimeEnvironment" : IRuntimeEnvironment})
+    pm.setCategoriesFilter({"RuntimeEnvironment": IRuntimeEnvironment})
     pm.collectPlugins()
 
     for env_plugin in pm.getAllPlugins():
-       # There should be only one plugin of the given category and type;
-       # but in case there are more, pick the first one.
-       if env_plugin.plugin_object.get_environment_name() == environment:
-           return env_plugin.plugin_object
+        # There should be only one plugin of the given category and type;
+        # but in case there are more, pick the first one.
+        if env_plugin.plugin_object.get_environment_name() == environment:
+            return env_plugin.plugin_object
     raise RuntimeEnvironmentPluginNotFound('Could not find a valid runtime '
-                                 'environment plugin at %s' % plugin_places)
+                                           'environment plugin at %s' %
+                                           plugin_places)
+
 
 def snapshot_single_frame(
     emitter,
@@ -492,7 +493,7 @@ def snapshot(
                     # pretty much always).
                     container.link_logfiles(options=options)
 
-                # no feature crawling 
+                # no feature crawling
                 if 'nofeatures' in features:
                     continue
                 snapshot_container(

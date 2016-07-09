@@ -1,23 +1,26 @@
+import logging
 import unittest
 import tempfile
 import os
 import shutil
 
-from crawler import dockerutils 
+from crawler import dockerutils
 from crawler import dockercontainer
 
 # Tests dockercontainer._get_logfiles_list
 # the log file, test1.log is in a host directory
 # mounted as volume
 
+
 def get_docker_container_rootfs_path(long_id, inspect):
     return "rootfs"
+
 
 def get_container_log_files(path, options):
     pass
 
-class DockerContainerTests(unittest.TestCase):
 
+class DockerContainerTests(unittest.TestCase):
     def setUp(self):
 
         self.host_log_dir = tempfile.mkdtemp(prefix='host_log_dir.')
@@ -60,14 +63,14 @@ class DockerContainerTests(unittest.TestCase):
             }
         }
         self.docker_container = dockercontainer.\
-                    DockerContainer(self.inspect['Id'], self.inspect)
+            DockerContainer(self.inspect['Id'], self.inspect)
 
         dockerutils.get_docker_container_rootfs_path = \
             get_docker_container_rootfs_path
 
         self.docker_container._get_container_log_files = get_container_log_files
         self.docker_container.log_file_list = [{'name': '/data/test1.log', 'type': None}]
-   
+
     def tearDown(self):
         shutil.rmtree(self.volume)
         shutil.rmtree(self.host_log_dir)
@@ -80,6 +83,8 @@ class DockerContainerTests(unittest.TestCase):
                 self.assertEqual(log_dict['source'], self.volume + '/test1.log')
 
 if __name__ == '__main__':
-        logging.basicConfig(filename='test_dockerutils.log', filemode='a', format='%(asctime)s %(levelname)s : %(message)s', level=logging.DEBUG)
+        logging.basicConfig(filename='test_dockerutils.log', filemode='a',
+                            format='%(asctime)s %(levelname)s : %(message)s',
+                            level=logging.DEBUG)
 
         unittest.main()
