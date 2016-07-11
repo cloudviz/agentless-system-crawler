@@ -33,7 +33,6 @@ script:
   - sudo python setup.py test --addopts '--cov=.'
 
 after_success:
-  # 79 chars per line was OK for punch cards!  127 chars is the width of GitHub code viewer / editor.
-  - flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics .
+  - flake8 --count --exit-zero --max-complexity=10 --statistics .
   - pylint crawler
   - codecov
