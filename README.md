@@ -170,3 +170,67 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 
 > > package       "emacs"
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
+
+----------------------
+To run crawler for open radiant environment, follow these steps
+
+Make sure you have radiant plugin ready
+
+```bash
+$ ls agentless-system-crawler/crawler/plugins
+radiant_environment.plugin
+plugins/radiant_environment.py
+```
+
+Setup elk stack:
+
+Download elk container image 
+```bash
+$ docker pull sebp/elk
+```
+
+We will start logstash to use HTTP input plugin, so that it can receive input over HTTP requests.
+So start elk container and expose http port.
+
+```bash
+$ docker run -d -p 5601:5601 -p 9200:9200 -p 5044:5044 -p 5000:5000 -p 8080:8080 -it --name elk-crawler sebp/elk
+```
+
+Start logstash to listen to listen on http port for inputs
+```bash
+docker exec -it elk-crawler /bin/bash /opt/logstash/bin/logstash -e "
+input { 
+	http { } 
+} 
+output { 
+	elasticsearch { hosts => ["localhost"] } 
+}"
+```
+
+```bash
+docker exec -it elk-crawler /bin/bash /opt/logstash/bin/logstash -e "input { http { } } output { elasticsearch { hosts => ["localhost"] } }"
+```
+
+If you want to listen on port different than the default 8080 port, configure logstash input 
+```bash
+docker exec -it elk-crawler /bin/bash /opt/logstash/bin/logstash -e "
+input { 
+	http { 
+		host => "127.0.0.1" # default: 0.0.0.0
+		port => 9090 # default: 8080
+	} 
+} 
+output { 
+	elasticsearch { hosts => ["localhost"] } 
+}"
+```
+
+Start crawler and specify it's output to the http port of logstash
+```bash
+$ python crawler.py --url "http://1.1.2.172:8080/crawler/data" --features os,disk,process,package --environment radiant --crawlmode OUTCONTAINER --frequency 5
+```
+
+You can now view the crawl data in kibana dashboard. 
+Open "http://<elk-container-host>:5601"
+
+
