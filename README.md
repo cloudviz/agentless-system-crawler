@@ -180,7 +180,7 @@ Make sure you have radiant plugin ready
 ```bash
 $ ls agentless-system-crawler/crawler/plugins
 radiant_environment.plugin
-plugins/radiant_environment.py
+radiant_environment.py
 ```
 
 Setup elk stack:
@@ -206,10 +206,6 @@ input {
 output { 
 	elasticsearch { hosts => ["localhost"] } 
 }"
-```
-
-```bash
-docker exec -it elk-crawler /bin/bash /opt/logstash/bin/logstash -e "input { http { } } output { elasticsearch { hosts => ["localhost"] } }"
 ```
 
 If you want to listen on port different than the default 8080 port, configure logstash input 
