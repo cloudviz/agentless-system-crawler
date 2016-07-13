@@ -171,7 +171,7 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 > > package       "emacs"
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
 
-Run crawler in open Radiant envcironment
+Run crawler in open Radiant environment
 ----------------------
 To run crawler for open radiant environment, follow these steps
 
