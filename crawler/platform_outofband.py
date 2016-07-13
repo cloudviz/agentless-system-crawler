@@ -96,11 +96,6 @@
 
 """
 
-import sys
-import string
-import os
-import re
-
 __copyright__ = \
     """
     Copyright (c) 1999-2000, Marc-Andre Lemburg; mailto:mal@lemburg.com
@@ -125,7 +120,12 @@ __copyright__ = \
 
 __version__ = '1.0.7'
 
-# Globals & Constants
+import sys
+import string
+import os
+import re
+
+### Globals & Constants
 
 # Determine the platform's /dev/null device
 
@@ -1867,7 +1867,7 @@ if __name__ == '__main__':
     # Default is to print the aliased verbose platform string
 
     terse = 'terse' in sys.argv or '--terse' in sys.argv
-    aliased = ('nonaliased' not in sys.argv and
-               '--nonaliased' not in sys.argv)
-    print(platform(aliased, terse))
+    aliased = not 'nonaliased' in sys.argv and not '--nonaliased' \
+        in sys.argv
+    print platform(aliased, terse)
     sys.exit(0)
