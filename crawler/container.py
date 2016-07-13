@@ -4,8 +4,9 @@ import os
 import logging
 import defaults
 from crawler_exceptions import (
+    ContainerInvalidEnvironment,
     AlchemyInvalidMetadata,
-    AlchemyInvalidContainer)  # ContainerInvalidEnvironment)
+    AlchemyInvalidContainer)
 
 # XXX-kollerr anything docker specific should go to dockercontainer.py
 from dockerutils import get_docker_container_rootfs_path
@@ -56,7 +57,7 @@ class Container(object):
                                      container_opts={},
                                      runtime_env=None):
         logger.info('setup_namespace_and_metadata: long_id=' +
-                    self.long_id)
+                       self.long_id)
 
         self.runtime_env = runtime_env
         assert(runtime_env)
@@ -64,13 +65,13 @@ class Container(object):
         _map = container_opts.get('long_id_to_namespace_map', {})
         if self.long_id in _map:
             self.namespace = _map[self.long_id]
-            # XXX assert that there are no logs being linked as that won't be
-            # supported now
+	    # XXX assert that there are no logs being linked as that won't be
+	    # supported now
             return
 
         host_namespace = container_opts.get('host_namespace', 'undefined')
         environment = container_opts.get('environment', 'cloudsight')
-        container_logs = container_opts.get('container_logs')
+        container_logs = container_opts.get('container_logs');
 
         # XXX-kollerr only alchemy and watson containers are meant to be docker
         # this check is wrong. This should only apply to watson and alchemy.
@@ -84,17 +85,17 @@ class Container(object):
             raise AlchemyInvalidContainer()
 
         if environment == 'watson':
-            # XXX-kollerr only docker containers have a rootfs. This code is
-            # supposed to be docker agnostic. Moreover, this really applies to
-            # watson containers only.
+	    # XXX-kollerr only docker containers have a rootfs. This code is
+	    # supposed to be docker agnostic. Moreover, this really applies to
+	    # watson containers only.
             self.root_fs = get_docker_container_rootfs_path(self.long_id)
         else:
             self.root_fs = None
 
         try:
             _options = {'root_fs': self.root_fs, 'type': 'docker',
-                        'name': self.name, 'host_namespace': host_namespace,
-                        'container_logs': container_logs}
+                'name': self.name, 'host_namespace': host_namespace,
+                'container_logs': container_logs}
             namespace = self.runtime_env.get_container_namespace(
                                                     self.long_id, _options)
             if not namespace:
