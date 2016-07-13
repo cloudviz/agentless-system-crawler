@@ -6,13 +6,13 @@ import os
 import stat
 import logging
 import codecs
-# import subprocess
+import subprocess
 import tempfile
 import shutil
 import fnmatch
 import re
 import time
-# import cPickle as pickle
+import cPickle as pickle
 
 # Additional modules
 
@@ -117,8 +117,8 @@ class FeaturesCrawler:
 
     def crawl_os(self, mountpoint=None, avoid_setns=False):
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
-            # Handle this special case first (avoiding setns() for the
-            # OUTCONTAINER mode).
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
             mountpoint = dockerutils.get_docker_container_rootfs_path(
                              self.container.long_id)
             self.crawl_mode = Modes.MOUNTPOINT
@@ -131,6 +131,7 @@ class FeaturesCrawler:
             for (key, feature) in self._crawl_wrapper(
                     self._crawl_os, ALL_NAMESPACES, mountpoint):
                 yield (key, feature)
+
 
     def _crawl_os(self, mountpoint=None):
 
@@ -223,8 +224,8 @@ class FeaturesCrawler:
     ):
 
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
-            # Handle this special case first (avoiding setns() for the
-            # OUTCONTAINER mode).
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
             root_dir = dockerutils.get_docker_container_rootfs_path(
                              self.container.long_id)
             for (key, feature) in self._crawl_files(
@@ -240,6 +241,7 @@ class FeaturesCrawler:
                     exclude_dirs,
                     root_dir_alias):
                 yield (key, feature)
+
 
     def _crawl_files(
         self,
@@ -431,8 +433,8 @@ class FeaturesCrawler:
         avoid_setns=False
     ):
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
-            # Handle this special case first (avoiding setns() for the
-            # OUTCONTAINER mode).
+	    # Handle this special case first (avoiding setns() for the
+	    # OUTCONTAINER mode).
             root_dir = dockerutils.get_docker_container_rootfs_path(
                              self.container.long_id)
             for (key, feature) in self._crawl_config_files(
@@ -452,6 +454,7 @@ class FeaturesCrawler:
                     known_config_files,
                     discover_config_files):
                 yield (key, feature)
+
 
     def _crawl_config_files(
         self,
@@ -552,7 +555,7 @@ class FeaturesCrawler:
         for (key, feature) in self._crawl_wrapper(
                 self._crawl_disk_partitions, ALL_NAMESPACES):
             # replace '.' in key with # for avoiding unnecessary hierarchy
-            key = key.replace('.', '#')
+            key = key.replace('.','#')
             yield (key, feature)
 
     def _crawl_disk_partitions(self):
@@ -801,23 +804,24 @@ class FeaturesCrawler:
                     yield (key, feature)
                 return
             except CrawlError as e:
-                # Raise the exception unless we are crawling containers, in
-                # that case, retry the crawl avoiding the setns() syscall. This
-                # is needed for PPC where we can not jump into the container
-                # and run its apt or rpm commands.
+		# Raise the exception unless we are crawling containers, in
+		# that case, retry the crawl avoiding the setns() syscall. This
+		# is needed for PPC where we can not jump into the container
+		# and run its apt or rpm commands.
                 if self.crawl_mode != Modes.OUTCONTAINER:
                     raise e
                 else:
                     avoid_setns = True
 
-        # If we are here it's because we have to retry avoiding setns(), or we
-        # were asked to avoid it
+	# If we are here it's because we have to retry avoiding setns(), or we
+	# were asked to avoid it
         assert(avoid_setns and self.crawl_mode == Modes.OUTCONTAINER)
 
         root_dir = dockerutils.get_docker_container_rootfs_path(
                 self.container.long_id)
         for (key, feature) in self._crawl_packages(dbpath, root_dir):
             yield (key, feature)
+
 
     def _crawl_packages(self, dbpath=None, root_dir='/'):
 
@@ -1369,7 +1373,7 @@ class FeaturesCrawler:
     def _crawl_test_infinite_loop(self):
         while True:
             a = 1
-        print(a)
+        print a
 
     def crawl_test_infinite_loop(self):
         for (key, feature) in self._crawl_wrapper(

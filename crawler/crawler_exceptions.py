@@ -36,7 +36,6 @@ class AlchemyInvalidContainer(ContainerInvalidEnvironment):
 
     pass
 
-
 class RuntimeEnvironmentPluginNotFound(Exception):
 
     """Invalid or non-present plugin for the given environment."""

@@ -2,15 +2,15 @@ import unittest
 import docker
 import requests.exceptions
 import tempfile
-# import os
+import os
 import shutil
-# import subprocess
+import subprocess
 
-# from crawler.emitter import Emitter
+from crawler.emitter import Emitter
 from crawler.features_crawler import FeaturesCrawler
 
 from crawler.dockercontainer import DockerContainer
-# from crawler.dockerutils import exec_dockerinspect
+from crawler.dockerutils import exec_dockerinspect
 
 
 # Tests the FeaturesCrawler class
@@ -24,11 +24,9 @@ class FeaturesCrawlerTests(unittest.TestCase):
         self.docker = docker.Client(base_url='unix://var/run/docker.sock', version='auto')
         try:
             if len(self.docker.containers()) != 0:
-                raise Exception("Sorry, this test requires a machine with no "
-                                "docker containers running.")
+                raise Exception("Sorry, this test requires a machine with no docker containers running.")
         except requests.exceptions.ConnectionError as e:
-            print("Error connecting to docker daemon, are you in the docker "
-                  "group? You need to be in the docker group.")
+            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
 
         self.docker.pull(repository='alpine', tag='latest')
         self.container = self.docker.create_container(image=self.image_name, command='/bin/sleep 60')
@@ -43,21 +41,21 @@ class FeaturesCrawlerTests(unittest.TestCase):
 
     def test_features_crawler_crawl_invm_cpu(self):
         crawler = FeaturesCrawler(crawl_mode='INVM')
-        cores = list(crawler.crawl_cpu())
-        assert cores
+        cores = len(list(crawler.crawl_cpu()))
+        assert cores > 0
 
     def test_features_crawler_crawl_invm_mem(self):
         crawler = FeaturesCrawler(crawl_mode='INVM')
-        cores = list(crawler.crawl_memory())
-        assert cores
+        cores = len(list(crawler.crawl_memory()))
+        assert cores > 0
 
     def test_features_crawler_crawl_outcontainer_cpu(self):
         c = DockerContainer(self.container['Id'])
         crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
         for key, feature in crawler.crawl_cpu():
-            print(key, feature)
-        cores = list(crawler.crawl_cpu())
-        assert cores
+            print key, feature
+        cores = len(list(crawler.crawl_cpu()))
+        assert cores > 0
 
     def test_features_crawler_crawl_outcontainer_mem(self):
         c = DockerContainer(self.container['Id'])
