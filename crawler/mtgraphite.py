@@ -5,14 +5,15 @@ import socket
 import ssl
 import struct
 import time
-import unittest
-import re
+# import unittest
+# import re
 
 # This code is based upon the Kafka producer/client classes
 
 logger = logging.getLogger('crawlutils')
 
 DEFAULT_SOCKET_TIMEOUT_SECONDS = 120
+
 
 class MTGraphiteClient(object):
 
@@ -55,7 +56,7 @@ class MTGraphiteClient(object):
         identification_message += self_identifier
         return identification_message
 
-    def _create_authentication_message(self,tenant_id, tenant_password, supertenant=True):
+    def _create_authentication_message(self, tenant_id, tenant_password, supertenant=True):
         authentication_message = """"""
         if supertenant:
             authentication_message += '2S'
@@ -63,8 +64,7 @@ class MTGraphiteClient(object):
             authentication_message += '2T'
         authentication_message += chr(len(tenant_id))
         authentication_message += tenant_id
-        authentication_message += \
-                    chr(len(tenant_password))
+        authentication_message += chr(len(tenant_password))
         authentication_message += tenant_password
         return authentication_message
 
@@ -127,7 +127,8 @@ class MTGraphiteClient(object):
                     self._send_and_check_authentication_message(authentication_message)
                 except Exception as e:
                     print("Attempting to log in as tenant")
-                    authentication_message = self._create_authentication_message(self.super_tenant_id, self.super_tenant_password, supertenant=False)
+                    authentication_message = self._create_authentication_message(self.super_tenant_id,
+                                                                                 self.super_tenant_password, supertenant=False)
                     self._send_and_check_authentication_message(authentication_message)
                 return self.conn
 
@@ -138,7 +139,6 @@ class MTGraphiteClient(object):
                     self.conn = None
                 time.sleep(2)  # sleep for 2 seconds for now
                 return None
-
 
     def _write_messages_no_retries(self, msgset):
         s = self._get_socket()

@@ -60,7 +60,7 @@ def kafka_send(kurl, temp_fpath, format, topic):
         sys.exit(0)
     except Exception as e:
 
-        print e
+        print(e)
         # kafka.close()
         sys.exit(1)
 
@@ -235,11 +235,9 @@ class Emitter:
             feature_val_as_dict = feature_val
         else:
             feature_val_as_dict = feature_val._asdict()
-        if 'extra' in self.emitter_args and self.emitter_args['extra'] \
-                and 'extra_all_features' in self.emitter_args \
-                and self.emitter_args['extra_all_features'] == True:
-            feature_val_as_dict.update(json.loads(self.emitter_args['extra'
-                                                                    ]))
+        if (self.emitter_args.get('extra', None) and
+                self.emitter_args.get('extra_all_features', None)):
+            feature_val_as_dict.update(json.loads(self.emitter_args['extra']))
         try:
             if self.format == 'csv':
                 self.csv_writer.writerow(
@@ -273,10 +271,10 @@ class Emitter:
     def _publish_to_stdout(self):
         with open(self.temp_fpath, 'r') as fd:
             if self.compress:
-                print fd.read()
+                print(fd.read())
             else:
                 for line in fd.readlines():
-                    print line.strip()
+                    print(line.strip())
                     sys.stdout.flush()
 
     def _publish_to_broker(self, url, max_emit_retries=5):
@@ -289,7 +287,8 @@ class Emitter:
                     response = requests.post(url, headers=headers, params=self.emitter_args, data=framefp)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
-                logger.error("POST to %s resulted in exception (attempt %d of %d), will not re-try" % (url, attempt + 1, max_emit_retries))
+                logger.error("POST to %s resulted in exception (attempt %d of %d), will not re-try"
+                             % (url, attempt + 1, max_emit_retries))
                 break
             except requests.exceptions.RequestException as e:
                 logger.exception(e)
@@ -298,7 +297,8 @@ class Emitter:
                 continue
 
             if response.status_code != requests.codes.ok:
-                logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
+                logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (url, str(response.status_code),
+                             response.text, attempt + 1, max_emit_retries))
                 time.sleep(2.0 ** attempt * 0.1)
             else:
                 break
@@ -338,7 +338,6 @@ class Emitter:
                 logger.error('Could not connect to the broker at %s '
                              % url)
                 raise
-
 
     def _publish_to_kafka_no_retries(self, url):
 
