@@ -5,8 +5,12 @@ services:
   - docker
 
 env:
-  global:
+  matrix:
+    - DOCKER_VERSION=1.7.1-0~trusty
+    - DOCKER_VERSION=1.8.1-0~trusty
+    - DOCKER_VERSION=1.9.1-0~trusty
     - DOCKER_VERSION=1.10.1-0~trusty
+    - DOCKER_VERSION=1.11.1-0~trusty
 
 python:
   - "2.7"
