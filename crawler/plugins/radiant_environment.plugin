@@ -5,4 +5,4 @@ Module = radiant_environment
 [Documentation]
 Author = IBM
 Version = 0.1
-Description = Default environment
+Description = open radiant environment
