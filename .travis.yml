@@ -25,11 +25,8 @@ before_install:
     - pip install codecov pytest-cov
 
 # command to install dependencies
-# TODO: having issues with the bottle package if we don't run sudo pip install.
-# It's mysterious and should be fixed eventually.
 install:
   - pip install -r requirements-test.txt
-  - sudo pip install -r requirements-test.txt
   
 # command to run tests
 script:
