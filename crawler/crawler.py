@@ -305,7 +305,7 @@ if __name__ == '__main__':
         dest='avoid_setns',
         action='store_true',
         default=False,
-	help='Avoids the use of the setns() syscall to crawl containers. '
+        help='Avoids the use of the setns() syscall to crawl containers. '
              'Some features like process will not work with this option. '
              'Only applies to the OUTCONTAINER mode'
     )

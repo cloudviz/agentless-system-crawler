@@ -61,16 +61,17 @@ def load_env_plugin(plugin_places=[misc.execution_path('plugins')],
     plugin_places = [misc.execution_path(x) for x in plugin_places]
 
     pm.setPluginPlaces(plugin_places)
-    pm.setCategoriesFilter({"RuntimeEnvironment" : IRuntimeEnvironment})
+    pm.setCategoriesFilter({"RuntimeEnvironment": IRuntimeEnvironment})
     pm.collectPlugins()
 
     for env_plugin in pm.getAllPlugins():
-       # There should be only one plugin of the given category and type;
-       # but in case there are more, pick the first one.
-       if env_plugin.plugin_object.get_environment_name() == environment:
-           return env_plugin.plugin_object
+        # There should be only one plugin of the given category and type;
+        # but in case there are more, pick the first one.
+        if env_plugin.plugin_object.get_environment_name() == environment:
+            return env_plugin.plugin_object
     raise RuntimeEnvironmentPluginNotFound('Could not find a valid runtime '
-                                 'environment plugin at %s' % plugin_places)
+                                           'environment plugin at %s' % plugin_places)
+
 
 def snapshot_single_frame(
     emitter,
@@ -363,7 +364,8 @@ def snapshot_container(
             if overwrite is True:
                 file_suffix = '{0}'.format(container.name)
             else:
-                file_suffix = '{0}.{1}'.format(container.short_id, snapshot_num)
+                file_suffix = '{0}.{1}'.format(
+                    container.short_id, snapshot_num)
             output_urls.append('{0}.{1}'.format(url, file_suffix))
         else:
             output_urls.append(url)
@@ -471,7 +473,7 @@ def snapshot(
         if crawlmode == Modes.OUTCONTAINER:
 
             curr_containers = get_filtered_list_of_containers(
-                                              options, namespace, runtime_env)
+                options, namespace, runtime_env)
             deleted = [c for c in containers if c not in curr_containers]
             containers = curr_containers
 
@@ -492,7 +494,7 @@ def snapshot(
                     # pretty much always).
                     container.link_logfiles(options=options)
 
-                # no feature crawling 
+                # no feature crawling
                 if 'nofeatures' in features:
                     continue
                 snapshot_container(
