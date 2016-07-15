@@ -303,42 +303,6 @@ class Emitter:
             else:
                 break
 
-    def _publish_to_broker(self, url, max_emit_retries=5):
-
-        # try contacting the broker
-
-        broker_alive = False
-        retries = 0
-        while not broker_alive and retries <= max_emit_retries:
-            try:
-                retries += 1
-                requests.get(url)
-                broker_alive = True
-            except Exception:
-                if retries <= max_emit_retries:
-
-                    # Wait for (2^retries * 100) milliseconds
-
-                    wait_time = 2.0 ** retries * 0.1
-                    logger.error(
-                        'Could not connect to the broker at %s. Retry in %f '
-                        'seconds.' % (url, wait_time))
-                    time.sleep(wait_time)
-                else:
-                    raise
-
-        with open(self.temp_fpath, 'rb') as framefp:
-            headers = {'content-type': 'text/csv'}
-            if self.compress:
-                headers['content-encoding'] = 'gzip'
-            try:
-                requests.post(url, headers=headers,
-                              params=self.emitter_args, data=framefp)
-            except Exception:
-                logger.error('Could not connect to the broker at %s '
-                             % url)
-                raise
-
 
     def _publish_to_kafka_no_retries(self, url):
 
