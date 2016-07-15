@@ -8,7 +8,7 @@ import sys
 import types
 import signal
 from ctypes import CDLL
-import cPickle as pickle
+# import cPickle as pickle
 import misc
 from crawler_exceptions import CrawlTimeoutError, CrawlError
 

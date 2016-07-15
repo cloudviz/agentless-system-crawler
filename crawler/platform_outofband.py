@@ -96,6 +96,13 @@
 
 """
 
+import sys
+import string
+import os
+import re
+
+# Globals & Constants
+
 __copyright__ = \
     """
     Copyright (c) 1999-2000, Marc-Andre Lemburg; mailto:mal@lemburg.com
@@ -119,13 +126,6 @@ __copyright__ = \
 """
 
 __version__ = '1.0.7'
-
-import sys
-import string
-import os
-import re
-
-### Globals & Constants
 
 # Determine the platform's /dev/null device
 
@@ -153,12 +153,7 @@ _libc_search = re.compile(
     '(__libc_init)|(GLIBC_([0-9.]+))|(libc(_\\w+)?\\.so(?:\\.(\\d[0-9.]*))?)')
 
 
-def libc_ver(
-    executable=sys.executable,
-    lib='',
-    version='',
-    chunksize=2048,
-):
+def libc_ver(executable=sys.executable, lib='', version='', chunksize=2048):
     """ Tries to determine the libc version that the file executable
         (which defaults to the Python interpreter) is linked against.
 
@@ -1411,7 +1406,8 @@ def uname(prefix='/mnt/CrawlDisk'):
 
     global _uname_cache
 
-    # os attributes: ["boottime", "osdistro", "ipaddr", "osname", "osplatform", "osrelease", "ostype", "osversion"]
+    # os attributes: ["boottime", "osdistro", "ipaddr", "osname", "osplatform",
+    #                 "osrelease", "ostype", "osversion"]
     # os    "linux" -->  platform.system().lower()
     #               {"boottime":1394049039.0, --> psutil.BOOT_TIME
     #                "ipaddr":"10.154.163.164", --> get_host_ipaddr()
@@ -1423,7 +1419,8 @@ def uname(prefix='/mnt/CrawlDisk'):
     #                "osversion":"#19-Ubuntu SMP Wed Oct 9 16:12:00 UTC 2013"} --> platform_outofband.version(prefix=mountpoint)
 
     # Some of the release info is in: /etc/issue /etc/os-release /etc/*release
-    # See below (unused) distrofind() method for files to check for different distros
+    # See below (unused) distrofind() method for files to check for different
+    # distros
     # For now abandoning a custom impln as linux_distribution() checks some of
     # the same
 
@@ -1867,7 +1864,7 @@ if __name__ == '__main__':
     # Default is to print the aliased verbose platform string
 
     terse = 'terse' in sys.argv or '--terse' in sys.argv
-    aliased = not 'nonaliased' in sys.argv and not '--nonaliased' \
-        in sys.argv
-    print platform(aliased, terse)
+    aliased = ('nonaliased' not in sys.argv and
+               '--nonaliased' not in sys.argv)
+    print(platform(aliased, terse))
     sys.exit(0)
