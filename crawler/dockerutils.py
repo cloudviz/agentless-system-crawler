@@ -7,9 +7,11 @@ import dateutil.parser as dp
 import semantic_version
 import docker
 
-VERSION_SPEC = semantic_version.Spec('>=1.10.0') # version at which docker image layer organization changed
+# version at which docker image layer organization changed
+VERSION_SPEC = semantic_version.Spec('>=1.10.0')
 
 logger = logging.getLogger('crawlutils')
+
 
 def exec_dockerps():
     """
@@ -17,7 +19,8 @@ def exec_dockerps():
 
     This call executes the `docker inspect` command every time it is invoked.
     """
-    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
+    client = docker.Client(
+        base_url='unix://var/run/docker.sock', version='auto')
     containers = client.containers()
     inspect_arr = []
     for container in containers:
@@ -26,8 +29,10 @@ def exec_dockerps():
 
     return inspect_arr
 
+
 def exec_docker_history(long_id=None):
-    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
+    client = docker.Client(
+        base_url='unix://var/run/docker.sock', version='auto')
     containers = client.containers()
     out = None
     for c in containers:
@@ -38,6 +43,7 @@ def exec_docker_history(long_id=None):
             out = client.history(image)
     del client
     return out
+
 
 def _fold_port_key(ports_dict):
     if not ports_dict:
@@ -76,8 +82,10 @@ def _reformat_inspect(inspect):
     epoch_seconds = docker_datetime.strftime('%s')
     inspect['Created'] = epoch_seconds
 
+
 def exec_dockerinspect(long_id=None):
-    client = docker.Client(base_url='unix://var/run/docker.sock',version='auto')
+    client = docker.Client(
+        base_url='unix://var/run/docker.sock', version='auto')
 
     if not long_id:
         containers = client.containers()
@@ -95,7 +103,7 @@ def exec_dockerinspect(long_id=None):
 
     inspect['docker_image_long_name'] = repo_tag
     inspect['docker_image_short_name'] = os.path.basename(repo_tag)
-    if ':' in repo_tag and not '/' in repo_tag.rsplit(':', 1)[1]:
+    if ':' in repo_tag and '/' not in repo_tag.rsplit(':', 1)[1]:
         inspect['docker_image_tag'] = repo_tag.rsplit(':', 1)[1]
     else:
         inspect['docker_image_tag'] = ''
@@ -106,6 +114,7 @@ def exec_dockerinspect(long_id=None):
         inspect['owner_namespace'] = ''
 
     return inspect
+
 
 def get_docker_storage_driver():
     """
@@ -274,8 +283,8 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
 
     # should be debug, for now info
     logger.info('get_docker_container_rootfs_path: long_id=' +
-        long_id + ', deriver=' + driver +
-        ', server_version=' + server_version)
+                long_id + ', deriver=' + driver +
+                ', server_version=' + server_version)
 
     if driver == 'devicemapper':
 
@@ -322,17 +331,18 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     elif driver == 'aufs':
         if VERSION_SPEC.match(semantic_version.Version(server_version)):
             proc = subprocess.Popen(
-                'cat `find /var/lib/docker -name "'+
+                'cat `find /var/lib/docker -name "' +
                 long_id +
                 '*" | grep mounts`/init-id',
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
-            root_dir  = proc.stdout.read().strip().split('-')[0]
+            root_dir = proc.stdout.read().strip().split('-')[0]
             rootfs_path = '/var/lib/docker/aufs/mnt/{}'.format(root_dir)
-        else: 
+        else:
             proc = subprocess.Popen(
-                "find /var/lib/docker -name \"{}*\" | grep mnt | grep -v 'init' | head -n 1".format(long_id),
+                "find /var/lib/docker -name \"{}*\" | grep mnt | grep -v 'init' | head -n 1".format(
+                    long_id),
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)

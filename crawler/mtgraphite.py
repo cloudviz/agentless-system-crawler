@@ -5,14 +5,15 @@ import socket
 import ssl
 import struct
 import time
-import unittest
-import re
+# import unittest
+# import re
 
 # This code is based upon the Kafka producer/client classes
 
 logger = logging.getLogger('crawlutils')
 
 DEFAULT_SOCKET_TIMEOUT_SECONDS = 120
+
 
 class MTGraphiteClient(object):
 
@@ -33,7 +34,8 @@ class MTGraphiteClient(object):
 
         list = host_url[len('mtgraphite://'):].split('/', 1)
         self.host, _, self.port = list[0].partition(':')
-        self.super_tenant_id, _, self.super_tenant_password = list[1].partition(':')
+        self.super_tenant_id, _, self.super_tenant_password = list[
+            1].partition(':')
 
         # create a connection only when we need it, but keep it alive
 
@@ -55,16 +57,14 @@ class MTGraphiteClient(object):
         identification_message += self_identifier
         return identification_message
 
-    def _create_authentication_message(self,tenant_id, tenant_password, supertenant=True):
+    def _create_authentication_message(self, tenant_id, tenant_password,
+                                       supertenant=True):
         authentication_message = """"""
-        if supertenant:
-            authentication_message += '2S'
-        else:
-            authentication_message += '2T'
+        authentication_message += '2S' if supertenant else '2T'
         authentication_message += chr(len(tenant_id))
         authentication_message += tenant_id
         authentication_message += \
-                    chr(len(tenant_password))
+            chr(len(tenant_password))
         authentication_message += tenant_password
         return authentication_message
 
@@ -118,17 +118,24 @@ class MTGraphiteClient(object):
 
                 self_identifier = str(self.conn.getsockname()[0])
                 logger.debug('self_identifier = %s', self_identifier)
-                identification_message = self._create_identification_message(self_identifier)
-                self._send_and_check_identification_message(identification_message)
+                identification_message = self._create_identification_message(
+                    self_identifier)
+                self._send_and_check_identification_message(
+                    identification_message)
 
-                authentication_message = self._create_authentication_message(self.super_tenant_id, self.super_tenant_password)
+                authentication_message = self._create_authentication_message(
+                    self.super_tenant_id, self.super_tenant_password)
                 # We check once for
                 try:
-                    self._send_and_check_authentication_message(authentication_message)
+                    self._send_and_check_authentication_message(
+                        authentication_message)
                 except Exception as e:
                     print("Attempting to log in as tenant")
-                    authentication_message = self._create_authentication_message(self.super_tenant_id, self.super_tenant_password, supertenant=False)
-                    self._send_and_check_authentication_message(authentication_message)
+                    authentication_message = self._create_authentication_message(
+                        self.super_tenant_id, self.super_tenant_password,
+                        supertenant=False)
+                    self._send_and_check_authentication_message(
+                        authentication_message)
                 return self.conn
 
             except Exception as e:
@@ -138,7 +145,6 @@ class MTGraphiteClient(object):
                     self.conn = None
                 time.sleep(2)  # sleep for 2 seconds for now
                 return None
-
 
     def _write_messages_no_retries(self, msgset):
         s = self._get_socket()
@@ -164,6 +170,7 @@ class MTGraphiteClient(object):
             logger.debug(
                 'About to write to the socket (already sent %d out of %d '
                 'bytes)' % (len_sent, len_to_send))
+            # https://docs.python.org/2/library/2to3.html#2to3fixer-buffer
             written = s.write(buffer(messages_string, len_sent))
             write_time = time.time() * 1000 - t
             logger.debug('Written %d bytes to socket in %f ms'
