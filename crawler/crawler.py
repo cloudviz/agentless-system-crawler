@@ -27,6 +27,7 @@ import defaults
 import misc
 import crawlutils
 from crawlmodes import Modes
+from dockermonitor import DockerMonitor
 
 CRAWLER_HOST = misc.get_host_ipaddr()
 
@@ -61,11 +62,21 @@ def crawler_worker(process_id, logfile, params):
 
     crawlutils.snapshot(**params)
 
+def docker_monitor(process_id, logfile, syncQ):
+    setup_logger('docker-monitor', logfile, process_id)
+    logger.info('*' * 50)
+    logger.info('Docker monitor #%d started.' % (process_id))
+    logger.info('*' * 50)
+
+    monitor = DockerMonitor(syncQ)
+    monitor.startMonitor()
 
 def start_autonomous_crawler(num_processes, logfile):
 
     if params['crawlmode'] == 'OUTCONTAINER':
         jobs = []
+        syncQ = multiprocessing.JoinableQueue()
+        delList = multiprocessing.Manager().list()
 
         for index in xrange(num_processes):
             # XXX use options.get() instead
@@ -73,6 +84,9 @@ def start_autonomous_crawler(num_processes, logfile):
             partition_args = options['partition_strategy']['args']
             partition_args['process_id'] = index
             partition_args['num_processes'] = num_processes
+            partition_args['eventQ'] = syncQ
+            partition_args['delList'] = delList
+
             p = multiprocessing.Process(
                 name='crawler-%s' %
                 index, target=crawler_worker, args=(
@@ -80,7 +94,16 @@ def start_autonomous_crawler(num_processes, logfile):
             jobs.append((p, index))
             p.start()
             logger.info('Crawler %s (pid=%s) started', index, p.pid)
+	
+	#now start docker event handler
+        eventProc = multiprocessing.Process(
+        	name='docker-monitor',
+        	target = docker_monitor, args=((index+1), logfile, syncQ))
 
+	#jobs.append((evntProc, (index+1)))
+        eventProc.start()
+        logging.info("docker container monitor started (pid=%s)", eventProc)
+	
         while jobs:
             for (index, (job, process_id)) in enumerate(jobs):
                 if not job.is_alive():
@@ -110,6 +133,10 @@ def start_autonomous_crawler(num_processes, logfile):
                             pid)
                     del jobs[index]
             time.sleep(0.1)
+	
+        logger.info('terminating docker-monitor process.(pid=%s)'%(eventProc.pid))
+        eventProc.terminate()
+
         logger.info('Exiting as there are no more processes running.')
     else:
 

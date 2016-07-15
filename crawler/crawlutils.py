@@ -17,6 +17,7 @@ import signal
 import json
 from ctypes import CDLL
 import uuid
+from Queue import Empty, Full
 
 try:
     libc = CDLL('libc.so.6')
@@ -30,7 +31,7 @@ from yapsy.PluginManager import PluginManager
 
 from emitter import Emitter
 from features_crawler import FeaturesCrawler
-from containers import get_filtered_list_of_containers
+from containers import get_filtered_list_of_containers,get_container
 import defaults
 import misc
 from crawlmodes import Modes
@@ -458,30 +459,30 @@ def snapshot(
     signal.signal(signal.SIGHUP, signal_handler_exit)
 
     if crawlmode == Modes.OUTCONTAINER:
+	#Use custom filter logic to distribute already running containers
         containers = get_filtered_list_of_containers(options, namespace,
                                                      runtime_env)
 
+    eventQ = options['partition_strategy']['args']['eventQ']
+    delList = options['partition_strategy']['args']['delList']
+
+    if frequency < 0:
+	wait_period = 5
+    else:
+	wait_period = 5
+	
     # This is the main loop of the system, taking a snapshot and sleeping at
     # every iteration.
 
     while True:
-
-        snapshot_time = int(time.time())
-
         if crawlmode == Modes.OUTCONTAINER:
-
-            curr_containers = get_filtered_list_of_containers(
-                                              options, namespace, runtime_env)
-            deleted = [c for c in containers if c not in curr_containers]
-            containers = curr_containers
-
-            for container in deleted:
-                if options.get('link_container_log_files', False):
-                    container.unlink_logfiles(options)
-
+            snapshot_time = int(time.time())
             logger.debug('Crawling %d containers' % (len(containers)))
-
             for container in containers:
+		if container.long_id in delList:
+                        containers.remove(container)
+                        delList.remove(container.long_id)
+                        continue
 
                 logger.info(
                     'Crawling container %s %s %s' %
@@ -508,6 +509,35 @@ def snapshot(
                     overwrite=overwrite
                 )
 
+	    try:
+                container_event = eventQ.get(block=True, timeout = wait_period)
+            except Empty as e:
+                #timeout occurred
+		#snapshot all containers
+                pass
+            else:
+                #container lifecycle event received
+                #identify whether it is a create event or delete event
+		'''container event could occur anytime, it might happen 
+		 a second later when all container were scanned. In this case
+		it will again scan all containers, including the new one
+
+		TODO: We may consider optimizing this case later
+		'''
+                action = container_event.get_event()
+                if action == 'start':
+                    new_container = get_container(options, namespace,
+                                    container_event.get_containerid())
+                    containers.append(new_container)
+		    continue
+                if action == 'die':
+                    delList.append(container_event.get_containerid())
+                    if options.get('link_container_log_files', False):
+                        container.unlink_logfiles(options)
+		    ''' even for container delete event, it will go ahead 
+			and snapshot container
+			TODO: optimize this case
+		    '''
         elif crawlmode in (Modes.INVM,
                            Modes.MOUNTPOINT,
                            Modes.DEVICE,
@@ -539,19 +569,5 @@ def snapshot(
         if frequency < 0 or should_exit:
             logger.info('Bye')
             break
-        elif frequency == 0:
-            continue
-
-        if next_iteration_time is None:
-            next_iteration_time = snapshot_time + frequency
-        else:
-            next_iteration_time = next_iteration_time + frequency
-
-        while next_iteration_time + frequency < time.time():
-            next_iteration_time = next_iteration_time + frequency
-
-        time_to_sleep = next_iteration_time - time.time()
-        if time_to_sleep > 0:
-            time.sleep(time_to_sleep)
 
         snapshot_num += 1

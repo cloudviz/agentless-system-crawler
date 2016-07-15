@@ -132,3 +132,26 @@ def get_filtered_list_of_containers(
             filtered_list.append(container)
 
     return filtered_list
+
+def get_container(
+    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    host_namespace=misc.get_host_ipaddr(),
+    containerId = None,
+):
+    environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
+    metadata = options.get('metadata', {})
+    _map = metadata.get('container_long_id_to_namespace_map', {})
+    container_opts = {'host_namespace': host_namespace,
+                      'environment': environment,
+                      'long_id_to_namespace_map': _map,
+                      'container_logs': options['logcrawler']['default_log_files']
+                      }
+    user_list = containerId
+    container_list = list_all_containers(user_list, container_opts)
+    ret_container = None
+    for container in container_list:
+            ret_container = container
+            break
+
+    return ret_container
+    
