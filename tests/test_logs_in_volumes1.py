@@ -70,8 +70,8 @@ class DockerContainerTests(unittest.TestCase):
             get_docker_container_rootfs_path
 
         self.docker_container._get_container_log_files = get_container_log_files
-        self.docker_container.log_file_list = [
-            {'name': '/data/test1.log', 'type': None}]
+        self.docker_container.log_file_list = [{'name': '/data/test1.log',
+                                                'type': None}]
 
     def tearDown(self):
         shutil.rmtree(self.volume)
@@ -82,8 +82,8 @@ class DockerContainerTests(unittest.TestCase):
             self.host_log_dir, {})
         for log_dict in log_list:
             if log_dict['name'] == '/data/test1.log':
-                self.assertEqual(
-                    log_dict['dest'], self.host_log_dir + '/data/test1.log')
+                self.assertEqual(log_dict['dest'],
+                                 self.host_log_dir + '/data/test1.log')
                 self.assertEqual(log_dict['source'],
                                  self.volume + '/test1.log')
 
