@@ -19,7 +19,6 @@ in which you want it to run:
  * apt-get install python-pip
  * pip install psutil
  * pip install netifaces
- * pip install bottle
  * pip install requests
  * pip install python-dateutil
 
