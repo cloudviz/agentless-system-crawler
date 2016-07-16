@@ -42,76 +42,76 @@ class SingleContainerTests(unittest.TestCase):
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
 
-	# Adding every single option (even if not used in this test), to make
-	# writing other tests easier
-	options = {
-	    'features': 'cpu,memory,interface',
-	    'format': 'graphite',
-	    'crawlmode': 'OUTCONTAINER',
-	    'urls': ['file://' + self.tempd + '/out/crawler'],
-	    'options': {
-		'load': {},
-		'process': {},
-		'metric': {},
-		'logcrawler': {
-		    'log_types_file': 'd464347c-3b99-11e5-b0e9-062dcffc249f.type-mapping',
-		    'host_log_basedir': '/var/log/crawler_container_logs/',
-		    'default_log_files': [{
-			'type': None,
-			'name': '/var/log/messages'
-		    }, {
-			'type': None,
-			'name': '/etc/csf_env.properties'
-		    }]
-		},
-		'file': {
-		    'avoid_setns': False,
-		    'exclude_dirs': ['boot', 'dev', 'proc', 'sys', 'mnt', 'tmp', 'var/cache', 'usr/share/man', 'usr/share/doc', 'usr/share/mime'],
-		    'root_dir': '/'
-		},
-		'mountpoint': 'Undefined',
-		'disk': {},
-		'environment': 'cloudsight',
-		'memory': {},
-		'config': {
-		    'avoid_setns': False,
-		    'exclude_dirs': ['dev', 'proc', 'mnt', 'tmp', 'var/cache', 'usr/share/man', 'usr/share/doc', 'usr/share/mime'],
-		    'root_dir': '/',
-		    'discover_config_files': True,
-		    'known_config_files': ['etc/passwd', 'etc/group', 'etc/hosts', 'etc/hostname', 'etc/mtab', 'etc/fstab', 'etc/aliases', 'etc/ssh/ssh_config', 'etc/ssh/sshd_config', 'etc/sudoers']
-		},
-		'metadata': {
-		    'extra_metadata': {},
-		    'container_long_id_to_namespace_map': {},
-		    'extra_metadata_for_all': False
-		},
-		'dockerhistory': {},
-		'compress': False,
-		'interface': {},
-		'_test_crash': {},
-		'package': {
-		    'avoid_setns': False
-		},
-		'docker_containers_list': 'ALL',
-		'partition_strategy': {
-		    'args': {
-			'process_id': 0,
-			'num_processes': 1
-		    },
-		    'name': 'equally_by_pid'
-		},
-		'connection': {},
-		'_test_infinite_loop': {},
-		'dockerinspect': {},
-		'dockerps': {},
-		'link_container_log_files': False,
-		'os': {
-		    'avoid_setns': False
-		},
-		'cpu': {}
-	    },
-	    'overwrite': False
-	}
+        # Adding every single option (even if not used in this test), to make
+        # writing other tests easier
+        options = {
+            'features': 'cpu,memory,interface',
+            'format': 'graphite',
+            'crawlmode': 'OUTCONTAINER',
+            'urls': ['file://' + self.tempd + '/out/crawler'],
+            'options': {
+                'load': {},
+                'process': {},
+                'metric': {},
+                'logcrawler': {
+                    'log_types_file': 'd464347c-3b99-11e5-b0e9-062dcffc249f.type-mapping',
+                    'host_log_basedir': '/var/log/crawler_container_logs/',
+                    'default_log_files': [{
+                        'type': None,
+                        'name': '/var/log/messages'
+                    }, {
+                        'type': None,
+                        'name': '/etc/csf_env.properties'
+                    }]
+                },
+                'file': {
+                    'avoid_setns': False,
+                    'exclude_dirs': ['boot', 'dev', 'proc', 'sys', 'mnt', 'tmp', 'var/cache', 'usr/share/man', 'usr/share/doc', 'usr/share/mime'],
+                    'root_dir': '/'
+                },
+                'mountpoint': 'Undefined',
+                'disk': {},
+                'environment': 'cloudsight',
+                'memory': {},
+                'config': {
+                    'avoid_setns': False,
+                    'exclude_dirs': ['dev', 'proc', 'mnt', 'tmp', 'var/cache', 'usr/share/man', 'usr/share/doc', 'usr/share/mime'],
+                    'root_dir': '/',
+                    'discover_config_files': True,
+                    'known_config_files': ['etc/passwd', 'etc/group', 'etc/hosts', 'etc/hostname', 'etc/mtab', 'etc/fstab', 'etc/aliases', 'etc/ssh/ssh_config', 'etc/ssh/sshd_config', 'etc/sudoers']
+                },
+                'metadata': {
+                    'extra_metadata': {},
+                    'container_long_id_to_namespace_map': {},
+                    'extra_metadata_for_all': False
+                },
+                'dockerhistory': {},
+                'compress': False,
+                'interface': {},
+                '_test_crash': {},
+                'package': {
+                    'avoid_setns': False
+                },
+                'docker_containers_list': 'ALL',
+                'partition_strategy': {
+                    'args': {
+                        'process_id': 0,
+                        'num_processes': 1
+                    },
+                    'name': 'equally_by_pid'
+                },
+                'connection': {},
+                '_test_infinite_loop': {},
+                'dockerinspect': {},
+                'dockerps': {},
+                'link_container_log_files': False,
+                'os': {
+                    'avoid_setns': False
+                },
+                'cpu': {}
+            },
+            'overwrite': False
+        }
 
         crawler.crawlutils.snapshot(**options)
 

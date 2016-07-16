@@ -83,7 +83,7 @@ def list_all_containers(user_list='ALL',
 def get_filtered_list_of_containers(
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     host_namespace=misc.get_host_ipaddr(),
-    runtime_env = None
+    runtime_env=None
 ):
     """
     Returns a partition of all the Container objects currently running in the
