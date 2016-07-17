@@ -345,6 +345,32 @@ class Emitter:
                                                                   e))
             raise
 
+    def _publish_to_kafka(self, url, max_emit_retries=8):
+        broker_alive = False
+        retries = 0
+        while not broker_alive and retries <= max_emit_retries:
+            try:
+                retries += 1
+                self._publish_to_kafka_no_retries(url)
+                broker_alive = True
+            except Exception as e:
+                logger.debug('_publish_to_kafka_no_retries {0}: {1}'.format(url,
+                                                                            e))
+                if retries <= max_emit_retries:
+
+                    # Wait for (2^retries * 100) milliseconds
+
+                    wait_time = 2.0 ** retries * 0.1
+                    logger.error(
+                        'Could not connect to the kafka server at %s. Retry '
+                        'in %f seconds.' % (url, wait_time))
+                    time.sleep(wait_time)
+                else:
+                    print('Could not send to kafka %s after %d retries.' \
+                        % (url, max_emit_retries))
+                    # Can't recover from this one
+                    exit(1)
+
     def _publish_to_mtgraphite(self, url):
         if not Emitter.mtgclient:
             Emitter.mtgclient = MTGraphiteClient(url)
