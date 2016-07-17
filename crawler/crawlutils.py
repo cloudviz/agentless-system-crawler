@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 #
 # Collection of crawlers that extract specific types of features from
 # the host machine. This code is portable across OS platforms (Linux, Windows)

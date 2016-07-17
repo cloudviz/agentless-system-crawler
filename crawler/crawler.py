@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 ##
 # Wrapper around the crawlutils module that provides:
 # (a) an autonomous push mode via command-line invocation, and
