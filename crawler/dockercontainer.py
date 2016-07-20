@@ -346,6 +346,13 @@ class DockerContainer(Container):
             _type = logdict['type']
 
             # assuming mount source or destination does not contain '*'
+            if not self.inspect['Mounts']:
+	        lname = rootfs_path + name
+                if "*" in lname:
+                     src_dest = [(s, s.split(rootfs_path, 1)[1]) for s in glob.glob(lname)]
+                else:
+                     src_dest = [(lname, name)]
+
             for mount in self.inspect['Mounts']:
                 if name.startswith(mount['Destination']):
                     lname = name.replace(mount['Destination'], mount['Source'])
