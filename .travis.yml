@@ -13,7 +13,7 @@ env:
 python:
   - "2.7"
 
-before_install:  
+before_install:
     - ./.validateDCO
     # list docker-engine versions
     - apt-cache madison docker-engine
@@ -30,7 +30,7 @@ before_install:
 install:
   - pip install -r requirements-test.txt
   - sudo pip install -r requirements-test.txt
-  
+
 # command to run tests
 script:
   - sudo python setup.py test --addopts '--cov=.'
