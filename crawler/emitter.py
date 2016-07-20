@@ -12,16 +12,16 @@ import sys
 from mtgraphite import MTGraphiteClient
 import json
 import multiprocessing
+import Queue
+from crawler_exceptions import (EmitterUnsupportedFormat,
+                                EmitterUnsupportedProtocol,
+                                EmitterBadURL,
+                                EmitterEmitTimeout)
 
 # External dependencies that must be pip install'ed separately
 
-try:
-    import kafka as kafka_python
-    import pykafka
-except ImportError:
-    kafka_python = None
-    pykafka = None
-
+import kafka as kafka_python
+import pykafka
 import requests
 
 from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
@@ -35,7 +35,7 @@ from misc import NullHandler
 logger = logging.getLogger('crawlutils')
 
 
-def kafka_send(kurl, temp_fpath, format, topic):
+def kafka_send(kurl, temp_fpath, format, topic, queue=None):
     try:
         kafka_python_client = kafka_python.KafkaClient(kurl)
         kafka_python_client.ensure_topic_exists(topic)
@@ -49,20 +49,21 @@ def kafka_send(kurl, temp_fpath, format, topic):
             with open(temp_fpath, 'r') as fp:
                 text = fp.read()
                 producer.produce([text])
-
         elif format == 'graphite':
-
             with open(temp_fpath, 'r') as fp:
                 for line in fp.readlines():
                     producer.produce([line])
         else:
-            raise
-        sys.exit(0)
-    except Exception as e:
+            raise EmitterUnsupportedFormat('Unsupported format: %s' % format)
 
-        print e
-        # kafka.close()
-        sys.exit(1)
+        queue and queue.put((True, None))
+    except Exception as e:
+        if queue:
+            queue.put((False, e))
+        else:
+            raise
+    finally:
+        queue and queue.close()
 
 
 class Emitter:
@@ -79,6 +80,8 @@ class Emitter:
 
     mtgclient = None
 
+    kafka_timeout_secs = 30
+
     # Debugging TIP: use url='file://<local-file>' to emit the frame data into
     # a local file
 
@@ -88,6 +91,7 @@ class Emitter:
         emitter_args={},
         format='csv',
         max_emit_retries=9,
+        kafka_timeout_secs=30
     ):
 
         self.urls = urls
@@ -96,6 +100,7 @@ class Emitter:
         self.format = format
         self.max_emit_retries = max_emit_retries
         self.mtgclient = None
+        self.kafka_timeout_secs = kafka_timeout_secs
 
     def __enter__(self):
         (self.temp_fd, self.temp_fpath) = \
@@ -115,37 +120,6 @@ class Emitter:
         self.num_features = 0
         return self
 
-    def _get_feature_type(self, feature):
-        if isinstance(feature, OSFeature):
-            return 'os'
-        if isinstance(feature, FileFeature):
-            return 'file'
-        if isinstance(feature, ConfigFeature):
-            return 'config'
-        if isinstance(feature, DiskFeature):
-            return 'disk'
-        if isinstance(feature, ProcessFeature):
-            return 'process'
-        if isinstance(feature, ConnectionFeature):
-            return 'connection'
-        if isinstance(feature, MetricFeature):
-            return 'metric'
-        if isinstance(feature, PackageFeature):
-            return 'package'
-        if isinstance(feature, MemoryFeature):
-            return 'memory'
-        if isinstance(feature, CpuFeature):
-            return 'cpu'
-        if isinstance(feature, InterfaceFeature):
-            return 'interface'
-        if isinstance(feature, LoadFeature):
-            return 'load'
-        if isinstance(feature, DockerPSFeature):
-            return 'dockerps'
-        if isinstance(feature, DockerHistoryFeature):
-            return 'dockerhistory'
-        raise ValueError('Unrecognized feature type')
-
     def emit_dict_as_graphite(
         self,
         sysname,
@@ -155,10 +129,7 @@ class Emitter:
         timestamp=None,
     ):
         timestamp = int(timestamp or time.time())
-        try:
-            items = data.items()
-        except:
-            return
+        items = data.items()
 
         # this is for issue #343
 
@@ -190,7 +161,6 @@ class Emitter:
             tmp_message = '%s.%s.%s %f %d\r\n' % (sysname, suffix,
                                                   metric, value, timestamp)
             self.emitfile.write(tmp_message)
-        return
 
     # Added optional feature_type so that we can bypass feature type discovery
     # for FILE crawlmode
@@ -205,32 +175,27 @@ class Emitter:
         # Add metadata as first feature
 
         if self.num_features == 0:
-            try:
-                metadata = copy.deepcopy(self.emitter_args)
+            metadata = copy.deepcopy(self.emitter_args)
 
-                # Update timestamp to the actual emit time
+            # Update timestamp to the actual emit time
 
-                metadata['timestamp'] = \
-                    time.strftime('%Y-%m-%dT%H:%M:%S%z')
-                if 'extra' in metadata:
-                    del metadata['extra']
-                    if self.emitter_args['extra']:
-                        metadata.update(json.loads(self.emitter_args['extra'
-                                                                     ]))
-                if 'extra_all_features' in metadata:
-                    del metadata['extra_all_features']
-                if self.format == 'csv':
-                    self.csv_writer.writerow(
-                        ['metadata',
-                         json.dumps('metadata'),
-                         json.dumps(metadata,
-                                    separators=(',', ':'))])
-                    self.num_features += 1
-            except Exception as e:
-                logger.exception(e)
-                raise
+            metadata['timestamp'] = \
+                time.strftime('%Y-%m-%dT%H:%M:%S%z')
+            if 'extra' in metadata:
+                del metadata['extra']
+                if self.emitter_args['extra']:
+                    metadata.update(json.loads(self.emitter_args['extra'
+                                                                 ]))
+            if 'extra_all_features' in metadata:
+                del metadata['extra_all_features']
+            if self.format == 'csv':
+                self.csv_writer.writerow(
+                    ['metadata',
+                     json.dumps('metadata'),
+                     json.dumps(metadata,
+                                separators=(',', ':'))])
+                self.num_features += 1
 
-        feature_type = feature_type or self._get_feature_type(feature_val)
         if isinstance(feature_val, dict):
             feature_val_as_dict = feature_val
         else:
@@ -240,29 +205,26 @@ class Emitter:
                 and self.emitter_args['extra_all_features'] == True:
             feature_val_as_dict.update(json.loads(self.emitter_args['extra'
                                                                     ]))
-        try:
-            if self.format == 'csv':
-                self.csv_writer.writerow(
-                    [feature_type,
-                     json.dumps(feature_key),
-                     json.dumps(feature_val_as_dict,
-                                separators=(',', ':'))])
-            elif self.format == 'graphite':
-                if 'namespace' in self.emitter_args:
-                    namespace = self.emitter_args['namespace']
-                else:
-                    namespace = 'undefined'
-                self.emit_dict_as_graphite(
-                    namespace,
-                    feature_type,
-                    feature_key,
-                    feature_val_as_dict)
+        if self.format == 'csv':
+            self.csv_writer.writerow(
+                [feature_type,
+                 json.dumps(feature_key),
+                 json.dumps(feature_val_as_dict,
+                            separators=(',', ':'))])
+        elif self.format == 'graphite':
+            if 'namespace' in self.emitter_args:
+                namespace = self.emitter_args['namespace']
             else:
-                raise Exception('Unsupported emitter format.')
-            self.num_features += 1
-        except Exception as e:
-            logger.exception(e)
-            raise
+                namespace = 'undefined'
+            self.emit_dict_as_graphite(
+                namespace,
+                feature_type,
+                feature_key,
+                feature_val_as_dict)
+        else:
+            raise EmitterUnsupportedFormat(
+                'Unsupported format: %s' % self.format)
+        self.num_features += 1
 
     def _close_file(self):
 
@@ -273,7 +235,7 @@ class Emitter:
     def _publish_to_stdout(self):
         with open(self.temp_fpath, 'r') as fd:
             if self.compress:
-                print fd.read()
+                print '%s' % fd.read()
             else:
                 for line in fd.readlines():
                     print line.strip()
@@ -290,13 +252,15 @@ class Emitter:
                         url, headers=headers, params=self.emitter_args, data=framefp)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
-                logger.error("POST to %s resulted in exception (attempt %d of %d), will not re-try" %
-                             (url, attempt + 1, max_emit_retries))
+                logger.error(
+                    "POST to %s resulted in exception (attempt %d of %d), will not re-try" %
+                    (url, attempt + 1, max_emit_retries))
                 break
             except requests.exceptions.RequestException as e:
                 logger.exception(e)
-                logger.error("POST to %s resulted in exception (attempt %d of %d)" % (
-                    url, attempt + 1, max_emit_retries))
+                logger.error(
+                    "POST to %s resulted in exception (attempt %d of %d)" %
+                    (url, attempt + 1, max_emit_retries))
                 time.sleep(2.0 ** attempt * 0.1)
                 continue
 
@@ -309,41 +273,49 @@ class Emitter:
 
     def _publish_to_kafka_no_retries(self, url):
 
-        if kafka_python is None or pykafka is None:
-            raise ImportError('Please install kafka and pykafka')
+        list = url[len('kafka://'):].split('/')
+
+        if len(list) == 2:
+            kurl, topic = list
+        else:
+            raise EmitterBadURL(
+                'The kafka url provided does not seem to be valid: %s. '
+                'It should be something like this: '
+                'kafka://[ip|hostname]:[port]/[kafka_topic]. '
+                'For example: kafka://1.1.1.1:1234/metrics' % url)
+
+        # Kafka logs too much
+        h = NullHandler()
+        logging.getLogger('kafka').addHandler(h)
+
+        queue = multiprocessing.Queue()
+        try:
+            child_process = multiprocessing.Process(
+                name='kafka-emitter', target=kafka_send, args=(
+                    kurl, self.temp_fpath, self.format, topic, queue))
+            child_process.start()
+        except OSError:
+            queue.close()
+            raise
 
         try:
-            list = url[len('kafka://'):].split('/')
+            (result, child_exception) = queue.get(
+                timeout=self.kafka_timeout_secs)
+        except Queue.Empty:
+            child_exception = EmitterEmitTimeout()
 
-            if len(list) == 2:
-                kurl, topic = list
-            else:
-                raise Exception(
-                    'The kafka url provided does not seem to be valid: %s. '
-                    'It should be something like this: '
-                    'kafka://[ip|hostname]:[port]/[kafka_topic]. '
-                    'For example: kafka://1.1.1.1:1234/metrics' % url)
+        child_process.join(self.kafka_timeout_secs)
 
-            h = NullHandler()
-            logging.getLogger('kafka').addHandler(h)
+        if child_process.is_alive():
+            errmsg = ('Timed out waiting for process %d to exit.' %
+                      child_process.pid)
+            queue.close()
+            os.kill(child_process.pid, 9)
+            logger.error(errmsg)
+            raise EmitterEmitTimeout(errmsg)
 
-            try:
-                child_process = multiprocessing.Process(
-                    name='kafka-emitter', target=kafka_send, args=(
-                        kurl, self.temp_fpath, self.format, topic))
-                child_process.start()
-                child_process.join(120)
-            except OSError:
-                queue.close()
-                raise
-
-        except Exception as e:
-
-            # kafka.close()
-
-            logger.debug('Could not send data to {0}: {1}'.format(url,
-                                                                  e))
-            raise
+        if child_exception:
+            raise child_exception
 
     def _publish_to_kafka(self, url, max_emit_retries=8):
         broker_alive = False
@@ -366,10 +338,7 @@ class Emitter:
                         'in %f seconds.' % (url, wait_time))
                     time.sleep(wait_time)
                 else:
-                    print('Could not send to kafka %s after %d retries.' \
-                        % (url, max_emit_retries))
-                    # Can't recover from this one
-                    exit(1)
+                    raise e
 
     def _publish_to_mtgraphite(self, url):
         if not Emitter.mtgclient:
@@ -414,11 +383,8 @@ class Emitter:
                 else:
                     if os.path.exists(self.temp_fpath):
                         os.remove(self.temp_fpath)
-                    raise ValueError(
+                    raise EmitterUnsupportedProtocol(
                         'Unsupported URL protocol {0}'.format(url))
-        except Exception as e:
-            logger.exception(e)
-            raise
         finally:
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
@@ -428,4 +394,4 @@ class Emitter:
             'Emitted {0} features in {1} seconds'.format(
                 self.num_features,
                 elapsed_time))
-        return False
+        return True

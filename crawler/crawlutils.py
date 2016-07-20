@@ -144,61 +144,61 @@ def _crawl_single_feature(feature,
                           emitter):
     if feature == 'os':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, feature) in crawler.crawl_os(**feature_options):
-                emitter.emit(key, feature)
+            for (key, val) in crawler.crawl_os(**feature_options):
+                emitter.emit(key, val, feature)
     if feature == 'disk':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_disk_partitions(**feature_options):
-                emitter.emit(key, feature)
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'metric':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_metrics(**feature_options):
-                emitter.emit(key, feature)
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'process':
         if crawlmode in [Modes.INVM, Modes.OUTVM, Modes.OUTCONTAINER]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_processes(**feature_options):
-                emitter.emit(key, feature)
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'connection':
         if crawlmode in [Modes.INVM, Modes.OUTVM, Modes.OUTCONTAINER]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_connections(**feature_options):
-                emitter.emit(key, feature)
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'package':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_packages(**feature_options):
-                emitter.emit(key, feature)
+                emitter.emit(key, val, feature)
     if feature == 'file':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, feature) in crawler.crawl_files(**feature_options):
-                emitter.emit(key, feature)
+            for (key, val) in crawler.crawl_files(**feature_options):
+                emitter.emit(key, val, feature)
     if feature == 'config':
-        for (key, feature) in \
+        for (key, val) in \
                 crawler.crawl_config_files(**feature_options):
-            emitter.emit(key, feature)
+            emitter.emit(key, val, feature)
     if feature == 'memory':
         if crawlmode in [Modes.INVM, Modes.OUTVM, Modes.OUTCONTAINER]:
-            for (key, feature) in crawler.crawl_memory(**feature_options):
-                emitter.emit(key, feature)
+            for (key, val) in crawler.crawl_memory(**feature_options):
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
@@ -206,68 +206,68 @@ def _crawl_single_feature(feature,
     if feature == 'cpu':
         if crawlmode in [Modes.INVM, Modes.OUTVM]:
             feature_options['per_cpu'] = True
-            for (key, feature) in crawler.crawl_cpu(**feature_options):
-                emitter.emit(key, feature)
+            for (key, val) in crawler.crawl_cpu(**feature_options):
+                emitter.emit(key, val, feature)
         elif crawlmode in [Modes.OUTCONTAINER]:
             feature_options['per_cpu'] = False
-            for (key, feature) in crawler.crawl_cpu(**feature_options):
-                emitter.emit(key, feature)
+            for (key, val) in crawler.crawl_cpu(**feature_options):
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'interface':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_interface(**feature_options):
-                emitter.emit(key, feature)
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'load':
         if crawlmode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (key, feature) in crawler.crawl_load(**feature_options):
-                emitter.emit(key, feature)
+            for (key, val) in crawler.crawl_load(**feature_options):
+                emitter.emit(key, val, feature)
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'dockerps':
         if crawlmode in [Modes.INVM]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_dockerps(**feature_options):
-                emitter.emit(key, feature, 'dockerps')
+                emitter.emit(key, val, 'dockerps')
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'dockerhistory':
         if crawlmode in [Modes.OUTCONTAINER]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_dockerhistory(**feature_options):
-                emitter.emit(key, feature, 'dockerhistory')
+                emitter.emit(key, val, 'dockerhistory')
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == 'dockerinspect':
         if crawlmode in [Modes.OUTCONTAINER]:
-            for (key, feature) in \
+            for (key, val) in \
                     crawler.crawl_dockerinspect(**feature_options):
-                emitter.emit(key, feature, 'dockerinspect')
+                emitter.emit(key, val, 'dockerinspect')
         else:
             logger.warning('Cannot crawl feature: ' + feature +
                            ' in crawl mode: ' + crawlmode +
                            '. Skipping...')
     if feature == '_test_infinite_loop':
-        for (key, feature) in \
+        for (key, val) in \
                 crawler.crawl_test_infinite_loop(**feature_options):
-            emitter.emit(key, feature)
+            emitter.emit(key, val, feature)
     if feature == '_test_crash':
-        for (key, feature) in \
+        for (key, val) in \
                 crawler.crawl_test_crash(**feature_options):
-            emitter.emit(key, feature)
+            emitter.emit(key, val, feature)
 
 
 def snapshot_generic(

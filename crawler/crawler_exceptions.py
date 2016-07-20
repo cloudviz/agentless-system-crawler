@@ -42,3 +42,31 @@ class RuntimeEnvironmentPluginNotFound(Exception):
     """Invalid or non-present plugin for the given environment."""
 
     pass
+
+
+class EmitterUnsupportedProtocol(Exception):
+
+    """User requested an unsupported protocol for the frame emision"""
+
+    pass
+
+
+class EmitterUnsupportedFormat(Exception):
+
+    """User requested an unsupported format for the emitted frame"""
+
+    pass
+
+
+class EmitterBadURL(Exception):
+
+    """The emit URL is invalid"""
+
+    pass
+
+
+class EmitterEmitTimeout(Exception):
+
+    """The emit timed out"""
+
+    pass
