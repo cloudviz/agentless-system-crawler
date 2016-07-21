@@ -18,17 +18,34 @@ class CrawlTimeoutError(CrawlError):
 
 class ContainerInvalidEnvironment(Exception):
 
-    """"Indicates that the environment can not be applied to the operation."""
+    """Indicates that the environment can not be applied to the operation."""
 
     pass
 
+class ContainerNonExistent(Exception):
+
+    """The container does not exist."""
+
+    pass
+
+class DockerutilsException(Exception):
+
+    """Exception from the dockerutils module."""
+
+    pass
+
+class DockerutilsNoJsonLog(DockerutilsException):
+
+    """Could not find the json log for the container. Most likely because the
+       docker logging driver is not json-file."""
+
+    pass
 
 class AlchemyInvalidMetadata(ContainerInvalidEnvironment):
 
     """Invalid or non-present alchemy metadata file."""
 
     pass
-
 
 class AlchemyInvalidContainer(ContainerInvalidEnvironment):
 

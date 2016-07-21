@@ -78,8 +78,9 @@ class DockerContainerTests(unittest.TestCase):
         shutil.rmtree(self.host_log_dir)
 
     def test_get_logfiles_list(self):
-        log_list = self.docker_container._get_logfiles_list(
-            self.host_log_dir, {})
+        self.docker_container._set_logfiles_links_source_and_dest(
+            {'logcrawler':{'host_log_basedir':self.host_log_dir}})
+        log_list = self.docker_container.logs_list
         for log_dict in log_list:
             if log_dict['name'] == '/data/test*.log':
                 assert os.path.basename(log_dict['dest']) in self.log_file_list
