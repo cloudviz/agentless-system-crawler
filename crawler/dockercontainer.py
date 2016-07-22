@@ -10,25 +10,20 @@ import misc
 import defaults
 import json
 import glob
-
-from dockerutils import (
-    exec_dockerps,
-    get_docker_container_json_logs_path,
-    get_docker_container_rootfs_path,
-    exec_dockerinspect)
-
-try:
-    import alchemy
-except ImportError:
-    alchemy = None
-
-
-from crawler_exceptions import ContainerInvalidEnvironment
+from dockerutils import (exec_dockerps,
+                         get_docker_container_json_logs_path,
+                         get_docker_container_rootfs_path,
+                         exec_dockerinspect)
+import plugins_manager
+from crawler_exceptions import (ContainerInvalidEnvironment,
+                                ContainerNonExistent,
+                                DockerutilsNoJsonLog)
+from requests.exceptions import HTTPError
 
 logger = logging.getLogger('crawlutils')
 
 
-def list_docker_containers(namespace_opts={}):
+def list_docker_containers(container_opts={}):
     """
     Get the list of running Docker containers, as `DockerContainer` objects.
 
@@ -39,7 +34,9 @@ def list_docker_containers(namespace_opts={}):
     for inspect in exec_dockerps():
         long_id = inspect['Id']
         try:
-            yield DockerContainer(long_id, inspect, namespace_opts)
+            c = DockerContainer(long_id, inspect, container_opts)
+            if c.namespace:
+                yield c
         except ContainerInvalidEnvironment as e:
             logger.exception(e)
 
@@ -50,46 +47,113 @@ class DockerContainer(Container):
         self,
         long_id,
         inspect=None,
-        namespace_opts={},
+        container_opts={},
     ):
 
         if not inspect:
-            inspect = exec_dockerinspect(long_id)
+            try:
+                inspect = exec_dockerinspect(long_id)
+            except HTTPError:
+                raise ContainerNonExistent('No docker container with ID: %s'
+                                           % long_id)
 
         state = inspect['State']
         self.image = inspect['Image']
 
         assert(long_id == inspect['Id'])
         self.long_id = long_id
-        self.pid = state['Pid']
+        self.pid = str(state['Pid'])
         self.name = inspect['Name']
         self.running = state['Running']
         self.created = inspect['Created']
         self.network_settings = inspect['NetworkSettings']
         self.cmd = inspect['Config']['Cmd']
         self.inspect = inspect
-        self.docker_image_long_name = inspect['docker_image_long_name']
-        self.docker_image_short_name = inspect['docker_image_short_name']
-        self.docker_image_tag = inspect['docker_image_tag']
-        self.docker_image_registry = inspect['docker_image_registry']
-        self.owner_namespace = inspect['owner_namespace']
 
         # This short ID is mainly used for logging purposes
-
         self.short_id = long_id[:12]
 
         # Docker prepends a '/' to the name. Let's remove it.
         if self.name[0] == '/':
             self.name = self.name[1:]
 
-        self.namespace = None
+        repo_tag = inspect.get('RepoTag', '')
+	self.docker_image_long_name = repo_tag
+	self.docker_image_short_name = os.path.basename(repo_tag)
+	if ':' in repo_tag and not '/' in repo_tag.rsplit(':', 1)[1]:
+	    self.docker_image_tag = repo_tag.rsplit(':', 1)[1]
+	else:
+	    self.docker_image_tag = ''
+	self.docker_image_registry = os.path.dirname(repo_tag).split('/')[0]
+	try:
+            # This is the 'abc' in 'registry/abc/bla:latest'
+	    self.owner_namespace = os.path.dirname(repo_tag).split('/', 1)[1]
+	except IndexError:
+	    self.owner_namespace = ''
+
+        try:
+            self.root_fs = get_docker_container_rootfs_path(self.long_id)
+        except HTTPError as e:
+            print e
+            logger.exception(e)
+            self.root_fs = None
+
+        self._set_logfiles_links_source()
+        self._set_environment_specific_options(container_opts)
+        self._set_logfiles_links_source_and_dest()
 
     def is_docker_container(self):
         return True
 
+    """
+    This function is used to setup these fields: namespace, log_prefix, and
+    logfiles_links_source.
+    """
+    def _set_environment_specific_options(self,
+                                          container_opts={}):
+        logger.info('setup_namespace_and_metadata: long_id=' +
+                    self.long_id)
+
+        _map = container_opts.get('long_id_to_namespace_map', {})
+        if self.long_id in _map:
+            self.namespace = _map[self.long_id]
+            self.log_prefix = ''
+            self.logfiles_links_source = []
+            return
+
+        host_namespace = container_opts.get('host_namespace', 'undefined')
+        options=defaults.DEFAULT_CRAWL_OPTIONS
+        default_logs = options['logcrawler']['default_log_files']
+
+        try:
+            _options = {'root_fs': self.root_fs, 'type': 'docker',
+                        'name': self.name, 'host_namespace': host_namespace,
+                        'container_logs': default_logs}
+            runtime_env = plugins_manager.get_runtime_env_plugin()
+            namespace = runtime_env.get_container_namespace(
+                self.long_id, _options)
+            if not namespace:
+                _env = runtime_env.get_environment_name()
+                logger.warning('Container %s does not have %s '
+                               'metadata.' % (_env, self.short_id))
+                raise ContainerInvalidEnvironment('')
+            self.namespace = namespace
+
+            self.log_prefix = runtime_env.get_container_log_prefix(
+                self.long_id, _options)
+
+            self.logfiles_links_source.extend(runtime_env.get_container_log_file_list(
+                self.long_id, _options))
+        except ValueError:
+            # XXX-kollerr: plugins are not supposed to throw ValueError 
+            logger.warning('Container %s does not have a valid alchemy '
+                           'metadata json file.' % self.short_id)
+            raise ContainerInvalidEnvironment()
+
+
     # Find the mount point of the specified cgroup
 
-    def get_cgroup_dir(self, dev=''):
+    def _get_cgroup_dir(self, dev=''):
         paths = [os.path.join('/cgroup/', dev),
                  os.path.join('/sys/fs/cgroup/', dev)]
         for path in paths:
@@ -111,13 +175,13 @@ class DockerContainer(Container):
             raise e
 
     def get_memory_cgroup_path(self, node='memory.stat'):
-        return os.path.join(self.get_cgroup_dir('memory'), 'docker',
+        return os.path.join(self._get_cgroup_dir('memory'), 'docker',
                             self.long_id, node)
 
     def get_cpu_cgroup_path(self, node='cpuacct.usage'):
         # In kernels 4.x, the node is actually called 'cpu,cpuacct'
-        cgroup_dir = (self.get_cgroup_dir('cpuacct') or
-                      self.get_cgroup_dir('cpu,cpuacct'))
+        cgroup_dir = (self._get_cgroup_dir('cpuacct') or
+                      self._get_cgroup_dir('cpu,cpuacct'))
         return os.path.join(cgroup_dir, 'docker', self.long_id, node)
 
     def __str__(self):
@@ -127,11 +191,8 @@ class DockerContainer(Container):
                       options=defaults.DEFAULT_CRAWL_OPTIONS):
 
         host_log_dir = self._get_logfiles_links_dest(
-            options['logcrawler']['host_log_basedir'],
-            options['environment'],
+            options['logcrawler']['host_log_basedir']
         )
-
-        logs_list = self._get_logfiles_list(host_log_dir, options)
 
         logger.debug('Linking log files for container %s' % self.short_id)
 
@@ -142,7 +203,7 @@ class DockerContainer(Container):
 
         # Create a symlink from src to dst
 
-        for log in logs_list:
+        for log in self.logs_list:
             try:
                 if not os.path.exists(log['source']):
                     logger.debug(
@@ -170,7 +231,7 @@ class DockerContainer(Container):
                                                log_types_file)
             with open(types_host_log_path, 'w') as outfile:
                 logs_dict = [{'name': log['name'], 'type': log['type']}
-                             for log in logs_list]
+                             for log in self.logs_list]
                 json.dump(logs_dict, outfile)
         except (OSError, IOError) as e:
             # Not a critical error: move on
@@ -179,10 +240,8 @@ class DockerContainer(Container):
     def unlink_logfiles(self,
                         options=defaults.DEFAULT_CRAWL_OPTIONS):
 
-        host_log_basedir = options['logcrawler']['host_log_basedir']
         host_log_dir = self._get_logfiles_links_dest(
-            host_log_basedir,
-            options['environment'],
+            options['logcrawler']['host_log_basedir']
         )
 
         logger.info('Un-linking log files for container %s.'
@@ -198,53 +257,7 @@ class DockerContainer(Container):
             logger.error('Could not delete directory: %s' % host_log_dir)
             pass
 
-    def _log_locations_json_sanity_check(self, data):
-        """Check the sanity of the user log locations json.
-
-        This json can have anything in it. Just make sure it is a valid json,
-        and it has all the fields we need. Also check that it's not too big and
-        the number of logfiles is decent.
-        """
-        max_data_len = 1e6  # one MB looks excesive
-        max_files = 100  # more than 100 log files to link is excessive
-
-        if len(data) > max_data_len:
-            raise KeyError('The file list is too large.')
-
-        if 'log_files' not in data:
-            raise KeyError('log_files key missing.')
-
-        if len(data.keys()) > 1:
-            raise KeyError('The only valid key is log_files.')
-
-        log_files = data['log_files']
-
-        if len(log_files) > max_files:
-            raise KeyError('Too many log files (> 1000).')
-
-        for log in log_files:
-            if 'name' not in log.keys():
-                raise KeyError('Missing the name key.')
-
-            if len(log.keys()) > 2:
-                raise KeyError('Too many keys in the log tuple.')
-
-            if len(log.keys()) > 1 and 'type' not in log.keys():
-                raise KeyError('Only other valid key is type.')
-
-            if not isinstance(log['name'], str):
-                raise KeyError('name value is not a string.')
-
-            if 'type' in log and not isinstance(log['type'], str):
-                raise KeyError('type value is not a string.')
-
-    def _parse_log_locations(
-        self,
-        json_path=None,
-        var=None,
-        is_var=True,
-        isJson=True,
-    ):
+    def _parse_log_locations(self, var=None):
         """
         TODO
 
@@ -256,92 +269,63 @@ class DockerContainer(Container):
         logs = []  # list of maps {name:name,type:type}
         data = None
         try:
-            if is_var:
-                data = misc.GetProcessEnv(container.pid)[var]
-            else:
-                with open(json_path, 'r') as fp:
-                    data = fp.read()
-            if isJson:
-
-                # remove double quotes around json
-
-                if data.startswith('"'):
-                    data = data[1:]
-                if data.endswith('"'):
-                    data = data[:-1]
-
-                # json doesn't allow single quotes
-
-                data = data.replace("'", '"')
-                data = json.loads(data)
-                self._log_locations_json_sanity_check(data)
-                logs.extend(data['log_files'])
-            else:
-                log_locations = data.split(',')
-                logs = [{'name': name.strip(), 'type': None}
-                        for name in log_locations]
+            data = misc.GetProcessEnv(container.pid)[var]
+	    log_locations = data.split(',')
+	    logs = [{'name': name.strip(), 'type': None}
+		    for name in log_locations]
         except (KeyError, ValueError) as e:
             logger.debug('There is a problem with the env. variables: %s' % e)
-        except (IOError, OSError) as e:
-            logger.debug(e)
         return logs
 
-    def _get_container_log_files(self, rootfs_path,
-                                 options=defaults.DEFAULT_CRAWL_OPTIONS,
-                                 ):
+    def _set_logfiles_links_source(self):
         """
-        Returns a list of path strings, one for each logfile we should maintain
-        symlinks for.
+        Sets the list of container logs that we should maintain links for.
 
         The paths are relative to the filesystem of the container. For example
         the path for /var/log/messages in the container will be just
         /var/log/messages in this list.
-
-        Security consideration. We make sure that the path is absolute and it
-        does not contain any '..' in it.
         """
+
+        self.logfiles_links_source = []
 
         # following files need to be ported to envionment modules
         # cloudsight, watson, alchemy etc.
-        logs = self._parse_log_locations(
-            var='LOG_LOCATIONS',
-            isJson=False)
-        self.log_file_list.extend(logs)
+        logs = self._parse_log_locations(var='LOG_LOCATIONS')
+        self.logfiles_links_source.extend(logs)
 
-        logs = self._parse_log_locations(
-            var='LOGS_CONFIG',
-            isJson=True)
+        self.logfiles_links_source.extend(logs)
 
-        self.log_file_list.extend(logs)
-
-        # Finally, make sure that the paths are absolute
-
-        for log in self.log_file_list:
-            name = log['name']
-            if not os.path.isabs(name) or '..' in name:
-                self.log_file_list.remove(log)
-                logger.warning(
-                    'User provided a log file path that is not absolute: %s' %
-                    name)
-        return self.log_file_list
-
-    def _get_logfiles_list(self,
-                           host_log_dir,
-                           options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def _set_logfiles_links_source_and_dest(self,
+                                            options=defaults.DEFAULT_CRAWL_OPTIONS):
         """
         Returns list of log files as a list of dictionaries `{name, type,
         source, dest}` to be linked to `host_log_dir`.
         """
 
-        # Get the rootfs of the container in the host
-
-        rootfs_path = get_docker_container_rootfs_path(
-            self.long_id, self.inspect)
+        host_log_dir = self._get_logfiles_links_dest(
+            options['logcrawler']['host_log_basedir']
+        )
 
         logs_list = []
 
-        self._get_container_log_files(rootfs_path, options)
-        for logdict in self.log_file_list:
+        rootfs_path = self.root_fs
+        if not rootfs_path:
+            logger.warning('Container %s does not have a rootfs_path set' % self.short_id)
+            print('Container %s does not have a rootfs_path set' % self.short_id)
+            self.logs_list = []
+            return
+
+        # First, make sure that the paths are absolute
+
+        for log in self.logfiles_links_source:
+            name = log['name']
+            if not os.path.isabs(name) or '..' in name:
+                self.logfiles_links_source.remove(log)
+                logger.warning(
+                    'User provided a log file path that is not absolute: %s' %
+                    name)
+
+        for logdict in self.logfiles_links_source:
             name = logdict['name']
             _type = logdict['type']
 
@@ -382,29 +366,27 @@ class DockerContainer(Container):
 
         logger.info('logmap %s' % logs_list)
 
-        docker_log_source = get_docker_container_json_logs_path(
-            self.long_id, self.inspect)
-        name = 'docker.log'
-        docker_log_dest = os.path.join(host_log_dir, name)
-        logs_list.append({'name': name,
-                          'type': None,
-                          'source': docker_log_source,
-                          'dest': docker_log_dest})
+        try:
+	    docker_log_source = get_docker_container_json_logs_path(
+		self.long_id, self.inspect)
+	    name = 'docker.log'
+	    docker_log_dest = os.path.join(host_log_dir, name)
+	    logs_list.append({'name': name,
+			      'type': None,
+			      'source': docker_log_source,
+			      'dest': docker_log_dest})
+        except DockerutilsNoJsonLog as e:
+            logger.exception(e)
 
-        return logs_list
+        self.logs_list = logs_list
 
     def _get_logfiles_links_dest(
         self,
-        host_log_basedir,
-        environment='cloudsight',
+        host_log_basedir
     ):
         """
         Returns the path in the host file system where the container's log
         files should be linked to.
-
-        This string depends on the environment. For the `cloudsight`
-        environment, this will look like this:
-        `'/var/log/crawler_container_logs/127.0.0.1/my_container/'`
         """
 
         return os.path.join(host_log_basedir, self.log_prefix)

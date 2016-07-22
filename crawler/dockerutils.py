@@ -12,6 +12,9 @@ VERSION_SPEC = semantic_version.Spec('>=1.10.0')
 
 logger = logging.getLogger('crawlutils')
 
+from crawler_exceptions import (DockerutilsNoJsonLog,
+                                DockerutilsException)
+
 
 def exec_dockerps():
     """
@@ -97,21 +100,10 @@ def exec_dockerinspect(long_id=None):
     _reformat_inspect(inspect)
 
     try:
-        repo_tag = client.inspect_image(inspect['Image'])['RepoTags'][0]
+        # get the first RepoTag
+        inspect['RepoTag'] = client.inspect_image(inspect['Image'])['RepoTags'][0]
     except (KeyError, IndexError):
-        repo_tag = ''
-
-    inspect['docker_image_long_name'] = repo_tag
-    inspect['docker_image_short_name'] = os.path.basename(repo_tag)
-    if ':' in repo_tag and not '/' in repo_tag.rsplit(':', 1)[1]:
-        inspect['docker_image_tag'] = repo_tag.rsplit(':', 1)[1]
-    else:
-        inspect['docker_image_tag'] = ''
-    inspect['docker_image_registry'] = os.path.dirname(repo_tag).split('/')[0]
-    try:
-        inspect['owner_namespace'] = os.path.dirname(repo_tag).split('/', 1)[1]
-    except IndexError:
-        inspect['owner_namespace'] = ''
+        inspect['RepoTag'] = ''
 
     return inspect
 
@@ -226,21 +218,26 @@ def get_docker_container_json_logs_path(long_id, inspect=None):
     if not inspect:
         inspect = exec_dockerinspect(long_id)
 
-    path = inspect['LogPath']
+    try:
+        path = inspect['LogPath']
+    except KeyError:
+        path = '<no value>'
 
-    if path == '<no value>' or not os.path.isfile(path):
-        path = inspect['HostnamePath']
-
-    if path == '<no value>':
-        raise IOError(
-            'Container %s does not have a docker inspect .HostnamePath' %
-            long_id)
-
-    path = os.path.join(os.path.dirname(path), '%s-json.log'
-                        % long_id)
-
-    if os.path.isfile(path):
+    if path != '<no value>' and os.path.isfile(path):
         return path
+
+    # Third try is to guess the LogPath based on the HostnamePath
+    try:
+        path = inspect['HostnamePath']
+        path = os.path.join(os.path.dirname(path), '%s-json.log'
+                            % long_id)
+    except KeyError:
+        path = '<no value>'
+
+    if path != '<no value>' and os.path.isfile(path):
+        return path
+
+    raise DockerutilsNoJsonLog('Container %s does not have a json log.' % long_id)
 
 
 def _get_docker_server_version():
@@ -291,7 +288,7 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         if not inspect:
             inspect = exec_dockerinspect(long_id)
 
-        pid = inspect['State']['Pid']
+        pid = str(inspect['State']['Pid'])
 
         # XXX this looks ugly and brittle
         proc = subprocess.Popen(
