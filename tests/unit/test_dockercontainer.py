@@ -384,8 +384,10 @@ class DockerDockerContainerTests(unittest.TestCase):
                 },
                 "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
                 "Name": "/pensive_rosalind",
-                "Mounts": [{'Destination':'/var',
-                            'Source':'/mount/in/the/host'}],
+                # /var in the container is mapped to /mount/in/the/host
+                # container was started with -v /var/in/the/host:/var
+                "Mounts": [{'Source':'/var/in/the/host',
+                            'Destination':'/var'}],
                 "Config": {
                     "Cmd": [
                         "bash"
@@ -398,7 +400,43 @@ class DockerDockerContainerTests(unittest.TestCase):
         c = DockerContainer("valid_rootfs_id", inspect)
         c.link_logfiles()
         mock_symlink.assert_called_with(
-            '/mount/in/the/host/log/2',
+            '/var/in/the/host/log/2',
+            '/var/log/crawler_container_logs/random_prefix/var/log/2')
+        c.unlink_logfiles()
+        assert mock_symlink.call_count == 4
+
+    @mock.patch('crawler.dockercontainer.os.makedirs')
+    @mock.patch('crawler.dockercontainer.os.symlink')
+    @mock.patch('crawler.dockercontainer.shutil.rmtree',
+                side_effect=mocked_rmtree_exception)
+    # In older docker versions, the inspect field for Mounts was called Volumes
+    def test_links_with_volumes(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+        inspect = {
+                "Id": "valid_rootfs_id",
+                "Created": "2016-07-06T16:38:05.479090842Z",
+                "State": {
+                    "Status": "running",
+                    "Running": True,
+                    "Pid": 11186
+                },
+                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+                "Name": "/pensive_rosalind",
+                # /var in the container is mapped to /mount/in/the/host
+                # container was started with -v /var/in/the/host:/var
+                "Volumes": {'/var':'/var/in/the/host'},
+                "Config": {
+                    "Cmd": [
+                        "bash"
+                    ],
+                    "Image": "ubuntu:trusty"
+                },
+                "NetworkSettings": {
+                }
+            }
+        c = DockerContainer("valid_rootfs_id", inspect)
+        c.link_logfiles()
+        mock_symlink.assert_called_with(
+            '/var/in/the/host/log/2',
             '/var/log/crawler_container_logs/random_prefix/var/log/2')
         c.unlink_logfiles()
         assert mock_symlink.call_count == 4
