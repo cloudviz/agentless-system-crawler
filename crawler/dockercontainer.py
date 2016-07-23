@@ -68,6 +68,7 @@ class DockerContainer(Container):
         self.created = inspect['Created']
         self.network_settings = inspect['NetworkSettings']
         self.cmd = inspect['Config']['Cmd']
+        self.mounts = inspect.get('Mounts', inspect.get('Volumes', {}))
         self.inspect = inspect
 
         # This short ID is mainly used for logging purposes
@@ -330,14 +331,14 @@ class DockerContainer(Container):
             _type = logdict['type']
 
             # assuming mount source or destination does not contain '*'
-            if not self.inspect['Mounts']:
+            if not self.mounts:
 	        lname = rootfs_path + name
                 if "*" in lname:
                      src_dest = [(s, s.split(rootfs_path, 1)[1]) for s in glob.glob(lname)]
                 else:
                      src_dest = [(lname, name)]
 
-            for mount in self.inspect['Mounts']:
+            for mount in self.mounts:
                 if name.startswith(mount['Destination']):
                     lname = name.replace(mount['Destination'], mount['Source'])
                     if "*" in lname:
