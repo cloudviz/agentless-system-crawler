@@ -136,7 +136,7 @@ class SingleContainerTests(unittest.TestCase):
         # crawler itself needs to be root
         process = subprocess.Popen(
             [
-                '/usr/bin/python', mypath + '/../crawler/crawler.py',
+                '/usr/bin/python', mypath + '/../../crawler/crawler.py',
                 '--url', 'file://' + self.tempd + '/out/crawler',
                 '--features', 'cpu,memory,interface',
                 '--crawlContainers', 'ALL',

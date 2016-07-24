@@ -1,0 +1,4 @@
+*.pyc
+*alchemy*
+*mtgraphite*
+*.log*

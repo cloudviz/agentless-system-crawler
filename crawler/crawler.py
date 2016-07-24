@@ -73,6 +73,14 @@ def start_autonomous_crawler(num_processes, logfile):
             partition_args = options['partition_strategy']['args']
             partition_args['process_id'] = index
             partition_args['num_processes'] = num_processes
+
+            """
+            XXX(ricarkol): remember that when we finally get rid of these
+            worker processes in favor of a proper pool of working threads,
+            we have to move the caches of previous metrics somewhere out of
+            the FeaturesCrawler objects. And that cache has to be shared among
+            all the working threads.
+            """
             p = multiprocessing.Process(
                 name='crawler-%s' %
                 index, target=crawler_worker, args=(

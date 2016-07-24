@@ -10,7 +10,7 @@ test:
 	docker run --privileged -ti --rm agentless-system-crawler-test
 
 unit:
-	python2.7 setup.py test --addopts '-v --cov=. tests/unit/'
+	python2.7 setup.py test --addopts '-v --cov=. tests/unit'
 
 covreport: unit
 	coverage html -i
