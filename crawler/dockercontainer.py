@@ -99,7 +99,7 @@ class DockerContainer(Container):
 
         try:
             self.root_fs = get_docker_container_rootfs_path(self.long_id)
-        except HTTPError as e:
+        except (HTTPError, RuntimeError) as e:
             logger.exception(e)
             self.root_fs = None
 

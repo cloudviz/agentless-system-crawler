@@ -15,7 +15,6 @@ logger = logging.getLogger('crawlutils')
 from crawler_exceptions import (DockerutilsNoJsonLog,
                                 DockerutilsException)
 
-
 def exec_dockerps():
     """
     Returns a list of docker inspect jsons, one for each container.
@@ -108,7 +107,7 @@ def exec_dockerinspect(long_id=None):
     return inspect
 
 
-def get_docker_storage_driver():
+def _get_docker_storage_driver():
     """
     We will try several steps in order to ensure that we return
     one of the 3 types (btrfs, devicemapper, aufs).
@@ -250,7 +249,18 @@ def _get_docker_server_version():
     (out, err) = proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError('Could not run docker info command')
+    if not server_version:
+        # Let's try to continue
+	server_version = "1.9.0"
     return server_version
+
+
+try:
+    server_version = _get_docker_server_version()
+    driver = _get_docker_storage_driver()
+except RuntimeError:
+    server_version = None
+    driver = None
 
 
 def get_docker_container_rootfs_path(long_id, inspect=None):
@@ -272,11 +282,11 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
     mounts a dm device, this mount will only be accessible to the docker
     daemon and containers.
     """
-    driver = get_docker_storage_driver()
+    global server_version
+    global driver
 
-    server_version = _get_docker_server_version()
-    if server_version == "":
-        server_version = "1.9.0"
+    if (not server_version) or (not driver):
+        raise RuntimeError('Not supported docker storage driver.')
 
     # should be debug, for now info
     logger.info('get_docker_container_rootfs_path: long_id=' +
