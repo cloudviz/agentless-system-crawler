@@ -110,12 +110,26 @@ def get_filtered_list_of_containers(
     containers_list = list_all_containers(user_list, container_opts)
     for container in containers_list:
 
-        # The partition strategy is to split all the containers equally by
-        # process pid. We do it by hashing the long_id of the container.
+        """
+        There are docker and non-docker containers in this list. An example of
+        a non-docker container is a chromium-browser process.
+        TODO(kollerr): the logic that defines whether a container is acceptable
+        to a plugin or not should be in the plugin itself.
+        """
+
+        if (environment != defaults.DEFAULT_ENVIRONMENT and
+            not container.is_docker_container()):
+           continue
+
+        """
+        The partition strategy is to split all the containers equally by
+        process pid. We do it by hashing the long_id of the container.
+        """
 
         _hash = container.long_id
         num = int(_hash, 16) % int(num_processes)
         if num == process_id:
             filtered_list.append(container)
+
 
     return filtered_list
