@@ -2,7 +2,7 @@
 from mock import patch, Mock
 from crawler.mesos import fetch_stats
 
-@patch('config_and_metrics_crawler.mesos.urllib2.urlopen')
+@patch('crawler.mesos.urllib2.urlopen')
 def mytest(mock_urlopen):
     a = Mock()
     a.read.side_effect = ['{}', None]
