@@ -2,7 +2,7 @@ FROM python:2.7
 
 WORKDIR /crawler
 
-COPY crawler/requirements.txt /crawler/requirements.txt
+COPY requirements.txt /crawler/requirements.txt
 RUN pip install -r requirements.txt
 
 ADD crawler /crawler
