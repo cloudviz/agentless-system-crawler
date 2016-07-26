@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 ##
 # Wrapper around the crawlutils module that provides:
 # (a) an autonomous push mode via command-line invocation, and
@@ -144,6 +143,14 @@ if __name__ == '__main__':
         help='Send the snapshot data to URL. Defaults to file://frame',
     )
     parser.add_argument(
+        '--inurl',
+        dest='inurl',
+        type=str,
+        nargs='+',
+        default=None,
+        help='Get snapshot data from URL. Defaults to file://frame',
+    )
+    parser.add_argument(
         '--namespace',
         dest='namespace',
         type=str,
@@ -203,6 +210,7 @@ if __name__ == '__main__':
             Modes.DEVICE,
             Modes.FILE,
             Modes.ISCSI,
+            Modes.MESOS,
             Modes.OUTCONTAINER,
         ],
         default=Modes.INVM,
@@ -341,6 +349,8 @@ if __name__ == '__main__':
 
     if args.url:
         params['urls'] = args.url
+    if args.inurl:
+        params['inurl'] = args.inurl
     if args.namespace:
         params['namespace'] = args.namespace
     if args.features:
