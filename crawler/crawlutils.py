@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 #
 # Collection of crawlers that extract specific types of features from
 # the host machine. This code is portable across OS platforms (Linux, Windows)
@@ -16,7 +17,7 @@ import signal
 import json
 from ctypes import CDLL
 import uuid
-from crawler_mesos import snapshot_crawler_mesos_frame
+from mesos import snapshot_crawler_mesos_frame
 
 try:
     libc = CDLL('libc.so.6')
@@ -337,8 +338,6 @@ def snapshot_mesos(
         'compress': compress,
         'overwrite': overwrite,
     }
-    for mesos_key, mesos_value in mesos_stats.iteritems():
-        print mesos_key
 
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
                     if u.startswith('file:') else u) for u in urls]
