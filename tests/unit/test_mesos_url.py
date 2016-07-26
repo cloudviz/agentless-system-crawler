@@ -1,9 +1,8 @@
 # test.py
 from mock import patch, Mock
-from config_and_metrics_crawler.crawler_mesos import fetch_stats
-from config_and_metrics_crawler.crawler_mesos import CONFIGS
+from crawler.mesos import fetch_stats
 
-@patch('config_and_metrics_crawler.crawler_mesos.urllib2.urlopen')
+@patch('config_and_metrics_crawler.mesos.urllib2.urlopen')
 def mytest(mock_urlopen):
     a = Mock()
     a.read.side_effect = ['{}', None]
