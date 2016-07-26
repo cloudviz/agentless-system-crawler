@@ -35,6 +35,8 @@ CONFIGS = []
 
 Stat = collections.namedtuple('Stat', ('type', 'path'))
 
+logger = logging.getLogger('crawlutils')
+
 # DICT: Common Metrics in 0.19.0, 0.20.0, 0.21.0, 0.22.0 and 0.23.0
 STATS_MESOS = {
     # Master
@@ -172,21 +174,23 @@ def get_stats_string(version):
 
 
 def configure_crawler_mesos(inurl):
-    print "inurl"
-    print inurl
+    logger.debug('Mesos url %s' % inurl)
     CONFIGS.append({
         'mesos_url': inurl[0]
     })
 
 def fetch_stats(mesos_version):
-    print "connecting to"
-    print CONFIGS[0]['mesos_url']
+    if CONFIGS == []:
+       CONFIGS.append({
+          'mesos_url': 'http://localhost:5050/metrics/snapshot'
+        })
+    logger.debug('connecting to %s' % CONFIGS[0]['mesos_url'])
     try:
         result = json.loads(urllib2.urlopen(CONFIGS[0]['mesos_url'], timeout=10).read())
     except urllib2.URLError, e:
-        print "url error"
+        logger.exception('Exception opening mesos url %s',None)
         return None
-    print "mesos_stats" 
+    logger.debug('mesos_stats %s' % result)
     print result
     return result
 
