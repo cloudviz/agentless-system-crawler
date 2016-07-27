@@ -13,9 +13,9 @@ RUN apk add --update \
   && pip install --upgrade pip \
   && rm -rf /var/cache/apk/*
  
-COPY crawler/requirements.txt /requirements.txt
-COPY tests/requirements.txt /requirements-test.txt
-RUN pip install -r requirements.txt && pip install -r requirements-test.txt
+COPY requirements.txt /requirements.txt
+COPY requirements-test.txt /requirements-test.txt
+RUN pip install -r requirements-test.txt
 
 WORKDIR /crawler
 

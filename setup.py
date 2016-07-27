@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='agentless-system-crawler',
-    version='0.0.1.dev',
+    version='0.0.1.dev0',
     # description='',
     # long_description=long_description,
     author='IBM',
@@ -17,11 +17,9 @@ setup(
     ],
     packages=find_packages(),
     install_requires=['psutil', 'netifaces', ],
-
     setup_requires=['pytest-runner>=2.0,<3dev', ],
     tests_require=['pytest', ],
     use_2to3=True,
-
     data_files=[('plugins', ['plugins/cloudsight_environment.plugin',
                              'plugins/cloudsight_environment.py'])]
 )
