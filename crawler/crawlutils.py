@@ -17,6 +17,7 @@ import signal
 import json
 from ctypes import CDLL
 import uuid
+from mesos import snapshot_crawler_mesos_frame
 
 try:
     libc = CDLL('libc.so.6')
@@ -287,6 +288,42 @@ def snapshot_generic(
     ) as emitter:
         snapshot_single_frame(emitter, features,
                               options, crawler, inputfile)
+def snapshot_mesos(
+    crawlmode=Modes.MESOS,
+    inurl=['stdin://'],
+    urls=['stdout://'],
+    snapshot_num=0,
+    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    format='csv',
+    inputfile='undefined',
+    overwrite=False,
+    namespace='',
+    since='BOOT',
+    since_timestamp=0,
+):
+    mesos_stats = snapshot_crawler_mesos_frame(inurl)
+    
+    compress = options['compress']
+    metadata = {
+        'namespace': namespace,
+        'timestamp': int(time.time()),
+        'system_type': 'mesos',
+        'since': since,
+        'since_timestamp': since_timestamp,
+        'compress': compress,
+        'overwrite': overwrite,
+    }
+
+    output_urls = [('{0}.{1}'.format(u, snapshot_num)
+                    if u.startswith('file:') else u) for u in urls]
+
+    with Emitter(
+        urls=output_urls,
+        emitter_args=metadata,
+        format=format,
+    ) as emitter:
+       snapshot_crawler_mesos_frame(inurl)
+
 
 
 def snapshot_container(
@@ -386,6 +423,7 @@ def get_initial_since_values(since):
 
 
 def snapshot(
+    inurl=['stdin://'],
     urls=['stdout://'],
     namespace=misc.get_host_ipaddr(),
     features=defaults.DEFAULT_FEATURES_TO_CRAWL,
@@ -511,7 +549,20 @@ def snapshot(
                 since_timestamp=since_timestamp,
                 overwrite=overwrite
             )
-
+        elif crawlmode in (Modes.MESOS):
+            snapshot_mesos(
+                crawlmode=crawlmode,
+                inurl=inurl,
+                urls=urls,
+                snapshot_num=snapshot_num,
+                options=options,
+                format=format,
+                inputfile=inputfile,
+                overwrite=overwrite,
+                namespace=namespace,
+                since=since,
+                since_timestamp=since_timestamp
+            )
         else:
             raise RuntimeError('Unknown Mode')
 
