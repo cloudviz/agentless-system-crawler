@@ -6,4 +6,5 @@ Modes = enum(INVM='INVM',
              DEVICE='DEVICE',
              FILE='FILE',
              ISCSI='ISCSI',
-             OUTCONTAINER='OUTCONTAINER')
+             OUTCONTAINER='OUTCONTAINER',
+             MESOS='MESOS')
