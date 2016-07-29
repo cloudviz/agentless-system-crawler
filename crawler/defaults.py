@@ -22,7 +22,7 @@ DEFAULT_CRAWL_OPTIONS = {
     'process': {},
     'metric': {},
     'connection': {},
-    'inurl': 'http://localhost:9092',
+    'mesos_url': 'http://localhost:9092',
     'file': {'root_dir': '/', 'avoid_setns': DEFAULT_AVOID_SETNS,
              'exclude_dirs': [
                  'boot',

@@ -315,7 +315,6 @@ if __name__ == '__main__':
     params = {}
 
     params['options'] = copy.deepcopy(defaults.DEFAULT_CRAWL_OPTIONS)
-    print args.options
     if args.options:
         try:
             _options = json.loads(args.options)

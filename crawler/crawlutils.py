@@ -300,7 +300,7 @@ def snapshot_mesos(
     since='BOOT',
     since_timestamp=0,
 ):
-    mesos_stats = snapshot_crawler_mesos_frame(options['inurl'])
+    mesos_stats = snapshot_crawler_mesos_frame(options['mesos_url'])
     
     compress = options['compress']
     metadata = {
@@ -321,7 +321,7 @@ def snapshot_mesos(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-       snapshot_crawler_mesos_frame(options['inurl'])
+       snapshot_crawler_mesos_frame(options['mesos_url'])
 
 
 
