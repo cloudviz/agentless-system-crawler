@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#  -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 #
 # Collection of crawlers that extract specific types of features from
@@ -290,7 +290,6 @@ def snapshot_generic(
                               options, crawler, inputfile)
 def snapshot_mesos(
     crawlmode=Modes.MESOS,
-    inurl=['stdin://'],
     urls=['stdout://'],
     snapshot_num=0,
     options=defaults.DEFAULT_CRAWL_OPTIONS,
@@ -301,7 +300,7 @@ def snapshot_mesos(
     since='BOOT',
     since_timestamp=0,
 ):
-    mesos_stats = snapshot_crawler_mesos_frame(inurl)
+    mesos_stats = snapshot_crawler_mesos_frame(options['inurl'])
     
     compress = options['compress']
     metadata = {
@@ -322,7 +321,7 @@ def snapshot_mesos(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-       snapshot_crawler_mesos_frame(inurl)
+       snapshot_crawler_mesos_frame(options['inurl'])
 
 
 
@@ -423,7 +422,6 @@ def get_initial_since_values(since):
 
 
 def snapshot(
-    inurl=['stdin://'],
     urls=['stdout://'],
     namespace=misc.get_host_ipaddr(),
     features=defaults.DEFAULT_FEATURES_TO_CRAWL,
@@ -552,7 +550,6 @@ def snapshot(
         elif crawlmode in (Modes.MESOS):
             snapshot_mesos(
                 crawlmode=crawlmode,
-                inurl=inurl,
                 urls=urls,
                 snapshot_num=snapshot_num,
                 options=options,

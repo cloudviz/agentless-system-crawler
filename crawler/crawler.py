@@ -144,14 +144,6 @@ if __name__ == '__main__':
         help='Send the snapshot data to URL. Defaults to file://frame',
     )
     parser.add_argument(
-        '--inurl',
-        dest='inurl',
-        type=str,
-        nargs='+',
-        default=None,
-        help='Get snapshot data from URL. Defaults to file://frame',
-    )
-    parser.add_argument(
         '--namespace',
         dest='namespace',
         type=str,
@@ -323,6 +315,7 @@ if __name__ == '__main__':
     params = {}
 
     params['options'] = copy.deepcopy(defaults.DEFAULT_CRAWL_OPTIONS)
+    print args.options
     if args.options:
         try:
             _options = json.loads(args.options)
@@ -350,8 +343,6 @@ if __name__ == '__main__':
 
     if args.url:
         params['urls'] = args.url
-    if args.inurl:
-        params['inurl'] = args.inurl
     if args.namespace:
         params['namespace'] = args.namespace
     if args.features:
