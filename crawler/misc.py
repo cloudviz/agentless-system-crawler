@@ -195,6 +195,13 @@ def log_atime_config(path, crawlmode):
     return atime_config
 
 
+def join_abs_paths(root, appended_root):
+    """ Join absolute paths: appended_root is appended after root
+    """
+    return os.path.normpath(os.path.join(root,
+                                         os.path.relpath(appended_root, '/')))
+
+
 def is_process_running(pid):
     """ Check For the existence of a unix pid.
     """

@@ -18,7 +18,7 @@ try:
     libc = CDLL('libc.so.6')
 except Exception as e:
     logger.warning('Can not crawl containers as there is no libc: %s' % e)
-    raise e
+    libc = None
 
 ALL_NAMESPACES = 'user pid uts ipc net mnt'.split()
 IN_CONTAINER_TIMEOUT = 30

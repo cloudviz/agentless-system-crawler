@@ -262,8 +262,7 @@ def snapshot_generic(
 ):
 
     crawler = FeaturesCrawler(feature_epoch=since_timestamp,
-                              crawl_mode=crawlmode,
-                              namespace=namespace)
+                              crawl_mode=crawlmode)
 
     compress = options['compress']
     metadata = {
@@ -304,7 +303,6 @@ def snapshot_container(
     crawler = FeaturesCrawler(
         feature_epoch=since_timestamp,
         crawl_mode=Modes.OUTCONTAINER,
-        namespace=container.namespace,
         container=container)
 
     compress = options['compress']

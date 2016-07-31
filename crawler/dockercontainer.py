@@ -52,6 +52,14 @@ class DockerContainer(Container):
         container_opts={},
     ):
 
+        # Some quick sanity checks
+        if not isinstance(long_id, basestring):
+            raise TypeError('long_id should be a string')
+        if inspect and not isinstance(inspect, dict):
+            raise TypeError('inspect should be a dict.')
+        if container_opts and not isinstance(container_opts, dict):
+            raise TypeError('container_opts should be a dict.')
+
         if not inspect:
             try:
                 inspect = exec_dockerinspect(long_id)
