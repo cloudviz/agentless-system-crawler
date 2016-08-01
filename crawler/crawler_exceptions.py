@@ -87,3 +87,9 @@ class EmitterEmitTimeout(Exception):
     """The emit timed out"""
 
     pass
+
+class MTGraphiteInvalidTenant(Exception):
+
+    """Invalid tenant"""
+
+    pass
