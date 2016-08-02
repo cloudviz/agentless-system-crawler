@@ -17,7 +17,6 @@ from crawler_exceptions import (EmitterUnsupportedFormat,
                                 EmitterUnsupportedProtocol,
                                 EmitterBadURL,
                                 EmitterEmitTimeout)
-
 # External dependencies that must be pip install'ed separately
 
 import kafka as kafka_python
@@ -241,6 +240,61 @@ class Emitter:
                     print line.strip()
                     sys.stdout.flush()
 
+    def _publish_to_logstash(self, url, max_emit_retries=5):
+        namespace = None
+        headers = {'content-type': 'application/json'}
+        if self.compress:
+            headers['content-encoding'] = 'gzip'
+        with open(self.temp_fpath, 'rb') as framefp:
+            for feature in framefp:
+                feature_parts = feature.split()
+                if len(feature_parts) < 3:
+                    logger.error("Invalid feature data found. %s %d"%(feature_parts, len(feature_parts)))
+                    continue
+                        
+                feature_name = feature_parts[0]
+                feature_value = feature_parts[1].strip("\"")
+           
+                feature_data = json.loads("".join(feature_parts[2:]))
+
+	        if feature_name == "metadata":
+                    namespace = feature_data.get('namespace', None)
+                else:
+		    feature_data['namespace'] = namespace
+                feature_data[feature_name] = feature_value
+                payload = json.dumps(feature_data)
+	        '''
+		In this code, we have retry threshold set for every
+		http request. I am not sure it should be 
+		applied across all json frames in the document
+		as a whole
+		'''
+                for attempt in range(max_emit_retries):
+                    try:
+                        response = requests.post(
+                          url, headers=headers, params=self.emitter_args, data=payload)
+
+                    except requests.exceptions.ChunkedEncodingError as e:
+                        logger.exception(e)
+                        logger.error(
+                           "POST to %s resulted in exception (attempt %d of %d), will not re-try" %
+                           (url, attempt + 1, max_emit_retries))
+                        break
+                    except requests.exceptions.RequestException as e:
+                        logger.exception(e)
+                        logger.error(
+                           "POST to %s resulted in exception (attempt %d of %d)" %
+                           (url, attempt + 1, max_emit_retries))
+                        time.sleep(2.0 ** attempt * 0.1)
+                        continue
+
+                    if response.status_code != requests.codes.ok:
+                        logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (
+                        url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
+                        time.sleep(2.0 ** attempt * 0.1)
+                    else:
+                        break
+
     def _publish_to_broker(self, url, max_emit_retries=5):
         for attempt in range(max_emit_retries):
             try:
@@ -374,6 +428,8 @@ class Emitter:
                     self._publish_to_stdout()
                 elif url.startswith('http://'):
                     self._publish_to_broker(url, self.max_emit_retries)
+                elif url.startswith('logstash://'):
+                    self._publish_to_logstash(url.replace("logstash", "http"),self.max_emit_retries)
                 elif url.startswith('file://'):
                     self._write_to_file(url)
                 elif url.startswith('kafka://'):
