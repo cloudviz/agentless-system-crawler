@@ -263,12 +263,12 @@ class Emitter:
 		    feature_data['namespace'] = namespace
                 feature_data[feature_name] = feature_value
                 payload = json.dumps(feature_data)
-	        '''
-		In this code, we have retry threshold set for every
-		http request. I am not sure it should be 
-		applied across all json frames in the document
-		as a whole
-		'''
+                '''
+                In this code, we have retry threshold set for every
+                http request. I am not sure it should be 
+                applied across all json frames in the document
+                as a whole
+                '''
                 for attempt in range(max_emit_retries):
                     try:
                         response = requests.post(
