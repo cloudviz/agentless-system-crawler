@@ -257,7 +257,7 @@ class Emitter:
            
                 feature_data = json.loads("".join(feature_parts[2:]))
 
-	        if feature_name == "metadata":
+                if feature_name == "metadata":
                     namespace = feature_data.get('namespace', None)
                 else:
 		    feature_data['namespace'] = namespace
