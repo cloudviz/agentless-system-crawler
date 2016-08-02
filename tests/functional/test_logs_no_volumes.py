@@ -2,22 +2,22 @@ import unittest
 import tempfile
 import os
 import shutil
+import mock
 
-from crawler import dockerutils
-from crawler import dockercontainer
+import crawler.dockerutils
+import crawler.dockercontainer
+
 
 # Tests dockercontainer._get_logfiles_list
 # for the case when no volumes are mounted
-
-
-def get_docker_container_rootfs_path(long_id, inspect):
-    return "rootfs"
 
 
 def get_container_log_files(path, options):
     pass
 
 
+@mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+            side_effect=lambda id : 'rootfs')
 class DockerContainerTests(unittest.TestCase):
 
     def setUp(self):
@@ -28,8 +28,14 @@ class DockerContainerTests(unittest.TestCase):
             with open(os.path.join(self.volume, logf), 'w') as logp:
                 logp.write(logf)
 
-        self.inspect = \
-            {
+
+    def tearDown(self):
+        shutil.rmtree(self.volume)
+        shutil.rmtree(self.host_log_dir)
+
+    def test_get_logfiles_list(self, *args):
+
+        inspect = {
                 "Id": "1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847",
                 "Created": "2016-07-06T16:38:05.479090842Z",
                 "State": {
@@ -56,21 +62,13 @@ class DockerContainerTests(unittest.TestCase):
                 "NetworkSettings": {
                 }
             }
-        self.docker_container = dockercontainer.\
-            DockerContainer(self.inspect['Id'], self.inspect)
-
-        dockerutils.get_docker_container_rootfs_path = \
-            get_docker_container_rootfs_path
+        self.docker_container = crawler.dockercontainer.\
+            DockerContainer(inspect['Id'], inspect)
 
         self.docker_container._get_container_log_files = get_container_log_files
         self.docker_container.log_file_list = [
             {'name': '/data/test1.log', 'type': None}]
 
-    def tearDown(self):
-        shutil.rmtree(self.volume)
-        shutil.rmtree(self.host_log_dir)
-
-    def test_get_logfiles_list(self):
         self.docker_container._set_logfiles_links_source_and_dest(
             {'logcrawler':{'host_log_basedir':self.host_log_dir}})
         log_list = self.docker_container.logs_list
