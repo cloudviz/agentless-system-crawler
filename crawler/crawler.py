@@ -212,6 +212,7 @@ if __name__ == '__main__':
             Modes.FILE,
             Modes.ISCSI,
             Modes.OUTCONTAINER,
+            Modes.MESOS,
         ],
         default=Modes.INVM,
         help='The crawler mode: '
