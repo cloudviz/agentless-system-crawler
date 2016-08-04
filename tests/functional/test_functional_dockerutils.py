@@ -10,6 +10,8 @@ from crawler.dockerutils import (
     exec_dockerps,
     exec_docker_history,
     exec_dockerinspect,
+    _get_docker_server_version,
+    get_docker_container_rootfs_path
 )
 
 # Tests conducted with a single container running.
@@ -40,6 +42,12 @@ class DockerUtilsTests(unittest.TestCase):
 
         shutil.rmtree(self.tempd)
 
+    def test_docker_version(self):
+        ver = _get_docker_server_version()
+        import re
+        pattern = re.compile("^[0-9]\.[0-9|\.]+$")
+        assert pattern.match(ver)
+
     def test_dockerps(self):
         for inspect in exec_dockerps():
             c_long_id = inspect['Id']
@@ -55,6 +63,11 @@ class DockerUtilsTests(unittest.TestCase):
         inspect = exec_dockerinspect(self.container['Id'])
         print inspect
         assert self.container['Id'] == inspect['Id']
+
+    def test_get_container_rootfs(self):
+        root = get_docker_container_rootfs_path(self.container['Id'])
+        print root
+        assert root.startswith('/var/lib/docker')
 
     if __name__ == '__main__':
         logging.basicConfig(filename='test_dockerutils.log', filemode='a',

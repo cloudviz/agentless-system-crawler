@@ -218,3 +218,28 @@ def execution_path(filename):
     # if filename is an absolute path, os.path.join will return filename
     return os.path.join(os.path.dirname(inspect.getfile(sys._getframe(1))),
                         filename)
+
+
+def btrfs_list_subvolumes(path):
+    """
+    Returns a list of submodules, example:
+    [
+     ['ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1'],
+     ['ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1/sub2'],
+    ]
+    """
+    proc = subprocess.Popen(
+                'btrfs subvolume list ' + path,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+    error_output = proc.stderr.read()
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError('btrfs subvolume failed with ' + error_output)
+
+    for line in proc.stdout.read().strip():
+        submodule = line.split()
+        if len(submodule) != 8:
+            raise RuntimeError('btrfs subvolume failed with ' + error_output)
+        yield submodule
