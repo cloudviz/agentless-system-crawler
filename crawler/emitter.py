@@ -232,7 +232,8 @@ class Emitter:
         self.emitfile.close()
 
     def _publish_to_stdout(self):
-
+        if self.format == 'json':
+            raise NotImplementedError('json format is not supported')
         with open(self.temp_fpath, 'r') as fd:
             if self.compress:
                 print '%s' % fd.read()
