@@ -60,6 +60,16 @@ class FeaturesCrawlerTests(unittest.TestCase):
         cores = len(list(crawler.crawl_cpu()))
         assert cores > 0
 
+    def test_features_crawler_crawl_outcontainer_os(self):
+        c = DockerContainer(self.container['Id'])
+        crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
+        assert len(list(crawler.crawl_os())) == 1
+
+    def test_features_crawler_crawl_outcontainer_processes(self):
+        c = DockerContainer(self.container['Id'])
+        crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
+        assert len(list(crawler.crawl_processes())) == 2 # sleep + crawler
+
     def test_features_crawler_crawl_outcontainer_mem(self):
         c = DockerContainer(self.container['Id'])
         crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)

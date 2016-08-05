@@ -132,8 +132,17 @@ class FeaturesCrawler:
             feature_key = platform.system().lower()
 
             ips = misc.get_host_ip4_addresses()
-            distro = platform.linux_distribution()[0]
-            osname = platform.platform()
+
+            try:
+                distro = platform.linux_distribution()[0]
+            except:
+                distro = 'unknown'
+
+            try:
+                osname = platform.platform()
+            except:
+                osname = 'unknown'
+
             boot_time = psutil.boot_time()
             uptime = int(time.time()) - boot_time
             feature_attributes = OSFeature(
@@ -562,15 +571,21 @@ class FeaturesCrawler:
                         cwd = 'unknown'
                 ppid = (p.ppid() if hasattr(p.ppid, '__call__'
                                             ) else p.ppid)
-                if (hasattr(p, 'num_threads') and
-                        hasattr(p.num_threads, '__call__')):
-                    num_threads = p.num_threads()
-                else:
-                    num_threads = p.get_num_threads()
+                try:
+                    if (hasattr(p, 'num_threads') and
+                            hasattr(p.num_threads, '__call__')):
+                        num_threads = p.num_threads()
+                    else:
+                        num_threads = p.get_num_threads()
+                except:
+                    num_threads = 'unknown'
 
-                username = (p.username() if hasattr(p, 'username') and
-                            hasattr(p.username, '__call__') else
-                            p.username)
+                try:
+                    username = (p.username() if hasattr(p, 'username') and
+                                hasattr(p.username, '__call__') else
+                                p.username)
+                except:
+                    username = 'unknown'
 
                 openfiles = []
                 for f in p.get_open_files():

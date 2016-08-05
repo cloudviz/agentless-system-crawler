@@ -314,9 +314,9 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 assert arg.call_count == 1
 
     @mock.patch('crawler.features_crawler.platform.platform',
-                side_effect=throw_os_error)
+                side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'system')
+                side_effect=throw_os_error)
     @mock.patch('crawler.features_crawler.misc.get_host_ip4_addresses',
                 side_effect=lambda: ['1.1.1.1'])
     @mock.patch('crawler.features_crawler.platform.linux_distribution',
