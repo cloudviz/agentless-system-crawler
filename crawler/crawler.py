@@ -237,7 +237,7 @@ if __name__ == '__main__':
         dest='format',
         type=str,
         default='csv',
-        choices=['csv', 'graphite'],
+        choices=['csv', 'graphite', 'json'],
         help='Emitted data format.',
     )
     parser.add_argument(
