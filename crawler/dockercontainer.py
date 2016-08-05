@@ -17,7 +17,8 @@ from dockerutils import (exec_dockerps,
 import plugins_manager
 from crawler_exceptions import (ContainerInvalidEnvironment,
                                 ContainerNonExistent,
-                                DockerutilsNoJsonLog)
+                                DockerutilsNoJsonLog,
+                                DockerutilsException)
 from requests.exceptions import HTTPError
 
 logger = logging.getLogger('crawlutils')
@@ -107,7 +108,7 @@ class DockerContainer(Container):
 
         try:
             self.root_fs = get_docker_container_rootfs_path(self.long_id)
-        except (HTTPError, RuntimeError) as e:
+        except (HTTPError, RuntimeError, DockerutilsException) as e:
             logger.exception(e)
             self.root_fs = None
 
