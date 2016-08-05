@@ -32,8 +32,10 @@ def mocked_requests_post(*args, **kwargs):
     elif args[0] == 'http://1.1.1.1/encoding_error':
         raise requests.exceptions.ChunkedEncodingError('bla')
 
+
 def mocked_multiprocessing_process(name='', target='', args=''):
     raise OSError
+
 
 class MockedKafkaClient1:
 
@@ -677,7 +679,10 @@ class EmitterTests(unittest.TestCase):
                          kafka_timeout_secs=0.1) as emitter:
                 emitter.emit("dummy", {'test': 'bla'}, 'dummy')
 
-    @mock.patch('crawler.emitter.multiprocessing.Process', side_effect=mocked_multiprocessing_process, autospec=True)
+    @mock.patch(
+        'crawler.emitter.multiprocessing.Process',
+        side_effect=mocked_multiprocessing_process,
+        autospec=True)
     def test_emitter_csv_kafka_failed_new_process(self, mock_process):
         metadata = {}
         metadata['namespace'] = 'namespace777'
@@ -688,7 +693,6 @@ class EmitterTests(unittest.TestCase):
                          max_emit_retries=retries,
                          kafka_timeout_secs=0.1) as emitter:
                 emitter.emit("dummy", {'test': 'bla'}, 'dummy')
-
 
     @mock.patch('crawler.emitter.pykafka.KafkaClient',
                 side_effect=MockedKafkaClient2, autospec=True)
@@ -766,3 +770,36 @@ class EmitterTests(unittest.TestCase):
 	will be created once; i.e. the client will be instantiated once.
         """
         self.assertEqual(MockMTGraphiteClient.call_count, 1)
+
+    '''
+    for 'json' format, the conversion happens for 'http' targets
+    at send time. It still uses 'csv' format for temporary storage.
+    '''
+    @mock.patch('crawler.emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('crawler.emitter.time.sleep')
+    def test_emitter_json_http_simple(self, mock_sleep, mock_post):
+        metadata = {}
+        metadata['namespace'] = 'namespace777'
+        retries = 5
+        with Emitter(urls=['http://1.1.1.1/good'],
+                     emitter_args=metadata,
+                     format='json',
+                     max_emit_retries=retries) as emitter:
+            emitter.emit("dummy_feature",
+                         {'test': 'bla',
+                          'test2': 12345,
+                          'test3': 12345.0,
+                          'test4': 12345.00000},
+                         'dummy_feature')
+            emitter.emit("dummy_feature",
+                         {'test': 'bla',
+                          'test2': 12345,
+                          'test3': 12345.0,
+                          'test4': 12345.00000},
+                         'dummy_feature')
+        '''
+        we expect call_count to be equal to number of
+        emit data + 1 (metadata)
+        '''
+        self.assertEqual(mock_post.call_count, 3)

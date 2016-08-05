@@ -17,7 +17,6 @@ from crawler_exceptions import (EmitterUnsupportedFormat,
                                 EmitterUnsupportedProtocol,
                                 EmitterBadURL,
                                 EmitterEmitTimeout)
-
 # External dependencies that must be pip install'ed separately
 
 import kafka as kafka_python
@@ -188,7 +187,7 @@ class Emitter:
                                                                  ]))
             if 'extra_all_features' in metadata:
                 del metadata['extra_all_features']
-            if self.format == 'csv':
+            if self.format == 'csv' or self.format == 'json':
                 self.csv_writer.writerow(
                     ['metadata',
                      json.dumps('metadata'),
@@ -202,10 +201,10 @@ class Emitter:
             feature_val_as_dict = feature_val._asdict()
         if 'extra' in self.emitter_args and self.emitter_args['extra'] \
                 and 'extra_all_features' in self.emitter_args \
-                and self.emitter_args['extra_all_features'] == True:
+                and self.emitter_args['extra_all_features']:
             feature_val_as_dict.update(json.loads(self.emitter_args['extra'
                                                                     ]))
-        if self.format == 'csv':
+        if self.format == 'csv' or self.format == 'json':
             self.csv_writer.writerow(
                 [feature_type,
                  json.dumps(feature_key),
@@ -233,6 +232,7 @@ class Emitter:
         self.emitfile.close()
 
     def _publish_to_stdout(self):
+
         with open(self.temp_fpath, 'r') as fd:
             if self.compress:
                 print '%s' % fd.read()
@@ -241,15 +241,11 @@ class Emitter:
                     print line.strip()
                     sys.stdout.flush()
 
-    def _publish_to_broker(self, url, max_emit_retries=5):
+    def __make_http_post(self, url, headers, payload, max_emit_retries):
         for attempt in range(max_emit_retries):
             try:
-                headers = {'content-type': 'text/csv'}
-                if self.compress:
-                    headers['content-encoding'] = 'gzip'
-                with open(self.temp_fpath, 'rb') as framefp:
-                    response = requests.post(
-                        url, headers=headers, params=self.emitter_args, data=framefp)
+                response = requests.post(
+                    url, headers=headers, params=self.emitter_args, data=payload)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
                 logger.error(
@@ -263,13 +259,49 @@ class Emitter:
                     (url, attempt + 1, max_emit_retries))
                 time.sleep(2.0 ** attempt * 0.1)
                 continue
-
             if response.status_code != requests.codes.ok:
                 logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (
                     url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
                 time.sleep(2.0 ** attempt * 0.1)
             else:
                 break
+
+    def _publish_to_http(self, url, max_emit_retries=5):
+        namespace = None
+        headers = {}
+        if self.compress:
+            headers['content-encoding'] = 'gzip'
+        with open(self.temp_fpath, 'rb') as framefp:
+            if self.format == 'json':
+                headers = {'content-type': 'application/json'}
+                for feature in framefp:
+                    feature_parts = feature.split()
+                    if len(feature_parts) < 3:
+                        logger.error(
+                            "Invalid feature data found. %s %d" %
+                            (feature_parts, len(feature_parts)))
+                        continue
+
+                    feature_name = feature_parts[0]
+                    feature_value = feature_parts[1].strip("\"")
+
+                    feature_data = json.loads("".join(feature_parts[2:]))
+
+                    if feature_name == "metadata":
+                        namespace = feature_data.get('namespace', None)
+                    else:
+                        feature_data['namespace'] = namespace
+                    feature_data[feature_name] = feature_value
+                    payload = json.dumps(feature_data)
+                    self.__make_http_post(
+                        url, headers, payload, max_emit_retries)
+
+            elif self.format == 'csv' or self.format == 'graphite':
+                headers = {'content-type': 'application/csv'}
+                self.__make_http_post(url, headers, framefp, max_emit_retries)
+            else:
+                raise EmitterUnsupportedFormat(
+                    'Unsupported format: %s' % self.format)
 
     def _publish_to_kafka_no_retries(self, url):
 
@@ -318,6 +350,9 @@ class Emitter:
             raise child_exception
 
     def _publish_to_kafka(self, url, max_emit_retries=8):
+        if self.format == 'json':
+            raise NotImplementedError('json format is not supported')
+
         broker_alive = False
         retries = 0
         while not broker_alive and retries <= max_emit_retries:
@@ -326,8 +361,9 @@ class Emitter:
                 self._publish_to_kafka_no_retries(url)
                 broker_alive = True
             except Exception as e:
-                logger.debug('_publish_to_kafka_no_retries {0}: {1}'.format(url,
-                                                                            e))
+                logger.debug(
+                    '_publish_to_kafka_no_retries {0}: {1}'.format(
+                        url, e))
                 if retries <= max_emit_retries:
 
                     # Wait for (2^retries * 100) milliseconds
@@ -341,6 +377,8 @@ class Emitter:
                     raise e
 
     def _publish_to_mtgraphite(self, url):
+        if self.format == 'json':
+            raise NotImplementedError('json format is not supported')
         if not Emitter.mtgclient:
             Emitter.mtgclient = MTGraphiteClient(url)
         with open(self.temp_fpath, 'r') as fp:
@@ -350,6 +388,8 @@ class Emitter:
                          % num_pushed_to_queue)
 
     def _write_to_file(self, url):
+        if self.format == 'json':
+            raise NotImplementedError('json format is not supported')
         output_path = url[len('file://'):]
         if self.compress:
             output_path += '.gz'
@@ -373,7 +413,7 @@ class Emitter:
                 if url.startswith('stdout://'):
                     self._publish_to_stdout()
                 elif url.startswith('http://'):
-                    self._publish_to_broker(url, self.max_emit_retries)
+                    self._publish_to_http(url, self.max_emit_retries)
                 elif url.startswith('file://'):
                     self._write_to_file(url)
                 elif url.startswith('kafka://'):
