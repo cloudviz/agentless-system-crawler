@@ -93,3 +93,9 @@ class MTGraphiteInvalidTenant(Exception):
     """Invalid tenant"""
 
     pass
+
+class NamespaceFailedMntSetns(Exception):
+
+    """Invalid tenant"""
+
+    pass
