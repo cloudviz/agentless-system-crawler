@@ -6,6 +6,8 @@ services:
 
 env:
   matrix:
+    - DOCKER_VERSION=1.7.1-0~trusty
+    - DOCKER_VERSION=1.8.1-0~trusty
     - DOCKER_VERSION=1.9.1-0~trusty
     - DOCKER_VERSION=1.10.1-0~trusty
     - DOCKER_VERSION=1.11.1-0~trusty
@@ -15,11 +17,12 @@ python:
 
 before_install:
     - ./.validateDCO
-    # list docker-engine versions
-    - apt-cache madison docker-engine
-
-    # upgrade docker-engine to specific version
-    - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
+    - sudo sh -c 'echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" > /etc/apt/sources.list.d/docker.list'
+    - sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+    - sudo apt-get update
+    - sudo apt-key update
+    - sudo apt-get -qqy --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install docker-engine=${DOCKER_VERSION}
+    - docker -v
     # might as well upgrade pip to support TLS and get rid of the warnings
     - sudo -H pip install --upgrade pip
     - sudo -H pip install codecov pytest-cov
