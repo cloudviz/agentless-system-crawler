@@ -54,7 +54,7 @@ def list_all_containers(user_list='ALL',
                 # don't confuse the init process as a container
 
                 continue
-            if misc.process_is_crawler(p):
+            if misc.process_is_crawler(pid):
 
                 # don't confuse the crawler process with a container
 

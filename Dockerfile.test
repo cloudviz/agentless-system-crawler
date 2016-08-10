@@ -10,6 +10,8 @@ RUN apk add --update \
     build-base \
     linux-headers \
     docker \
+    dpkg \
+    dpkg-dev \
   && pip install --upgrade pip \
   && rm -rf /var/cache/apk/*
  

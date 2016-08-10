@@ -22,8 +22,21 @@ except Exception as e:
     logger.warning('Can not crawl containers as there is no libc: %s' % e)
     libc = None
 
+
 ALL_NAMESPACES = 'user pid uts ipc net mnt'.split()
 IN_CONTAINER_TIMEOUT = 30
+
+
+def get_errno_msg():
+    try:
+        libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
+        errno = libc.__errno_location().contents.value
+        errno_msg = os.strerror(errno)
+        return errno_msg
+    except (OSError, AttributeError):
+        pass
+    return 'unknown error'
+
 
 def get_libc():
     global libc
@@ -91,9 +104,9 @@ class ProcessContext:
         os.chdir(self.host_cwd)
 
         logging.disable(logging.NOTSET)
-	close_process_namespaces(self.container_ns_fds,
-				 self.namespaces)
-	close_process_namespaces(self.host_ns_fds, self.namespaces)
+        close_process_namespaces(self.container_ns_fds,
+                                 self.namespaces)
+        close_process_namespaces(self.host_ns_fds, self.namespaces)
 
 
 def run_as_another_namespace(
@@ -114,9 +127,9 @@ def run_as_another_namespace(
         queue = multiprocessing.Queue(2 ** 14)
 
     child_process = multiprocessing.Process(
-	name='crawler-%s' %
-	pid, target=function_wrapper, args=(
-	    queue, function, args), kwargs=kwargs)
+        name='crawler-%s' %
+        pid, target=function_wrapper, args=(
+            queue, function, args), kwargs=kwargs)
     child_process.start()
 
     child_exception = None
@@ -209,7 +222,7 @@ def open_process_namespaces(pid, namespace_fd, namespaces):
             namespace_fd[ct_ns] = get_libc().open('/proc/' + pid + '/ns/' +
                                             ct_ns, 0)
             if namespace_fd[ct_ns] == -1:
-                errno_msg = misc.get_errno_msg(get_libc())
+                errno_msg = get_errno_msg()
                 error_msg = 'Opening the %s namespace file failed: %s' \
                     % (ct_ns, errno_msg)
                 logger.warning(error_msg)
@@ -225,12 +238,12 @@ def open_process_namespaces(pid, namespace_fd, namespaces):
 def close_process_namespaces(namespace_fd, namespaces):
     for ct_ns in namespaces:
         r = get_libc().close(namespace_fd[ct_ns])
-	if r == -1:
-	    errno_msg = misc.get_errno_msg(get_libc())
-	    error_msg = ('Could not close the %s '
-			 'namespace (fd=%s): %s' %
-			 (ct_ns, namespace_fd[ct_ns], errno_msg))
-	    logger.warning(error_msg)
+        if r == -1:
+            errno_msg = get_errno_msg()
+            error_msg = ('Could not close the %s '
+                         'namespace (fd=%s): %s' %
+                         (ct_ns, namespace_fd[ct_ns], errno_msg))
+            logger.warning(error_msg)
 
 
 def attach_to_process_namespaces(namespace_fd, ct_namespaces):
@@ -243,7 +256,7 @@ def attach_to_process_namespaces(namespace_fd, ct_namespaces):
                 __NR_setns = 308
                 r = get_libc().syscall(__NR_setns, namespace_fd[ct_ns], 0)
             if r == -1:
-                errno_msg = misc.get_errno_msg(get_libc())
+                errno_msg = get_errno_msg()
                 error_msg = ('Could not attach to the container %s '
                              'namespace (fd=%s): %s' %
                              (ct_ns, namespace_fd[ct_ns], errno_msg))

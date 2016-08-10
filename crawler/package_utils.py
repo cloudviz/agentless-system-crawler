@@ -78,7 +78,10 @@ def get_rpm_packages(
                                  '--queryformat',
                                  '%{installtime}|%{name}|%{version}'
                                  '-%{release}|%{arch}|%{size}\n'],
-                                 shell=False)
+                                 shell=False,
+                                 ignore_failure=True)
+        # We ignore failures because sometimes rpm returns rc=1 but still
+        # outputs all the data.
         rpmlist = output.strip('\n')
     finally:
         if reload_needed:

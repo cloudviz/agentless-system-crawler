@@ -295,8 +295,8 @@ class DockerContainer(Container):
         logs = []  # list of maps {name:name,type:type}
         try:
             logs = [{'name': name.strip(), 'type': None} for name in
-                    misc.GetProcessEnv(container.pid)[var].split(',')]
-        except (KeyError, ValueError) as e:
+                    misc.get_process_env(container.pid)[var].split(',')]
+        except (IOError, KeyError, ValueError) as e:
             logger.debug('There is a problem with the env. variables: %s' % e)
         return logs
 

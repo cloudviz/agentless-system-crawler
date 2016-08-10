@@ -5,7 +5,7 @@ import os
 import crawler.package_utils
 from crawler.features import PackageFeature
 
-def mocked_subprocess_run(cmd, shell=False):
+def mocked_subprocess_run(cmd, shell=False, ignore_failure=False):
     if 'dpkg-query' in cmd:
         return ('pkg1|v1|x86|123\n'
                 'pkg2|v2|x86|123')
