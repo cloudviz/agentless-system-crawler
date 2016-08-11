@@ -19,7 +19,7 @@ from netifaces import interfaces, ifaddresses, AF_INET
 logger = logging.getLogger('crawlutils')
 
 
-def subprocess_run(cmd, good_rc=0, shell=True):
+def subprocess_run(cmd, ignore_failure=False, shell=True):
     """
     Runs cmd_string as a shell command. It returns stdout as a string, and
     raises RuntimeError if the return code is not equal to `good_rc`.
@@ -33,14 +33,14 @@ def subprocess_run(cmd, good_rc=0, shell=True):
                     shell=shell,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
-        (out, err) = proc.communicate()
+        out, err = proc.communicate()
         rc = proc.returncode
+
     except OSError as exc:
-        raise RuntimeError('Failed to launch dpkg query for packages. Check if '
-                'dpkg-query is installed: [Errno: %d] ' %
+        raise RuntimeError('Failed to run ' + cmd + ': [Errno: %d] ' %
                 exc.errno + exc.strerror + ' [Exception: ' +
                 type(exc).__name__ + ']')
-    if rc != good_rc:
+    if (not ignore_failure) and (rc != 0):
         raise RuntimeError('(%s) failed with rc=%s: %s' %
                            (cmd, rc, err))
     return out
@@ -50,16 +50,18 @@ def enum(**enums):
     return type('Enum', (), enums)
 
 
-def GetProcessEnv(pid=1):
+def get_process_env(pid=1):
     """the environment settings from the processes perpective,
        @return C{dict}
     """
 
-    env = {}
     try:
-        envlist = open('/proc/%s/environ' % pid).read().split('\000')
-    except:
-        return env
+        pid = int(pid)
+    except ValueError:
+        raise TypeError('pid has to be an integer')
+
+    env = {}
+    envlist = open('/proc/%s/environ' % pid).read().split('\000')
     for e in envlist:
         (k, _, v) = e.partition('=')
         (k, v) = (k.strip(), v.strip())
@@ -69,22 +71,32 @@ def GetProcessEnv(pid=1):
     return env
 
 
-def process_is_crawler(proc):
+def process_is_crawler(pid):
+    """This is really checking if proc is the current process.
+    """
     try:
-        cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
-                                             ) else proc.cmdline)
+        pid = int(pid)
+    except ValueError:
+        raise TypeError('pid has to be an integer')
 
-        # curr is the crawler process
+    try:
+        proc = psutil.Process(pid)
+    except psutil.NoSuchProcess as exc:
+        # If the process does not exist, then it's definitely not the crawler
+        return False
 
-        curr = psutil.Process(os.getpid())
-        curr_cmdline = (
-            curr.cmdline() if hasattr(
-                curr.cmdline,
-                '__call__') else curr.cmdline)
-        if cmdline == curr_cmdline:
-            return True
-    except Exception:
-        pass
+    cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
+                                         ) else proc.cmdline)
+
+    # curr is the crawler process
+
+    curr = psutil.Process(os.getpid())
+    curr_cmdline = (
+        curr.cmdline() if hasattr(
+            curr.cmdline,
+            '__call__') else curr.cmdline)
+    if cmdline == curr_cmdline:
+        return True
     return False
 
 
@@ -92,16 +104,6 @@ class NullHandler(logging.Handler):
 
     def emit(self, record):
         pass
-
-
-def get_errno_msg(libc):
-    try:
-        libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
-        errno = libc.__errno_location().contents.value
-        errno_msg = os.strerror(errno)
-        return errno_msg
-    except Exception:
-        return 'unknown error'
 
 
 # try to determine this host's IP address
@@ -145,10 +147,16 @@ def join_abs_paths(root, appended_root):
 def is_process_running(pid):
     """ Check For the existence of a unix pid.
     """
+    try:
+        pid = int(pid)
+    except ValueError:
+        raise TypeError('pid has to be an integer')
 
     try:
         os.kill(pid, 0)
-    except OSError:
+    except OSError as exc:
+        if 'not permitted' in str(exc):
+            return True
         return False
     else:
         return True
@@ -161,20 +169,11 @@ def execution_path(filename):
 
 
 def btrfs_list_subvolumes(path):
-    """
-    Returns a list of submodules, example:
-    [
-     ['ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1'],
-     ['ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1/sub2'],
-    ]
-
-    Can raise RuntimeError if there are no btrfs tools installed.
-    """
     out = subprocess_run('btrfs subvolume list ' + path)
 
-    for line in out.strip():
+    for line in out.strip().split('\n'):
         submodule = line.split()
-        if len(submodule) != 8:
+        if len(submodule) != 9:
             raise RuntimeError('Expecting the output of `btrfs subvolume` to'
-                               ' have 8 columns. Received this: %s' % line)
+                               ' have 9 columns. Received this: %s' % line)
         yield submodule

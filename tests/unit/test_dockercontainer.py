@@ -316,7 +316,7 @@ class DockerDockerContainerTests(unittest.TestCase):
 
     @mock.patch('crawler.dockercontainer.os.makedirs')
     @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.misc.GetProcessEnv',
+    @mock.patch('crawler.dockercontainer.misc.get_process_env',
                 side_effect=lambda x : {'LOG_LOCATIONS':'/var/env/1,/var/env/2'})
     def test_link_logfiles_env_variable(self, mock_get_env, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
