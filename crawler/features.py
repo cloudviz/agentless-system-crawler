@@ -107,3 +107,13 @@ DockerPSFeature = namedtuple('DockerPSFeature', [
     'Id',
 ])
 DockerHistoryFeature = namedtuple('DockerHistoryFeature', ['history'])
+ModuleFeature = namedtuple('ModuleFeature', ['name', 'state'])
+CpuHwFeature = namedtuple('CpuHwFeature', [
+    'cpu_family',
+    'cpu_vendor',
+    'cpu_model',
+    'cpu_vedor_id',
+    'cpu_module_id',
+    'cpu_khz',
+    'cpu_cache_size_kb',
+    'cpu_num_cores'])
