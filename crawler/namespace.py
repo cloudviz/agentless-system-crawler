@@ -7,28 +7,46 @@ import logging
 import sys
 import types
 import signal
-from ctypes import CDLL
+import ctypes
 import cPickle as pickle
 import misc
-from crawler_exceptions import CrawlTimeoutError, CrawlError
+from crawler_exceptions import (CrawlTimeoutError,
+                                CrawlError,
+                                NamespaceFailedMntSetns)
 
 logger = logging.getLogger('crawlutils')
 
 try:
-    libc = CDLL('libc.so.6')
+    libc = ctypes.CDLL('libc.so.6')
 except Exception as e:
     logger.warning('Can not crawl containers as there is no libc: %s' % e)
-    raise e
+    libc = None
+
 
 ALL_NAMESPACES = 'user pid uts ipc net mnt'.split()
 IN_CONTAINER_TIMEOUT = 30
 
 
+def get_errno_msg():
+    try:
+        libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
+        errno = libc.__errno_location().contents.value
+        errno_msg = os.strerror(errno)
+        return errno_msg
+    except (OSError, AttributeError):
+        pass
+    return 'unknown error'
+
+
+def get_libc():
+    global libc
+    return libc
+
 def get_pid_namespace(pid):
     try:
         ns = os.stat('/proc/' + str(pid) + '/ns/pid').st_ino
         return ns
-    except Exception:
+    except OSError:
         logger.debug('There is no container with pid=%s running.'
                      % pid)
         return None
@@ -83,19 +101,12 @@ class ProcessContext:
             sys.exit(1)
 
         # We are now in host context
+        os.chdir(self.host_cwd)
 
-        try:
-            os.chdir(self.host_cwd)
-        except Exception as e:
-            logger.error('Could not move to the host cwd: %s' % e)
-            raise
         logging.disable(logging.NOTSET)
-        try:
-            close_process_namespaces(self.container_ns_fds,
-                                     self.namespaces)
-            close_process_namespaces(self.host_ns_fds, self.namespaces)
-        except Exception as e:
-            logger.warning('Could not close the namespaces: %s' % e)
+        close_process_namespaces(self.container_ns_fds,
+                                 self.namespaces)
+        close_process_namespaces(self.host_ns_fds, self.namespaces)
 
 
 def run_as_another_namespace(
@@ -109,17 +120,17 @@ def run_as_another_namespace(
 
     context = ProcessContext(pid, namespaces)
     context.attach()
-    queue = multiprocessing.Queue(2 ** 15)
-
     try:
-        child_process = multiprocessing.Process(
-            name='crawler-%s' %
-            pid, target=function_wrapper, args=(
-                queue, function, args), kwargs=kwargs)
-        child_process.start()
+        queue = multiprocessing.Queue(2 ** 15)
     except OSError:
-        queue.close()
-        raise CrawlError()
+        # try again with a smaller queue
+        queue = multiprocessing.Queue(2 ** 14)
+
+    child_process = multiprocessing.Process(
+        name='crawler-%s' %
+        pid, target=function_wrapper, args=(
+            queue, function, args), kwargs=kwargs)
+    child_process.start()
 
     child_exception = None
     try:
@@ -163,7 +174,7 @@ def function_wrapper(
 
     # Die if the parent dies
     PR_SET_PDEATHSIG = 1
-    libc.prctl(PR_SET_PDEATHSIG, signal.SIGHUP)
+    get_libc().prctl(PR_SET_PDEATHSIG, signal.SIGHUP)
 
     def signal_handler_sighup(*args):
         logger.warning('Crawler parent process died, so exiting... Bye!')
@@ -199,8 +210,8 @@ def hack_to_pre_load_modules():
 
     p = multiprocessing.Process(target=foo, args=(queue, ))
     p.start()
-    p.join()
     queue.get()
+    p.join()
 
 
 def open_process_namespaces(pid, namespace_fd, namespaces):
@@ -208,16 +219,15 @@ def open_process_namespaces(pid, namespace_fd, namespaces):
         try:
 
             # arg 0 means readonly
-
-            namespace_fd[ct_ns] = libc.open('/proc/' + pid + '/ns/' +
+            namespace_fd[ct_ns] = get_libc().open('/proc/' + pid + '/ns/' +
                                             ct_ns, 0)
             if namespace_fd[ct_ns] == -1:
-                errno_msg = misc.get_errno_msg(libc)
+                errno_msg = get_errno_msg()
                 error_msg = 'Opening the %s namespace file failed: %s' \
                     % (ct_ns, errno_msg)
                 logger.warning(error_msg)
                 if ct_ns == 'mnt':
-                    raise Exception(error_msg)
+                    raise NamespaceFailedMntSetns(error_msg)
         except Exception as e:
             error_msg = 'The open() syscall failed with: %s' % e
             logger.warning(error_msg)
@@ -227,30 +237,32 @@ def open_process_namespaces(pid, namespace_fd, namespaces):
 
 def close_process_namespaces(namespace_fd, namespaces):
     for ct_ns in namespaces:
-        try:
-            libc.close(namespace_fd[ct_ns])
-        except Exception as e:
-            error_msg = 'The close() syscall failed with: %s' % e
+        r = get_libc().close(namespace_fd[ct_ns])
+        if r == -1:
+            errno_msg = get_errno_msg()
+            error_msg = ('Could not close the %s '
+                         'namespace (fd=%s): %s' %
+                         (ct_ns, namespace_fd[ct_ns], errno_msg))
             logger.warning(error_msg)
 
 
 def attach_to_process_namespaces(namespace_fd, ct_namespaces):
     for ct_ns in ct_namespaces:
         try:
-            if hasattr(libc, 'setns'):
-                r = libc.setns(namespace_fd[ct_ns], 0)
+            if hasattr(get_libc(), 'setns'):
+                r = get_libc().setns(namespace_fd[ct_ns], 0)
             else:
                 # The Linux kernel ABI should be stable enough
                 __NR_setns = 308
-                r = libc.syscall(__NR_setns, namespace_fd[ct_ns], 0)
+                r = get_libc().syscall(__NR_setns, namespace_fd[ct_ns], 0)
             if r == -1:
-                errno_msg = misc.get_errno_msg(libc)
+                errno_msg = get_errno_msg()
                 error_msg = ('Could not attach to the container %s '
                              'namespace (fd=%s): %s' %
                              (ct_ns, namespace_fd[ct_ns], errno_msg))
                 logger.warning(error_msg)
                 if ct_ns == 'mnt':
-                    raise Exception(error_msg)
+                    raise NamespaceFailedMntSetns(error_msg)
         except Exception as e:
             error_msg = 'The setns() syscall failed with: %s' % e
             logger.warning(error_msg)

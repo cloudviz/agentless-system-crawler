@@ -54,7 +54,7 @@ def list_all_containers(user_list='ALL',
                 # don't confuse the init process as a container
 
                 continue
-            if misc.process_is_crawler(p):
+            if misc.process_is_crawler(pid):
 
                 # don't confuse the crawler process with a container
 
@@ -82,8 +82,7 @@ def list_all_containers(user_list='ALL',
 
 def get_filtered_list_of_containers(
     options=defaults.DEFAULT_CRAWL_OPTIONS,
-    host_namespace=misc.get_host_ipaddr(),
-    runtime_env = None
+    host_namespace=misc.get_host_ipaddr()
 ):
     """
     Returns a partition of all the Container objects currently running in the
@@ -91,7 +90,6 @@ def get_filtered_list_of_containers(
 
     The partitioning is given by `partition_strategy`.
     """
-    assert(runtime_env)
 
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
     metadata = options.get('metadata', {})
@@ -99,7 +97,6 @@ def get_filtered_list_of_containers(
     container_opts = {'host_namespace': host_namespace,
                       'environment': environment,
                       'long_id_to_namespace_map': _map,
-                      'container_logs': options['logcrawler']['default_log_files']
                       }
 
     user_list = options.get('docker_containers_list', 'ALL')
@@ -113,22 +110,26 @@ def get_filtered_list_of_containers(
     containers_list = list_all_containers(user_list, container_opts)
     for container in containers_list:
 
-        # The partition strategy is to split all the containers equally by
-        # process pid. We do it by hashing the long_id of the container.
+        """
+        There are docker and non-docker containers in this list. An example of
+        a non-docker container is a chromium-browser process.
+        TODO(kollerr): the logic that defines whether a container is acceptable
+        to a plugin or not should be in the plugin itself.
+        """
+
+        if (environment != defaults.DEFAULT_ENVIRONMENT and
+            not container.is_docker_container()):
+           continue
+
+        """
+        The partition strategy is to split all the containers equally by
+        process pid. We do it by hashing the long_id of the container.
+        """
 
         _hash = container.long_id
         num = int(_hash, 16) % int(num_processes)
         if num == process_id:
-
-            try:
-                container.setup_namespace_and_metadata(container_opts,
-                                                       runtime_env)
-            except ContainerInvalidEnvironment:
-                continue
-
-            if not container.namespace:
-                continue
-
             filtered_list.append(container)
+
 
     return filtered_list

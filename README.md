@@ -19,7 +19,6 @@ in which you want it to run:
  * apt-get install python-pip
  * pip install psutil
  * pip install netifaces
- * pip install bottle
  * pip install requests
  * pip install python-dateutil
 
@@ -51,6 +50,7 @@ sudo docker run \
     --pid=host \
     -v /cgroup:/cgroup:ro \
     -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+    -v /var/lib/docker:/var/lib/docker:ro \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v $PWD/output:/crawler/output \
     -it crawler ...

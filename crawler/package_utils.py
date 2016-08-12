@@ -4,6 +4,7 @@ import logging
 import tempfile
 import shutil
 
+from misc import subprocess_run
 from features import PackageFeature
 
 logger = logging.getLogger('crawlutils')
@@ -26,21 +27,12 @@ def get_dpkg_packages(
 
     dbpath = os.path.join(root_dir, dbpath)
 
-    try:
-        dpkg = subprocess.Popen(['dpkg-query', '-W',
-                                 '--admindir={0}'.format(dbpath),
-                                 '-f=${Package}|${Version}'
-                                 '|${Architecture}|${Installed-Size}\n'
-                                 ], stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        dpkglist = dpkg.stdout.read().strip('\n')
-    except OSError as e:
-        logger.error(
-            'Failed to launch dpkg query for packages. Check if '
-            'dpkg-query is installed: [Errno: %d] ' %
-            e.errno + e.strerror + ' [Exception: ' +
-            type(e).__name__ + ']')
-        dpkglist = None
+    output = subprocess_run(['dpkg-query', '-W',
+                             '--admindir={0}'.format(dbpath),
+                             '-f=${Package}|${Version}'
+                             '|${Architecture}|${Installed-Size}\n'],
+                             shell=False)
+    dpkglist = output.strip('\n')
     if dpkglist:
         for dpkginfo in dpkglist.split('\n'):
             (name, version, architecture, size) = dpkginfo.split(r'|')
@@ -79,24 +71,18 @@ def get_rpm_packages(
             _rpm_reload_db(root_dir, dbpath, reloaded_db_dir)
             dbpath = reloaded_db_dir
 
-        rpm = subprocess.Popen([
-            'rpm',
-            '--dbpath',
-            dbpath,
-            '-qa',
-            '--queryformat',
-            '%{installtime}|%{name}|%{version}'
-            '-%{release}|%{arch}|%{size}\n',
-        ], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        rpmlist = rpm.stdout.read().strip('\n')
-    except OSError as e:
-        logger.error(
-            'Failed to launch rpm query for packages. Check if '
-            'rpm is installed: [Errno: %d] ' %
-            e.errno + e.strerror + ' [Exception: ' +
-            type(e).__name__ + ']')
-        rpmlist = None
+        output = subprocess_run(['rpm',
+                                 '--dbpath',
+                                 dbpath,
+                                 '-qa',
+                                 '--queryformat',
+                                 '%{installtime}|%{name}|%{version}'
+                                 '-%{release}|%{arch}|%{size}\n'],
+                                 shell=False,
+                                 ignore_failure=True)
+        # We ignore failures because sometimes rpm returns rc=1 but still
+        # outputs all the data.
+        rpmlist = output.strip('\n')
     finally:
         if reload_needed:
             logger.debug('Deleting directory: %s' % (reloaded_db_dir))
@@ -129,40 +115,26 @@ def _rpm_reload_db(
         root_dir='/',
         dbpath='var/lib/rpm',
         reloaded_db_dir='/tmp/'):
-    """Dumps and reloads the rpm database.
+    """
+    Dumps and reloads the rpm database.
 
-    Returns the path to the new rpm database, or raises RuntimeError or
-    OSError.
+    Returns the path to the new rpm database, or raises RuntimeError if the
+    dump and load commands failed.
     """
 
     try:
         dump_dir = tempfile.mkdtemp()
 
-        proc = subprocess.Popen([
-            '/usr/bin/db_dump',
-            os.path.join(dbpath, 'Packages'),
-            '-f',
-            os.path.join(dump_dir, 'Packages'),
-        ], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        output = proc.stdout.read()
-        error_output = proc.stderr.read()
-        (out, err) = proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError('rpmdb_dump failed with ' + error_output)
-
-        proc = subprocess.Popen([
-            '/usr/bin/db_load',
-            '-f',
-            os.path.join(dump_dir, 'Packages'),
-            os.path.join(reloaded_db_dir, 'Packages'),
-        ], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        output = proc.stdout.read()
-        error_output = proc.stderr.read()
-        (out, err) = proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError('rpmdb_dump failed with ' + error_output)
+        _ = subprocess_run(['/usr/bin/db_dump',
+                            os.path.join(dbpath, 'Packages'),
+                            '-f',
+                            os.path.join(dump_dir, 'Packages')],
+                            shell=False)
+        _ = subprocess_run(['/usr/bin/db_load',
+                            '-f',
+                            os.path.join(dump_dir, 'Packages'),
+                            os.path.join(reloaded_db_dir, 'Packages')],
+                            shell=False)
     finally:
         logger.debug('Deleting directory: %s' % (dump_dir))
         shutil.rmtree(dump_dir)

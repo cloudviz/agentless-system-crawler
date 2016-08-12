@@ -1,28 +1,37 @@
-FROM alpine:3.3
+FROM ubuntu:14.04
 
-RUN apk --no-cache add --repository http://dl-cdn.alpinelinux.org/alpine/edge/main libseccomp
-RUN apk --no-cache add --repository http://dl-cdn.alpinelinux.org/alpine/edge/community docker
+RUN apt-get update && echo "y" | apt-get install apt-transport-https
+RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+RUN echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" > /etc/apt/sources.list.d/docker.list
 
-RUN apk add --update \
-    python \
+RUN apt-get update && \
+    echo "y" | apt-get install python \
     python-dev \
-    py-pip \
-    build-base \
-    linux-headers \
-    docker \
-  && pip install --upgrade pip \
-  && rm -rf /var/cache/apk/*
- 
-COPY crawler/requirements.txt /requirements.txt
-COPY tests/requirements.txt /requirements-test.txt
-RUN pip install -r requirements.txt && pip install -r requirements-test.txt
+    python-pip \
+    build-essential \
+    qemu-kvm \
+    docker-engine \
+    dpkg \
+    dpkg-dev \
+  && pip install --upgrade pip 
 
 WORKDIR /crawler
+COPY requirements.txt /crawler/requirements.txt
+COPY requirements-test.txt /crawler/test-requirements.txt
+ 
+RUN (pip install -r requirements.txt; pip install -r test-requirements.txt)
 
-COPY . /crawler
+ADD . /crawler
+
+RUN (cd psvmi/psvmi; python setup.py build && python setup.py install)
+
+COPY psvmi/maps maps
+COPY psvmi/offsets offsets
+COPY psvmi/header.h .
 
 CMD (docker daemon > ../docker.out 2>&1 &) && \
-	sleep 5 && \
+    sleep 5 && \
         flake8 --max-complexity 10 . || true && \
         pylint crawler || true && \
-        python setup.py test --addopts '--cov=.'
+        python setup.py test --addopts '-s --cov=.'
+

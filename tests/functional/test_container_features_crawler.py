@@ -21,15 +21,18 @@ class FeaturesCrawlerTests(unittest.TestCase):
     image_name = 'alpine:latest'
 
     def setUp(self):
-        self.docker = docker.Client(base_url='unix://var/run/docker.sock', version='auto')
+        self.docker = docker.Client(
+            base_url='unix://var/run/docker.sock', version='auto')
         try:
             if len(self.docker.containers()) != 0:
-                raise Exception("Sorry, this test requires a machine with no docker containers running.")
+                raise Exception(
+                    "Sorry, this test requires a machine with no docker containers running.")
         except requests.exceptions.ConnectionError as e:
             print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
 
         self.docker.pull(repository='alpine', tag='latest')
-        self.container = self.docker.create_container(image=self.image_name, command='/bin/sleep 60')
+        self.container = self.docker.create_container(
+            image=self.image_name, command='/bin/sleep 60')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
         self.docker.start(container=self.container['Id'])
 
@@ -56,6 +59,16 @@ class FeaturesCrawlerTests(unittest.TestCase):
             print key, feature
         cores = len(list(crawler.crawl_cpu()))
         assert cores > 0
+
+    def test_features_crawler_crawl_outcontainer_os(self):
+        c = DockerContainer(self.container['Id'])
+        crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
+        assert len(list(crawler.crawl_os())) == 1
+
+    def test_features_crawler_crawl_outcontainer_processes(self):
+        c = DockerContainer(self.container['Id'])
+        crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
+        assert len(list(crawler.crawl_processes())) == 2 # sleep + crawler
 
     def test_features_crawler_crawl_outcontainer_mem(self):
         c = DockerContainer(self.container['Id'])
