@@ -8,6 +8,7 @@ import socket
 import subprocess
 import re
 import psutil
+import ctypes
 
 # Additional modules
 
@@ -18,20 +19,49 @@ from netifaces import interfaces, ifaddresses, AF_INET
 logger = logging.getLogger('crawlutils')
 
 
+def subprocess_run(cmd, ignore_failure=False, shell=True):
+    """
+    Runs cmd_string as a shell command. It returns stdout as a string, and
+    raises RuntimeError if the return code is not equal to `good_rc`.
+
+    It returns the tuple: (stdout, stderr, returncode)
+    Can raise AttributeError or RuntimeError:
+    """
+    try:
+        proc = subprocess.Popen(
+                    cmd,
+                    shell=shell,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        rc = proc.returncode
+
+    except OSError as exc:
+        raise RuntimeError('Failed to run ' + cmd + ': [Errno: %d] ' %
+                exc.errno + exc.strerror + ' [Exception: ' +
+                type(exc).__name__ + ']')
+    if (not ignore_failure) and (rc != 0):
+        raise RuntimeError('(%s) failed with rc=%s: %s' %
+                           (cmd, rc, err))
+    return out
+
+
 def enum(**enums):
     return type('Enum', (), enums)
 
 
-def GetProcessEnv(pid=1):
+def get_process_env(pid=1):
     """the environment settings from the processes perpective,
        @return C{dict}
     """
 
-    env = {}
     try:
-        envlist = open('/proc/%s/environ' % pid).read().split('\000')
-    except:
-        return env
+        pid = int(pid)
+    except ValueError:
+        raise TypeError('pid has to be an integer')
+
+    env = {}
+    envlist = open('/proc/%s/environ' % pid).read().split('\000')
     for e in envlist:
         (k, _, v) = e.partition('=')
         (k, v) = (k.strip(), v.strip())
@@ -41,22 +71,32 @@ def GetProcessEnv(pid=1):
     return env
 
 
-def process_is_crawler(proc):
+def process_is_crawler(pid):
+    """This is really checking if proc is the current process.
+    """
     try:
-        cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
-                                             ) else proc.cmdline)
+        pid = int(pid)
+    except ValueError:
+        raise TypeError('pid has to be an integer')
 
-        # curr is the crawler process
+    try:
+        proc = psutil.Process(pid)
+    except psutil.NoSuchProcess as exc:
+        # If the process does not exist, then it's definitely not the crawler
+        return False
 
-        curr = psutil.Process(os.getpid())
-        curr_cmdline = (
-            curr.cmdline() if hasattr(
-                curr.cmdline,
-                '__call__') else curr.cmdline)
-        if cmdline == curr_cmdline:
-            return True
-    except Exception:
-        pass
+    cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
+                                         ) else proc.cmdline)
+
+    # curr is the crawler process
+
+    curr = psutil.Process(os.getpid())
+    curr_cmdline = (
+        curr.cmdline() if hasattr(
+            curr.cmdline,
+            '__call__') else curr.cmdline)
+    if cmdline == curr_cmdline:
+        return True
     return False
 
 
@@ -64,17 +104,6 @@ class NullHandler(logging.Handler):
 
     def emit(self, record):
         pass
-
-
-def get_errno_msg(libc):
-    try:
-        import ctypes
-        libc.__errno_location.restype = ctypes.POINTER(ctypes.c_int)
-        errno = libc.__errno_location().contents.value
-        errno_msg = os.strerror(errno)
-        return errno_msg
-    except Exception:
-        return 'unknown error'
 
 
 # try to determine this host's IP address
@@ -108,100 +137,26 @@ def find_mount_point(path):
     return path
 
 
-# Log the atime configuration of the mount location of the given path
-# Return: 'unknown' | 'strictatime' | 'relatime' | 'noatime'
-
-def log_atime_config(path, crawlmode):
-    atime_config = 'unknown'
-    mountlocation = find_mount_point(path=path)
-    logger.info('Mount location for specified crawl root_dir %s: %s'
-                % (path, mountlocation))
-
-    # Looking at `mount` for atime config is only meaningful for INVM
-
-    if crawlmode == 'INVM':
-        grepstr = 'on %s ' % mountlocation
-        try:
-            mount = subprocess.Popen('mount', stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
-            mountlist = subprocess.Popen(
-                ('grep',
-                 grepstr),
-                stdin=mount.stdout,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
-            mountlist_arr = mountlist.stdout.read().split('\n')
-            if len(mountlist_arr) > 0:
-
-                # pick the first one if we found more than one mount location
-                # Will look like: "/dev/xvda2 on / type ext3
-                # (rw,noatime,errors=remount-ro,barrier=0)"
-
-                ptrn = r'.*?\((.*?)\).*?'
-                match = re.search(ptrn, mountlist_arr[0])
-
-                # Get the part in parenthesis and split. WIll look like:
-                # "rw,noatime,errors=remount-ro,barrier=0"
-
-                for i in match.group(1).split(','):
-                    if i.strip() == 'noatime':
-                        atime_config = 'noatime'
-                        logger.debug(
-                            'Found atime config: %s in mount information, '
-                            'updating log' % atime_config)
-                        break
-                    elif i.strip() == 'relatime':
-                        atime_config = 'relatime'
-                        logger.debug(
-                            'Found atime config: %s in mount information, '
-                            'updating log' % atime_config)
-                        break
-                    elif i.strip() == 'strictatime':
-                        atime_config = 'strictatime'
-                        logger.debug(
-                            'Found atime config: %s in mount information, '
-                            'updating log' % atime_config)
-                        break
-
-                # If we found a mount location, but did not have atime info in
-                # mount. Assume it is the default relatime. As it does not show
-                # in mount options by default.
-
-                if atime_config == 'unknown':
-                    atime_config = 'relatime'
-                    logger.debug(
-                        'Did not find any atime config for the matching mount '
-                        'location. Assuming: %s' % atime_config)
-        except OSError as e:
-            logger.error('Failed to query mount information: ' +
-                         '[Errno: %d] ' % e.errno + e.strerror +
-                         ' [Exception: ' + type(e).__name__ + ']')
-
-    logger.info("Atime configuration for '%s': '%s'" % (mountlocation,
-                                                        atime_config))
-    if atime_config == 'strictatime':
-        logger.info('strictatime: File access times are reflected correctly'
-                    )
-    if atime_config == 'relatime':
-        logger.info(
-            'relatime: File access times are only updated after 24 hours')
-    if atime_config == 'noatime':
-        logger.info('noatime: File access times are never updated properly'
-                    )
-    if atime_config == 'unknown':
-        logger.info(
-            'unknown: Could not determine atime config. File atime '
-            'information might not be reliable')
-    return atime_config
+def join_abs_paths(root, appended_root):
+    """ Join absolute paths: appended_root is appended after root
+    """
+    return os.path.normpath(os.path.join(root,
+                                         os.path.relpath(appended_root, '/')))
 
 
 def is_process_running(pid):
     """ Check For the existence of a unix pid.
     """
+    try:
+        pid = int(pid)
+    except ValueError:
+        raise TypeError('pid has to be an integer')
 
     try:
         os.kill(pid, 0)
-    except OSError:
+    except OSError as exc:
+        if 'not permitted' in str(exc):
+            return True
         return False
     else:
         return True
@@ -211,3 +166,14 @@ def execution_path(filename):
     # if filename is an absolute path, os.path.join will return filename
     return os.path.join(os.path.dirname(inspect.getfile(sys._getframe(1))),
                         filename)
+
+
+def btrfs_list_subvolumes(path):
+    out = subprocess_run('btrfs subvolume list ' + path)
+
+    for line in out.strip().split('\n'):
+        submodule = line.split()
+        if len(submodule) != 9:
+            raise RuntimeError('Expecting the output of `btrfs subvolume` to'
+                               ' have 9 columns. Received this: %s' % line)
+        yield submodule

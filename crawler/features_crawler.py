@@ -21,6 +21,10 @@ import platform_outofband
 # External dependencies that must be pip install'ed separately
 
 import psutil
+try:
+    from psvmi import system_info
+except ImportError:
+    system_info = None
 
 psvmi = None #haven't loaded module psvmi yet
 
@@ -40,26 +44,6 @@ from package_utils import get_rpm_packages, get_dpkg_packages
 logger = logging.getLogger('crawlutils')
 
 
-FEATURE_SCHEMA = {
-    'os': OSFeature._fields,
-    'file': FileFeature._fields,
-    'config': ConfigFeature._fields,
-    'disk': DiskFeature._fields,
-    'process': ProcessFeature._fields,
-    'connection': ConnectionFeature._fields,
-    'metric': MetricFeature._fields,
-    'package': PackageFeature._fields,
-    'memory': MemoryFeature._fields,
-    'cpu': CpuFeature._fields,
-    'interface': InterfaceFeature._fields,
-    'load': LoadFeature._fields,
-    'dockerps': DockerPSFeature._fields,
-    'dockerhistory': DockerHistoryFeature._fields,
-    'module': ModuleFeature._fields,
-    'cpuHw': CpuHwFeature._fields,
-}
-
-
 class FeaturesCrawler:
 
     """This class abstracts the actual crawling functionality like getting the
@@ -67,10 +51,6 @@ class FeaturesCrawler:
     instantiated for every frame. A frame is created and emited for every
     container and at every crawling interval.
     """
-
-    @staticmethod
-    def get_feature_schema():
-        return FEATURE_SCHEMA
 
     # feature_epoch must be a UTC timestamp. If > 0 only features
     # accessed/modified/created since this time are crawled
@@ -82,22 +62,28 @@ class FeaturesCrawler:
         crawl_mode=Modes.INVM,
         vm=None,
         vm_context=None,	
-        namespace=None,
         container=None,
     ):
+
+        # Some quick sanity checks
+        if (not container) and (crawl_mode == Modes.OUTCONTAINER):
+            raise ValueError('A FeatureCrawler object was tried to be '
+                             'instantiated in OUTCONTAINER mode without '
+                             'a container.')
+        if (not vm) and (crawl_mode == Modes.OUTVM):
+            raise ValueError('A FeatureCrawler object was tried to be '
+                             'instantiated in OUTVM mode without '
+                             'a vm.')
+
 
         saved_args = locals()
         logger.debug('FeaturesCrawler: %s' % (saved_args))
         self.feature_epoch = feature_epoch
-        self.is_config_file = config_file_discovery_heuristic \
-            or FeaturesCrawler._is_config_file
+        self.is_config_file = (config_file_discovery_heuristic or
+                               FeaturesCrawler._is_config_file)
 
         self.crawl_mode = crawl_mode
-
-        # Used for OUTCONTAINER crawl mode
-
         self.container = container
-        self.namespace = namespace
         self.vm = vm
         self.vm_context = vm_context
 
@@ -107,7 +93,7 @@ class FeaturesCrawler:
             
 
     """
-    To calculate rates like packages sent per second, we need to
+    To calculate rates like packets sent per second, we need to
     store the last measurement. We store it in this dictionary.
     """
     _cached_values = {}
@@ -135,10 +121,10 @@ class FeaturesCrawler:
 
     def crawl_os(self, mountpoint=None, avoid_setns=False):
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
-	    # Handle this special case first (avoiding setns() for the
-	    # OUTCONTAINER mode).
+            # Handle this special case first (avoiding setns() for the
+            # OUTCONTAINER mode).
             mountpoint = dockerutils.get_docker_container_rootfs_path(
-                             self.container.long_id)
+                self.container.long_id)
             self.crawl_mode = Modes.MOUNTPOINT
             try:
                 for (key, feature) in self._crawl_os(mountpoint):
@@ -150,7 +136,6 @@ class FeaturesCrawler:
                     self._crawl_os, ALL_NAMESPACES, mountpoint):
                 yield (key, feature)
 
-
     def _crawl_os(self, mountpoint=None):
 
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
@@ -161,22 +146,19 @@ class FeaturesCrawler:
                          self.crawl_mode + ')')
             feature_key = platform.system().lower()
 
-            try:
-                ips = misc.get_host_ip4_addresses()
-            except Exception as e:
-                ips = 'unknown'
+            ips = misc.get_host_ip4_addresses()
+
             try:
                 distro = platform.linux_distribution()[0]
-            except Exception as e:
+            except:
                 distro = 'unknown'
+
             try:
                 osname = platform.platform()
-            except Exception as e:
+            except:
                 osname = 'unknown'
 
-            boot_time = (
-                psutil.boot_time() if hasattr(
-                    psutil, 'boot_time') else psutil.BOOT_TIME)
+            boot_time = psutil.boot_time()
             uptime = int(time.time()) - boot_time
             feature_attributes = OSFeature(
                 boot_time,
@@ -227,31 +209,36 @@ class FeaturesCrawler:
             )
             feature_key = sys.ostype
         else:
-            raise NotImplementedError()
-        try:
-            yield (feature_key, feature_attributes)
-        except Exception as e:
-            logger.error('Error crawling OS', exc_info=True)
-            raise CrawlError(e)
+            raise NotImplementedError('Unsupported crawl mode')
+        yield (feature_key, feature_attributes)
 
     # crawl the directory hierarchy under root_dir
     def crawl_files(
         self,
         root_dir='/',
-        exclude_dirs=['proc', 'mnt', 'dev', 'tmp'],
+        exclude_dirs=['/proc', '/mnt', '/dev', '/tmp'],
         root_dir_alias=None,
         avoid_setns=False,
     ):
 
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
-	    # Handle this special case first (avoiding setns() for the
-	    # OUTCONTAINER mode).
-            root_dir = dockerutils.get_docker_container_rootfs_path(
+            # Handle this special case first (avoiding setns() for the
+            # OUTCONTAINER mode).
+            rootfs_dir = dockerutils.get_docker_container_rootfs_path(
                              self.container.long_id)
+
+            for d in exclude_dirs:
+                if not os.path.isabs(d):
+                    raise ValueError('crawl_files with avoidsetns only takes'
+                                     'absolute paths in the exclude_dirs arg.')
+
+            exclude_dirs = [misc.join_abs_paths(rootfs_dir, d)
+                            for d in exclude_dirs]
+
             for (key, feature) in self._crawl_files(
-                    root_dir,
-                    exclude_dirs,
-                    root_dir_alias):
+                    root_dir=misc.join_abs_paths(rootfs_dir, root_dir),
+                    exclude_dirs=exclude_dirs,
+                    root_dir_alias=root_dir):
                 yield (key, feature)
         else:
             for (key, feature) in self._crawl_wrapper(
@@ -261,7 +248,6 @@ class FeaturesCrawler:
                     exclude_dirs,
                     root_dir_alias):
                 yield (key, feature)
-
 
     def _crawl_files(
         self,
@@ -276,48 +262,43 @@ class FeaturesCrawler:
         saved_args = locals()
         logger.debug('crawl_files: %s' % (saved_args))
         if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT, Modes.OUTCONTAINER]:
-            try:
-                assert os.path.isdir(root_dir)
-                if root_dir_alias is None:
-                    root_dir_alias = root_dir
-                exclude_dirs = [os.path.join(root_dir, d) for d in
-                                exclude_dirs]
-                exclude_regex = r'|'.join([fnmatch.translate(d)
-                                           for d in exclude_dirs]) or r'$.'
+            assert os.path.isdir(root_dir)
+            if root_dir_alias is None:
+                root_dir_alias = root_dir
+            exclude_dirs = [os.path.join(root_dir, d) for d in
+                            exclude_dirs]
+            exclude_regex = r'|'.join([fnmatch.translate(d)
+                                       for d in exclude_dirs]) or r'$.'
 
-                # walk the directory hierarchy starting at 'root_dir' in BFS
-                # order
+            # walk the directory hierarchy starting at 'root_dir' in BFS
+            # order
 
-                feature = self._crawl_file(root_dir, root_dir,
-                                           root_dir_alias)
-                if feature and (feature.ctime > accessed_since or
-                                feature.atime > accessed_since):
-                    yield (feature.path, feature)
-                for (root_dirpath, dirs, files) in os.walk(root_dir):
-                    dirs[:] = [os.path.join(root_dirpath, d) for d in
-                               dirs]
-                    dirs[:] = [d for d in dirs
-                               if not re.match(exclude_regex, d)]
-                    files = [os.path.join(root_dirpath, f) for f in
-                             files]
-                    files = [f for f in files
-                             if not re.match(exclude_regex, f)]
-                    for fpath in files:
-                        feature = self._crawl_file(root_dir, fpath,
-                                                   root_dir_alias)
-                        if feature and (feature.ctime > accessed_since or
-                                        feature.atime > accessed_since):
-                            yield (feature.path, feature)
-                    for fpath in dirs:
-                        feature = self._crawl_file(root_dir, fpath,
-                                                   root_dir_alias)
-                        if feature and (feature.ctime > accessed_since or
-                                        feature.atime > accessed_since):
-                            yield (feature.path, feature)
-            except Exception as e:
-                logger.error('Error crawling root_dir %s' % root_dir,
-                             exc_info=True)
-                raise CrawlError(e)
+            feature = self._crawl_file(root_dir, root_dir,
+                                       root_dir_alias)
+            if feature and (feature.ctime > accessed_since or
+                            feature.atime > accessed_since):
+                yield (feature.path, feature)
+            for (root_dirpath, dirs, files) in os.walk(root_dir):
+                dirs[:] = [os.path.join(root_dirpath, d) for d in
+                           dirs]
+                dirs[:] = [d for d in dirs
+                           if not re.match(exclude_regex, d)]
+                files = [os.path.join(root_dirpath, f) for f in
+                         files]
+                files = [f for f in files
+                         if not re.match(exclude_regex, f)]
+                for fpath in files:
+                    feature = self._crawl_file(root_dir, fpath,
+                                               root_dir_alias)
+                    if feature and (feature.ctime > accessed_since or
+                                    feature.atime > accessed_since):
+                        yield (feature.path, feature)
+                for fpath in dirs:
+                    feature = self._crawl_file(root_dir, fpath,
+                                               root_dir_alias)
+                    if feature and (feature.ctime > accessed_since or
+                                    feature.atime > accessed_since):
+                        yield (feature.path, feature)
 
 
     def _filetype(self, fpath, fperm):
@@ -380,47 +361,46 @@ class FeaturesCrawler:
         fpath,
         root_dir_alias,
     ):
+        lstat = os.lstat(fpath)
+        fmode = lstat.st_mode
+        fperm = self._fileperm(fmode)
+        ftype = self._filetype(fpath, fperm)
+        flinksto = None
+        if ftype == 'link':
+            try:
 
-        try:
-            lstat = os.lstat(fpath)
-            fmode = lstat.st_mode
-            fperm = self._fileperm(fmode)
-            ftype = self._filetype(fpath, fperm)
-            flinksto = None
-            if ftype == 'link':
-                try:
+                # This has to be an absolute path, not a root-relative path
 
-                    # This has to be an absolute path, not a root-relative path
+                flinksto = os.readlink(fpath)
+            except:
+                logger.error('Error reading linksto info for file %s'
+                             % fpath, exc_info=True)
+        fgroup = lstat.st_gid
+        fuser = lstat.st_uid
 
-                    flinksto = os.readlink(fpath)
-                except:
-                    logger.error('Error reading linksto info for file %s'
-                                 % fpath, exc_info=True)
-            fgroup = lstat.st_gid
-            fuser = lstat.st_uid
+        # This replaces `/<root_dir>/a/b/c` with `/<root_dir_alias>/a/b/c`
 
-            # root_dir relative path
+        frelpath = os.path.join(root_dir_alias,
+                                os.path.relpath(fpath, root_dir))
 
-            frelpath = fpath.replace(root_dir, root_dir_alias, 1)
-            (_, fname) = os.path.split(frelpath)
-            return FileFeature(
-                lstat.st_atime,
-                lstat.st_ctime,
-                fgroup,
-                flinksto,
-                fmode,
-                lstat.st_mtime,
-                fname,
-                frelpath,
-                lstat.st_size,
-                ftype,
-                fuser,
-            )
-        except Exception as e:
+        # This converts something like `/.` to `/`
 
-            logger.error('Error crawling file %s' % fpath,
-                         exc_info=True)
-            raise CrawlError(e)
+        frelpath = os.path.normpath(frelpath)
+
+        (_, fname) = os.path.split(frelpath)
+        return FileFeature(
+            lstat.st_atime,
+            lstat.st_ctime,
+            fgroup,
+            flinksto,
+            fmode,
+            lstat.st_mtime,
+            fname,
+            frelpath,
+            lstat.st_size,
+            ftype,
+            fuser,
+        )
 
     # default config file discovery heuristic
 
@@ -454,10 +434,10 @@ class FeaturesCrawler:
         avoid_setns=False
     ):
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
-	    # Handle this special case first (avoiding setns() for the
-	    # OUTCONTAINER mode).
+            # Handle this special case first (avoiding setns() for the
+            # OUTCONTAINER mode).
             root_dir = dockerutils.get_docker_container_rootfs_path(
-                             self.container.long_id)
+                self.container.long_id)
             for (key, feature) in self._crawl_config_files(
                     root_dir,
                     exclude_dirs,
@@ -476,7 +456,6 @@ class FeaturesCrawler:
                     discover_config_files):
                 yield (key, feature)
 
-
     def _crawl_config_files(
         self,
         root_dir='/',
@@ -489,86 +468,62 @@ class FeaturesCrawler:
         saved_args = locals()
         logger.debug('Crawling config files: %s' % (saved_args))
         accessed_since = self.feature_epoch
-        try:
-            assert os.path.isdir(root_dir)
-            if root_dir_alias is None:
-                root_dir_alias = root_dir
-            exclude_dirs = [os.path.join(root_dir, d) for d in
-                            exclude_dirs]
-            exclude_regex = r'|'.join([fnmatch.translate(d) for d in
-                                       exclude_dirs]) or r'$.'
-            known_config_files[:] = [os.path.join(root_dir, f) for f in
-                                     known_config_files]
-            known_config_files[:] = [f for f in known_config_files
-                                     if not re.match(exclude_regex, f)]
-            config_file_set = set()
-            for fpath in known_config_files:
-                if os.path.exists(fpath):
-                    lstat = os.lstat(fpath)
-                    if (lstat.st_atime > accessed_since or
-                            lstat.st_ctime > accessed_since):
-                        config_file_set.add(fpath)
-        except Exception as e:
-            logger.error('Error examining %s' % root_dir, exc_info=True)
-            raise CrawlError(e)
-        try:
-            if discover_config_files:
+        
+        assert os.path.isdir(root_dir)
+        
+        if root_dir_alias is None:
+            root_dir_alias = root_dir
+        exclude_dirs = [os.path.join(root_dir, d) for d in
+                        exclude_dirs]
+        exclude_regex = r'|'.join([fnmatch.translate(d) for d in
+                                   exclude_dirs]) or r'$.'
+        known_config_files[:] = [os.path.join(root_dir, f) for f in
+                                 known_config_files]
+        known_config_files[:] = [f for f in known_config_files
+                                 if not re.match(exclude_regex, f)]
+        config_file_set = set()
+        for fpath in known_config_files:
+            if os.path.exists(fpath):
+                lstat = os.lstat(fpath)
+                if (lstat.st_atime > accessed_since or
+                        lstat.st_ctime > accessed_since):
+                    config_file_set.add(fpath)
 
-                # Walk the directory hierarchy starting at 'root_dir' in BFS
-                # order looking for config files.
+        if discover_config_files:
 
-                for (root_dirpath, dirs, files) in os.walk(root_dir):
-                    dirs[:] = [os.path.join(root_dirpath, d) for d in
-                               dirs]
-                    dirs[:] = [d for d in dirs
-                               if not re.match(exclude_regex, d)]
-                    files = [os.path.join(root_dirpath, f) for f in
-                             files]
-                    files = [f for f in files
-                             if not re.match(exclude_regex, f)]
-                    for fpath in files:
-                        if os.path.exists(fpath) \
-                                and self.is_config_file(fpath):
-                            lstat = os.lstat(fpath)
-                            if lstat.st_atime > accessed_since \
-                                    or lstat.st_ctime > accessed_since:
-                                config_file_set.add(fpath)
-        except Exception as e:
-            logger.error('Error examining %s' % root_dir, exc_info=True)
-            raise CrawlError(e)
-        try:
-            for fpath in config_file_set:
-                try:
-                    (_, fname) = os.path.split(fpath)
-                    frelpath = fpath.replace(root_dir, root_dir_alias,
-                                             1)  # root_dir relative path
+            # Walk the directory hierarchy starting at 'root_dir' in BFS
+            # order looking for config files.
 
-            # Copy this config_file into / before reading it, so we
-            # don't change its atime attribute.
+            for (root_dirpath, dirs, files) in os.walk(root_dir):
+                dirs[:] = [os.path.join(root_dirpath, d) for d in
+                           dirs]
+                dirs[:] = [d for d in dirs
+                           if not re.match(exclude_regex, d)]
+                files = [os.path.join(root_dirpath, f) for f in
+                         files]
+                files = [f for f in files
+                         if not re.match(exclude_regex, f)]
+                for fpath in files:
+                    if os.path.exists(fpath) \
+                            and self.is_config_file(fpath):
+                        lstat = os.lstat(fpath)
+                        if lstat.st_atime > accessed_since \
+                                or lstat.st_ctime > accessed_since:
+                            config_file_set.add(fpath)
 
-                    (th, temppath) = tempfile.mkstemp(prefix='config.',
-                                                      dir='/')
-                    os.close(th)
-                    shutil.copyfile(fpath, temppath)
-                    with codecs.open(filename=fpath, mode='r',
-                                     encoding='utf-8', errors='ignore') as \
-                            config_file:
+        for fpath in config_file_set:
+            (_, fname) = os.path.split(fpath)
+            frelpath = fpath.replace(root_dir, root_dir_alias,
+                                     1)  # root_dir relative path
+            with codecs.open(filename=fpath, mode='r',
+                             encoding='utf-8', errors='ignore') as \
+                    config_file:
 
-                        # Encode the contents of config_file as utf-8.
+                # Encode the contents of config_file as utf-8.
 
-                        yield (frelpath, ConfigFeature(fname,
-                                                       config_file.read(),
-                                                       frelpath))
-                    os.remove(temppath)
-                except IOError as e:
-                    raise CrawlError(e)
-                except Exception as e:
-                    logger.error('Error crawling config file %s'
-                                 % fpath, exc_info=True)
-                    raise CrawlError(e)
-        except Exception as e:
-            logger.error('Error examining %s' % root_dir, exc_info=True)
-            raise CrawlError(e)
+                yield (frelpath, ConfigFeature(fname,
+                                               config_file.read(),
+                                               frelpath))
 
     # crawl disk partition information
 
@@ -576,7 +531,7 @@ class FeaturesCrawler:
         for (key, feature) in self._crawl_wrapper(
                 self._crawl_disk_partitions, ALL_NAMESPACES):
             # replace '.' in key with # for avoiding unnecessary hierarchy
-            key = key.replace('.','#')
+            key = key.replace('.', '#')
             yield (key, feature)
 
     def _crawl_disk_partitions(self):
@@ -588,20 +543,15 @@ class FeaturesCrawler:
 
         logger.debug('Crawling Disk partitions')
         for partition in psutil.disk_partitions(all=True):
-            try:
-                pdiskusage = psutil.disk_usage(partition.mountpoint)
-                yield (partition.mountpoint, DiskFeature(
-                    partition.device,
-                    100.0 - pdiskusage.percent,
-                    partition.fstype,
-                    partition.mountpoint,
-                    partition.opts,
-                    pdiskusage.total,
-                ))
-            except Exception as e:
-                logger.error('Error crawling disk partition %s'
-                             % partition.mountpoint, exc_info=True)
-                raise CrawlError(e)
+            pdiskusage = psutil.disk_usage(partition.mountpoint)
+            yield (partition.mountpoint, DiskFeature(
+                partition.device,
+                100.0 - pdiskusage.percent,
+                partition.fstype,
+                partition.mountpoint,
+                partition.opts,
+                pdiskusage.total,
+            ))
 
     # crawl process metadata
 
@@ -645,41 +595,38 @@ class FeaturesCrawler:
                         cwd = 'unknown'
                 ppid = (p.ppid() if hasattr(p.ppid, '__call__'
                                             ) else p.ppid)
-                if (hasattr(p, 'num_threads') and
-                        hasattr(p.num_threads, '__call__')):
-                    num_threads = p.num_threads()
-                else:
-                    num_threads = p.get_num_threads()
+                try:
+                    if (hasattr(p, 'num_threads') and
+                            hasattr(p.num_threads, '__call__')):
+                        num_threads = p.num_threads()
+                    else:
+                        num_threads = p.get_num_threads()
+                except:
+                    num_threads = 'unknown'
+
                 try:
                     username = (p.username() if hasattr(p, 'username') and
                                 hasattr(p.username, '__call__') else
                                 p.username)
-                except Exception as e:
-                    logger.error('Error crawling process %s for username'
-                                 % pid, exc_info=True)
+                except:
                     username = 'unknown'
 
-                try:
-                    openfiles = []
-                    for f in p.get_open_files():
-                        openfiles.append(f.path)
-                    openfiles.sort()
-                    feature_key = '{0}/{1}'.format(name, pid)
-                    yield (feature_key, ProcessFeature(
-                        str(' '.join(cmdline)),
-                        create_time,
-                        cwd,
-                        name,
-                        openfiles,
-                        pid,
-                        ppid,
-                        num_threads,
-                        username,
-                    ))
-                except Exception as e:
-                    logger.error('Error crawling process %s' % pid,
-                                 exc_info=True)
-                    raise CrawlError(e)
+                openfiles = []
+                for f in p.get_open_files():
+                    openfiles.append(f.path)
+                openfiles.sort()
+                feature_key = '{0}/{1}'.format(name, pid)
+                yield (feature_key, ProcessFeature(
+                    str(' '.join(cmdline)),
+                    create_time,
+                    cwd,
+                    name,
+                    openfiles,
+                    pid,
+                    ppid,
+                    num_threads,
+                    username,
+                ))
 
     # crawl network connection metadata
     def crawl_connections(self):
@@ -767,7 +714,7 @@ class FeaturesCrawler:
         cpu_percent = 0
         if self.crawl_mode == Modes.OUTVM:
             feature_key = '{0}-{1}'.format('process', p.ident())
-            cache_key = '{0}-{1}'.format(self.namespace, feature_key)
+            cache_key = '{0}-{1}'.format('OUTVM', feature_key)
 
             curr_proc_cpu_time, curr_sys_cpu_time = p.get_cpu_times()
 
@@ -874,24 +821,23 @@ class FeaturesCrawler:
                     yield (key, feature)
                 return
             except CrawlError as e:
-		# Raise the exception unless we are crawling containers, in
-		# that case, retry the crawl avoiding the setns() syscall. This
-		# is needed for PPC where we can not jump into the container
-		# and run its apt or rpm commands.
+                # Raise the exception unless we are crawling containers, in
+                # that case, retry the crawl avoiding the setns() syscall. This
+                # is needed for PPC where we can not jump into the container
+                # and run its apt or rpm commands.
                 if self.crawl_mode != Modes.OUTCONTAINER:
                     raise e
                 else:
                     avoid_setns = True
 
-	# If we are here it's because we have to retry avoiding setns(), or we
-	# were asked to avoid it
+        # If we are here it's because we have to retry avoiding setns(), or we
+        # were asked to avoid it
         assert(avoid_setns and self.crawl_mode == Modes.OUTCONTAINER)
 
         root_dir = dockerutils.get_docker_container_rootfs_path(
-                self.container.long_id)
+            self.container.long_id)
         for (key, feature) in self._crawl_packages(dbpath, root_dir):
             yield (key, feature)
-
 
     def _crawl_packages(self, dbpath=None, root_dir='/'):
 
@@ -911,8 +857,15 @@ class FeaturesCrawler:
             logger.debug('Using outcontainer state information (crawl mode: ' +
                          self.crawl_mode + ')')
 
+            # XXX assuming containers will always run in linux
+
             system_type = 'linux'
+
+            # The package manager will be discovered after checking for the
+            # existence of /var/lib/dpkg or /ar/lib/rpm
+
             distro = ''
+
             reload_needed = True
         #TODO: Following never gets called, is this the intention? 
         #Maybe crawl_mode needs to be set in crawl_packages()
@@ -925,11 +878,7 @@ class FeaturesCrawler:
                 0].lower()
             reload_needed = False
         else:
-            logger.error('Unsupported crawl mode: ' + self.crawl_mode +
-                         '. Skipping package crawl.')
-            system_type = 'unknown'
-            distro = 'unknown'
-            reload_needed = True
+            raise NotImplementedError('Unsupported crawl mode')
 
         installed_since = self.feature_epoch
         if system_type != 'linux':
@@ -980,30 +929,16 @@ class FeaturesCrawler:
         feature_key = 'memory'
 
         if self.crawl_mode == Modes.INVM:
-            try:
-                used = psutil.virtual_memory().used
-            except Exception as e:
-                used = 'unknown'
-            try:
-                buffered = psutil.virtual_memory().buffers
-            except Exception as e:
-                buffered = 'unknown'
-            try:
-                cached = psutil.virtual_memory().cached
-            except Exception as e:
-                cached = 'unknown'
-            try:
-                free = psutil.virtual_memory().free
-            except Exception as e:
-                free = 'unknown'
 
-            if 'unknown' not in [used, free] and (free + used) > 0:
-                util_percentage = float(used) / (free + used) * 100.0
+            vm = psutil.virtual_memory()
+
+            if (vm.free + vm.used) > 0:
+                util_percentage = float(vm.used) / (vm.free + vm.used) * 100.0
             else:
                 util_percentage = 'unknown'
 
-            feature_attributes = MemoryFeature(used, buffered, cached,
-                                               free, util_percentage)
+            feature_attributes = MemoryFeature(vm.used, vm.buffers, vm.cached,
+                                               vm.free, util_percentage)
         elif self.crawl_mode == Modes.OUTVM:
 
             sysmem = psvmi.system_memory_info(self.get_vm_context())
@@ -1052,17 +987,9 @@ class FeaturesCrawler:
                 logger.error('Error crawling memory', exc_info=True)
                 raise CrawlError(e)
         else:
+            raise NotImplementedError('Unsupported crawl mode')
 
-            logger.error('Unsupported crawl mode: ' + self.crawl_mode +
-                         '. Returning unknown memory key and attributes.'
-                         )
-            feature_attributes = MemoryFeature('unknown', 'unknown',
-                                               'unknown', 'unknown')
-        try:
-            yield (feature_key, feature_attributes)
-        except Exception as e:
-            logger.error('Error crawling memory', exc_info=True)
-            raise CrawlError(e)
+        yield (feature_key, feature_attributes)
 
     def _save_container_cpu_times(self, container_long_id, times):
         cache_key = container_long_id
@@ -1080,53 +1007,20 @@ class FeaturesCrawler:
                 Modes.INVM,
                 Modes.OUTCONTAINER,
                 Modes.OUTVM]:
-            logger.error('Unsupported crawl mode: ' + self.crawl_mode +
-                         '. Returning unknown memory key and attributes.'
-                         )
-            feature_attributes = CpuFeature(
-                'unknown',
-                'unknown',
-                'unknown',
-                'unknown',
-                'unknown',
-                'unknown',
-                'unknown',
-                'unknown',
-            )
+            raise NotImplementedError('Unsupported crawl mode')
 
         host_cpu_feature = {}
         if self.crawl_mode in [Modes.INVM, Modes.OUTCONTAINER]:
             for (index, cpu) in \
                     enumerate(psutil.cpu_times_percent(percpu=True)):
 
-                try:
-                    idle = cpu.idle
-                except Exception as e:
-                    idle = 'unknown'
-                try:
-                    nice = cpu.nice
-                except Exception as e:
-                    nice = 'unknown'
-                try:
-                    user = cpu.user
-                except Exception as e:
-                    user = 'unknown'
-                try:
-                    wait = cpu.iowait
-                except Exception as e:
-                    wait = 'unknown'
-                try:
-                    system = cpu.system
-                except Exception as e:
-                    system = 'unknown'
-                try:
-                    interrupt = cpu.irq
-                except Exception as e:
-                    interrupt = 'unknown'
-                try:
-                    steal = cpu.steal
-                except Exception as e:
-                    steal = 'unknown'
+		idle = cpu.idle
+		nice = cpu.nice
+		user = cpu.user
+		wait = cpu.iowait
+		system = cpu.system
+		interrupt = cpu.irq
+		steal = cpu.steal
 
                 used = 100 - int(idle)
 
@@ -1143,12 +1037,7 @@ class FeaturesCrawler:
                 )
                 host_cpu_feature[index] = feature_attributes
                 if self.crawl_mode == Modes.INVM:
-                    try:
-                        yield (feature_key, feature_attributes)
-                    except Exception as e:
-                        logger.error('Error crawling cpu information',
-                                     exc_info=True)
-                        raise CrawlError(e)
+                    yield (feature_key, feature_attributes)
 
         if self.crawl_mode == Modes.OUTCONTAINER:
 
@@ -1188,13 +1077,8 @@ class FeaturesCrawler:
 
                 self._save_container_cpu_times(container.long_id,
                                                cpu_usage_t2)
-            except Exception as e:
-                logger.error('Error crawling cpu information',
-                             exc_info=True)
-                raise CrawlError(e)
 
-            cpu_user_system = {}
-            try:
+                cpu_user_system = {}
                 path = container.get_cpu_cgroup_path('cpuacct.stat')
                 with open(path, 'r') as f:
                     for line in f:
@@ -1247,19 +1131,20 @@ class FeaturesCrawler:
                     steal,
                     usage_percent,
                 )
-                try:
-                    yield (feature_key, feature_attributes)
-                except Exception as e:
-                    logger.error('Error crawling cpu information',
-                                 exc_info=True)
-                    raise CrawlError(e)
+                yield (feature_key, feature_attributes)
 
     def crawl_interface(self):
+        _mode = self.crawl_mode
         for (ifname, curr_count) in self._crawl_wrapper(
                 self._crawl_interface,
                 ['net']):
             feature_key = '{0}-{1}'.format('interface', ifname)
-            cache_key = '{0}-{1}'.format(self.namespace, feature_key)
+            if _mode == Modes.OUTCONTAINER:
+                cache_key = '{0}-{1}-{2}'.format(self.container.long_id,
+                                                 self.container.pid,
+                                                 feature_key)
+            else:
+                cache_key = '{0}-{1}'.format('INVM', feature_key)
 
             (prev_count, prev_time) = self._cache_get_value(cache_key)
             self._cache_put_value(cache_key, curr_count)
@@ -1274,14 +1159,7 @@ class FeaturesCrawler:
 
                 # first measurement
 
-                diff = [
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                ]
+                diff = [0] * 6
 
             feature_attributes = InterfaceFeature._make(diff)
 
@@ -1374,27 +1252,10 @@ class FeaturesCrawler:
             
         logger.debug('Crawling system load')
         feature_key = 'load'
+        load = os.getloadavg()
+        feature_attributes = LoadFeature(load[0], load[1], load[1])
 
-        try:
-            shortterm = os.getloadavg()[0]
-        except Exception as e:
-            shortterm = 'unknown'
-        try:
-            midterm = os.getloadavg()[1]
-        except Exception as e:
-            midterm = 'unknown'
-        try:
-            longterm = os.getloadavg()[2]
-        except Exception as e:
-            longterm = 'unknown'
-
-        feature_attributes = LoadFeature(shortterm, midterm, longterm)
-
-        try:
-            yield (feature_key, feature_attributes)
-        except Exception as e:
-            logger.error('Error crawling load', exc_info=True)
-            raise CrawlError(e)
+        yield (feature_key, feature_attributes)
 
     def crawl_dockerps(self):
         assert(self.crawl_mode == Modes.INVM)
@@ -1402,26 +1263,21 @@ class FeaturesCrawler:
 
         try:
             for inspect in dockerutils.exec_dockerps():
-                long_id = inspect['Id']
-                state = inspect['State']
-                running = state['Running']
-                image = inspect['Image']
-                names = inspect['Name']
-                cmd = inspect['Config']['Cmd']
-                yield (long_id, DockerPSFeature._make([
-                    running,
+                yield (inspect['Id'], DockerPSFeature._make([
+                    inspect['State']['Running'],
                     0,
-                    image,
+                    inspect['Image'],
                     [],
-                    cmd,
-                    names,
-                    long_id,
+                    inspect['Config']['Cmd'],
+                    inspect['Name'],
+                    inspect['Id'],
                 ]))
         except Exception as e:
             logger.error('Error crawling docker ps', exc_info=True)
             raise CrawlError(e)
 
     def crawl_dockerhistory(self):
+        assert(self.crawl_mode == Modes.OUTCONTAINER)
         logger.debug('Crawling docker history')
 
         long_id = self.container.long_id
@@ -1434,6 +1290,7 @@ class FeaturesCrawler:
             raise CrawlError(e)
 
     def crawl_dockerinspect(self):
+        assert(self.crawl_mode == Modes.OUTCONTAINER)
         logger.debug('Crawling docker inspect')
 
         long_id = self.container.long_id
