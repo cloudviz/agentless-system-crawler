@@ -6,12 +6,10 @@ OSFeature = namedtuple('OSFeature', [
     'boottime',
     'uptime',
     'ipaddr',
-    'osdistro',
-    'osname',
-    'osplatform',
-    'osrelease',
-    'ostype',
-    'osversion',
+    'os',
+    'os_version',
+    'os_kernel',
+    'architecture',
 ])
 FileFeature = namedtuple('FileFeature', [
     'atime',
