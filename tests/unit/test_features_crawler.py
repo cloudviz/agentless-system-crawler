@@ -1390,20 +1390,20 @@ class FeaturesCrawlerTests(unittest.TestCase):
                              container=DummyContainer(123))
         with self.assertRaises(CrawlError):
             for (k, f) in fc.crawl_cpu():
-		pass
+                pass
         assert args[0].call_count == 1
 
 
     @mock.patch(
         'crawler.features_crawler.psutil.net_io_counters',
         side_effect=lambda pernic: {'interface1-unit-tests':
-            psutils_net(
-                10,
-                20,
-                30,
-                40,
-                50,
-                60)})
+                                    psutils_net(
+                                        10,
+                                        20,
+                                        30,
+                                        40,
+                                        50,
+                                        60)})
     def test_crawl_interface_invm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for (k, f) in fc.crawl_interface():
@@ -1421,15 +1421,15 @@ class FeaturesCrawlerTests(unittest.TestCase):
     def test_crawl_interface_invm_mode_failure(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         with self.assertRaises(OSError):
-	    for (k, f) in fc.crawl_interface():
-		pass
+            for (k, f) in fc.crawl_interface():
+                pass
 
         # Each crawl in crawlutils.py instantiates a FeaturesCrawler object
 
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         with self.assertRaises(OSError):
-	    for (k, f) in fc.crawl_interface():
-		pass
+            for (k, f) in fc.crawl_interface():
+                pass
         assert args[0].call_count == 2
 
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
@@ -1437,13 +1437,13 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch(
         'crawler.features_crawler.psutil.net_io_counters',
         side_effect=lambda pernic: {'eth0':
-            psutils_net(
-                10,
-                20,
-                30,
-                40,
-                50,
-                60)})
+                                    psutils_net(
+                                        10,
+                                        20,
+                                        30,
+                                        40,
+                                        50,
+                                        60)})
     def test_crawl_interface_outcontainer_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
@@ -1472,8 +1472,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
     def test_crawl_load_invm_mode_failure(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         with self.assertRaises(OSError):
-	    for (k, f) in fc.crawl_load():
-		pass
+            for (k, f) in fc.crawl_load():
+                pass
         assert args[0].call_count == 1
 
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
@@ -1506,8 +1506,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
     def test_crawl_dockerps_invm_mode_failure(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         with self.assertRaises(CrawlError):
-	    for (k, f) in fc.crawl_dockerps():
-		pass
+            for (k, f) in fc.crawl_dockerps():
+                pass
         assert args[0].call_count == 1
 
     @mock.patch('crawler.features_crawler.dockerutils.exec_docker_history',
@@ -1527,8 +1527,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
         with self.assertRaises(CrawlError):
-	    for (k, f) in fc.crawl_dockerhistory():
-		pass
+            for (k, f) in fc.crawl_dockerhistory():
+                pass
         assert args[0].call_count == 1
 
 
@@ -1547,6 +1547,6 @@ class FeaturesCrawlerTests(unittest.TestCase):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
         with self.assertRaises(CrawlError):
-	    for (k, f) in fc.crawl_dockerinspect():
-		pass
+            for (k, f) in fc.crawl_dockerinspect():
+                pass
         assert args[0].call_count == 1

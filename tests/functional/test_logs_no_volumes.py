@@ -36,32 +36,32 @@ class DockerContainerTests(unittest.TestCase):
     def test_get_logfiles_list(self, *args):
 
         inspect = {
-                "Id": "1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27f730e8cc81a16cd21b7479e8eac",
-                "Name": "/pensive_rosalind",
-                "LogPath": "/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847-json.log",
-                "HostnamePath": "/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847/hostname",
-                "Mounts": [],
-                "Config": {
+            "Id": "1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27f730e8cc81a16cd21b7479e8eac",
+            "Name": "/pensive_rosalind",
+            "LogPath": "/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847-json.log",
+            "HostnamePath": "/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847/hostname",
+            "Mounts": [],
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "docker_image_long_name": "long_name/short_name",
-                "docker_image_short_name": "short_name",
-                "docker_image_tag": "image_tag",
-                "docker_image_registry": "image_registry",
-                "owner_namespace": "owner_namespace",
-                "NetworkSettings": {
-                }
+                "Image": "ubuntu:trusty"
+            },
+            "docker_image_long_name": "long_name/short_name",
+            "docker_image_short_name": "short_name",
+            "docker_image_tag": "image_tag",
+            "docker_image_registry": "image_registry",
+            "owner_namespace": "owner_namespace",
+            "NetworkSettings": {
             }
+        }
         self.docker_container = crawler.dockercontainer.\
             DockerContainer(inspect['Id'], inspect)
 

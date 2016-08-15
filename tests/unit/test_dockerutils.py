@@ -226,11 +226,11 @@ class DockerUtilsTests(unittest.TestCase):
 
     @mock.patch('crawler.dockerutils.misc.btrfs_list_subvolumes',
                 side_effect=lambda p : 
-    [
-     ('ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1/abcde'),
-     ('ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1/abcde/sub2'),
-    ]
-)
+                [
+                    ('ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1/abcde'),
+                    ('ID', '260', 'gen', '22', 'top', 'level', '5', 'path', 'sub1/abcde/sub2'),
+                ]
+                )
     @mock.patch('crawler.dockerutils.docker.Client',
                 side_effect=lambda base_url, version: MockedClient())
     def test_get_rootfs_btrfs_v1_8(self, mock_client, mock_list):

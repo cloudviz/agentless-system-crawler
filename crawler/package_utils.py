@@ -31,7 +31,7 @@ def get_dpkg_packages(
                              '--admindir={0}'.format(dbpath),
                              '-f=${Package}|${Version}'
                              '|${Architecture}|${Installed-Size}\n'],
-                             shell=False)
+                            shell=False)
     dpkglist = output.strip('\n')
     if dpkglist:
         for dpkginfo in dpkglist.split('\n'):
@@ -78,8 +78,8 @@ def get_rpm_packages(
                                  '--queryformat',
                                  '%{installtime}|%{name}|%{version}'
                                  '-%{release}|%{arch}|%{size}\n'],
-                                 shell=False,
-                                 ignore_failure=True)
+                                shell=False,
+                                ignore_failure=True)
         # We ignore failures because sometimes rpm returns rc=1 but still
         # outputs all the data.
         rpmlist = output.strip('\n')
@@ -129,12 +129,12 @@ def _rpm_reload_db(
                             os.path.join(dbpath, 'Packages'),
                             '-f',
                             os.path.join(dump_dir, 'Packages')],
-                            shell=False)
+                           shell=False)
         _ = subprocess_run(['/usr/bin/db_load',
                             '-f',
                             os.path.join(dump_dir, 'Packages'),
                             os.path.join(reloaded_db_dir, 'Packages')],
-                            shell=False)
+                           shell=False)
     finally:
         logger.debug('Deleting directory: %s' % (dump_dir))
         shutil.rmtree(dump_dir)

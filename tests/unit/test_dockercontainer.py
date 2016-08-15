@@ -16,89 +16,89 @@ def mocked_docker_inspect(long_id):
         raise requests.exceptions.HTTPError
     else:
         inspect = {
-                "Id": "good_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
-                "Mounts": [],
-                "Config": {
+            "Id": "good_id",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+            "Name": "/pensive_rosalind",
+            "Mounts": [],
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
+                "Image": "ubuntu:trusty"
+            },
+            "NetworkSettings": {
             }
+        }
     inspect['Id'] = long_id
     return inspect
 
 def mocked_exec_dockerps():
     inspect1 = {
-                "Id": "good_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
+        "Id": "good_id",
+        "Created": "2016-07-06T16:38:05.479090842Z",
+        "State": {
+            "Status": "running",
+            "Running": True,
+            "Pid": 11186
+        },
+        "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+        "Name": "/pensive_rosalind",
                 "Mounts": [],
                 "Config": {
                     "Cmd": [
                         "bash"
                     ],
                     "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
-            }
+        },
+        "NetworkSettings": {
+        }
+    }
     inspect2 = {
-                "Id": "no_namespace",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
+        "Id": "no_namespace",
+        "Created": "2016-07-06T16:38:05.479090842Z",
+        "State": {
+            "Status": "running",
+            "Running": True,
+            "Pid": 11186
+        },
+        "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+        "Name": "/pensive_rosalind",
                 "Mounts": [],
                 "Config": {
                     "Cmd": [
                         "bash"
                     ],
                     "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
-            }
+        },
+        "NetworkSettings": {
+        }
+    }
     inspect3 = {
-                "Id": "good_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
+        "Id": "good_id",
+        "Created": "2016-07-06T16:38:05.479090842Z",
+        "State": {
+            "Status": "running",
+            "Running": True,
+            "Pid": 11186
+        },
+        "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+        "Name": "/pensive_rosalind",
                 "Mounts": [],
                 "Config": {
                     "Cmd": [
                         "bash"
                     ],
                     "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
-            }
+        },
+        "NetworkSettings": {
+        }
+    }
     return [inspect1, inspect2, inspect3]
 
 def mocked_get_rootfs(long_id):
@@ -186,25 +186,25 @@ class DockerDockerContainerTests(unittest.TestCase):
 
     def test_init_from_inspect(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
         inspect = {
-                "Id": "good_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
-                "Mounts": [],
-                "Config": {
+            "Id": "good_id",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+            "Name": "/pensive_rosalind",
+            "Mounts": [],
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
+                "Image": "ubuntu:trusty"
+            },
+            "NetworkSettings": {
             }
+        }
         c = DockerContainer("good_id", inspect)
         mock_inspect.assert_not_called()
         assert not c.root_fs
@@ -212,26 +212,26 @@ class DockerDockerContainerTests(unittest.TestCase):
 
     def test_init_from_inspect_w_repotags(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
         inspect = {
-                "Id": "good_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
-                "Mounts": [],
-                "Config": {
+            "Id": "good_id",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+            "Name": "/pensive_rosalind",
+            "Mounts": [],
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                },
-                'RepoTag': 'registry.com:123/ric/img:latest'
-            }
+                "Image": "ubuntu:trusty"
+            },
+            "NetworkSettings": {
+            },
+            'RepoTag': 'registry.com:123/ric/img:latest'
+        }
         c = DockerContainer("good_id", inspect)
         mock_inspect.assert_not_called()
         assert not c.root_fs
@@ -244,26 +244,26 @@ class DockerDockerContainerTests(unittest.TestCase):
 
     def test_init_from_inspect_w_repotags2(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
         inspect = {
-                "Id": "good_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
-                "Mounts": [],
-                "Config": {
+            "Id": "good_id",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+            "Name": "/pensive_rosalind",
+            "Mounts": [],
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                },
-                'RepoTag': 'registry.com:123/img:latest'
-            }
+                "Image": "ubuntu:trusty"
+            },
+            "NetworkSettings": {
+            },
+            'RepoTag': 'registry.com:123/img:latest'
+        }
         c = DockerContainer("good_id", inspect)
         mock_inspect.assert_not_called()
         assert not c.root_fs
@@ -375,28 +375,28 @@ class DockerDockerContainerTests(unittest.TestCase):
                 side_effect=mocked_rmtree_exception)
     def test_links_with_mounts(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
         inspect = {
-                "Id": "valid_rootfs_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
-                # /var in the container is mapped to /mount/in/the/host
-                # container was started with -v /var/in/the/host:/var
-                "Mounts": [{'Source':'/var/in/the/host',
-                            'Destination':'/var'}],
-                "Config": {
+            "Id": "valid_rootfs_id",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+            "Name": "/pensive_rosalind",
+            # /var in the container is mapped to /mount/in/the/host
+            # container was started with -v /var/in/the/host:/var
+            "Mounts": [{'Source':'/var/in/the/host',
+                        'Destination':'/var'}],
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
+                "Image": "ubuntu:trusty"
+            },
+            "NetworkSettings": {
             }
+        }
         c = DockerContainer("valid_rootfs_id", inspect)
         c.link_logfiles()
         mock_symlink.assert_called_with(
@@ -412,27 +412,27 @@ class DockerDockerContainerTests(unittest.TestCase):
     # In older docker versions, the inspect field for Mounts was called Volumes
     def test_links_with_volumes(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
         inspect = {
-                "Id": "valid_rootfs_id",
-                "Created": "2016-07-06T16:38:05.479090842Z",
-                "State": {
-                    "Status": "running",
-                    "Running": True,
-                    "Pid": 11186
-                },
-                "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
-                "Name": "/pensive_rosalind",
-                # /var in the container is mapped to /mount/in/the/host
-                # container was started with -v /var/in/the/host:/var
-                "Volumes": {'/var':'/var/in/the/host'},
-                "Config": {
+            "Id": "valid_rootfs_id",
+            "Created": "2016-07-06T16:38:05.479090842Z",
+            "State": {
+                "Status": "running",
+                "Running": True,
+                "Pid": 11186
+            },
+            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27",
+            "Name": "/pensive_rosalind",
+            # /var in the container is mapped to /mount/in/the/host
+            # container was started with -v /var/in/the/host:/var
+            "Volumes": {'/var':'/var/in/the/host'},
+            "Config": {
                     "Cmd": [
                         "bash"
                     ],
-                    "Image": "ubuntu:trusty"
-                },
-                "NetworkSettings": {
-                }
+                "Image": "ubuntu:trusty"
+            },
+            "NetworkSettings": {
             }
+        }
         c = DockerContainer("valid_rootfs_id", inspect)
         c.link_logfiles()
         mock_symlink.assert_called_with(

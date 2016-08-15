@@ -10,7 +10,7 @@ def mytest(mock_urlopen):
     res = fetch_stats("0.22.0")
     print res
     if res == None:
-       assert res
+        assert res
 
 
 mytest()

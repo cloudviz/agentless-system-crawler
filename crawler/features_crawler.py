@@ -208,7 +208,7 @@ class FeaturesCrawler:
             # Handle this special case first (avoiding setns() for the
             # OUTCONTAINER mode).
             rootfs_dir = dockerutils.get_docker_container_rootfs_path(
-                             self.container.long_id)
+                self.container.long_id)
 
             for d in exclude_dirs:
                 if not os.path.isabs(d):
@@ -450,9 +450,9 @@ class FeaturesCrawler:
         saved_args = locals()
         logger.debug('Crawling config files: %s' % (saved_args))
         accessed_since = self.feature_epoch
-        
+
         assert os.path.isdir(root_dir)
-        
+
         if root_dir_alias is None:
             root_dir_alias = root_dir
         exclude_dirs = [os.path.join(root_dir, d) for d in
@@ -944,13 +944,13 @@ class FeaturesCrawler:
             for (index, cpu) in \
                     enumerate(psutil.cpu_times_percent(percpu=True)):
 
-		idle = cpu.idle
-		nice = cpu.nice
-		user = cpu.user
-		wait = cpu.iowait
-		system = cpu.system
-		interrupt = cpu.irq
-		steal = cpu.steal
+                idle = cpu.idle
+                nice = cpu.nice
+                user = cpu.user
+                wait = cpu.iowait
+                system = cpu.system
+                interrupt = cpu.irq
+                steal = cpu.steal
 
                 used = 100 - int(idle)
 

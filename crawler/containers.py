@@ -118,8 +118,8 @@ def get_filtered_list_of_containers(
         """
 
         if (environment != defaults.DEFAULT_ENVIRONMENT and
-            not container.is_docker_container()):
-           continue
+                not container.is_docker_container()):
+            continue
 
         """
         The partition strategy is to split all the containers equally by
