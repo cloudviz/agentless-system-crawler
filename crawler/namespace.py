@@ -220,7 +220,7 @@ def open_process_namespaces(pid, namespace_fd, namespaces):
 
             # arg 0 means readonly
             namespace_fd[ct_ns] = get_libc().open('/proc/' + pid + '/ns/' +
-                                            ct_ns, 0)
+                                                  ct_ns, 0)
             if namespace_fd[ct_ns] == -1:
                 errno_msg = get_errno_msg()
                 error_msg = 'Opening the %s namespace file failed: %s' \

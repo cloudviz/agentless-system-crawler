@@ -24,13 +24,13 @@ def exec_dockerps():
     This call executes the `docker inspect` command every time it is invoked.
     """
     try:
-	client = docker.Client(
-	    base_url='unix://var/run/docker.sock', version='auto')
-	containers = client.containers()
-	inspect_arr = []
-	for container in containers:
-	    inspect = exec_dockerinspect(container['Id'])
-	    inspect_arr.append(inspect)
+        client = docker.Client(
+            base_url='unix://var/run/docker.sock', version='auto')
+        containers = client.containers()
+        inspect_arr = []
+        for container in containers:
+            inspect = exec_dockerinspect(container['Id'])
+            inspect_arr.append(inspect)
     except docker.errors.DockerException as e:
         logger.warning(str(e))
         raise DockerutilsException('Failed to exec dockerps')
@@ -40,11 +40,11 @@ def exec_dockerps():
 
 def exec_docker_history(long_id):
     try:
-	client = docker.Client(base_url='unix://var/run/docker.sock',
+        client = docker.Client(base_url='unix://var/run/docker.sock',
                                version='auto')
-	image = client.inspect_container(long_id)['Image']
-	history = client.history(image)
-	return history
+        image = client.inspect_container(long_id)['Image']
+        history = client.history(image)
+        return history
     except docker.errors.DockerException as e:
         logger.warning(str(e))
         raise DockerutilsException('Failed to exec dockerhistory')
@@ -64,14 +64,14 @@ def _reformat_inspect(inspect):
 
 def exec_dockerinspect(long_id):
     try:
-	client = docker.Client(
-	    base_url='unix://var/run/docker.sock', version='auto')
-	inspect = client.inspect_container(long_id)
-	_reformat_inspect(inspect)
+        client = docker.Client(
+            base_url='unix://var/run/docker.sock', version='auto')
+        inspect = client.inspect_container(long_id)
+        _reformat_inspect(inspect)
     except docker.errors.DockerException as e:
         logger.warning(str(e))
         raise DockerutilsException('Failed to exec dockerinspect')
-    
+
     try:
         # get the first RepoTag
         inspect['RepoTag'] = client.inspect_image(inspect['Image'])['RepoTags'][0]
@@ -114,9 +114,9 @@ def _get_docker_storage_driver():
                 _,
             ) = l.split(' ')
             for d in all_drivers:
-		if mnt == '/var/lib/docker/' + d:
-		    driver = d
-		    break
+                if mnt == '/var/lib/docker/' + d:
+                    driver = d
+                    break
     except IOError:
         logger.debug('Could not read /proc/mounts')
 

@@ -300,7 +300,7 @@ def snapshot_mesos(
     since_timestamp=0,
 ):
     mesos_stats = snapshot_crawler_mesos_frame(options['mesos_url'])
-    
+
     compress = options['compress']
     metadata = {
         'namespace': namespace,
@@ -320,7 +320,7 @@ def snapshot_mesos(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-       snapshot_crawler_mesos_frame(options['mesos_url'])
+        snapshot_crawler_mesos_frame(options['mesos_url'])
 
 
 
@@ -493,7 +493,7 @@ def snapshot(
                         container.unlink_logfiles(options)
                     except NotImplementedError:
                         pass
- 
+
             logger.debug('Crawling %d containers' % (len(containers)))
 
             for container in containers:

@@ -45,8 +45,8 @@ def configure_crawler_mesos(inurl):
 
 def fetch_stats(mesos_version):
     if CONFIGS == []:
-       CONFIGS.append({
-          'mesos_url': 'http://localhost:5050/metrics/snapshot'
+        CONFIGS.append({
+            'mesos_url': 'http://localhost:5050/metrics/snapshot'
         })
     logger.debug('connecting to %s' % CONFIGS[0]['mesos_url'])
     try:
@@ -84,8 +84,8 @@ def log_verbose(enabled, msg):
 
 
 def snapshot_crawler_mesos_frame(inurl):
-   setup_logger('crawler-mesos', 'crawler-mesos.log')
-   mesos_version = MESOS_VERSION
-   configure_crawler_mesos(inurl)
+    setup_logger('crawler-mesos', 'crawler-mesos.log')
+    mesos_version = MESOS_VERSION
+    configure_crawler_mesos(inurl)
 
-   return fetch_stats(mesos_version)
+    return fetch_stats(mesos_version)

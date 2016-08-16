@@ -29,17 +29,17 @@ def subprocess_run(cmd, ignore_failure=False, shell=True):
     """
     try:
         proc = subprocess.Popen(
-                    cmd,
-                    shell=shell,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE)
+            cmd,
+            shell=shell,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         out, err = proc.communicate()
         rc = proc.returncode
 
     except OSError as exc:
         raise RuntimeError('Failed to run ' + cmd + ': [Errno: %d] ' %
-                exc.errno + exc.strerror + ' [Exception: ' +
-                type(exc).__name__ + ']')
+                           exc.errno + exc.strerror + ' [Exception: ' +
+                           type(exc).__name__ + ']')
     if (not ignore_failure) and (rc != 0):
         raise RuntimeError('(%s) failed with rc=%s: %s' %
                            (cmd, rc, err))

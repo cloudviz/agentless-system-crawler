@@ -765,9 +765,9 @@ class EmitterTests(unittest.TestCase):
                           'test4': 12345.00000},
                          'dummy_feature')
         """
-	The thing with the mtgraphite client is that it's a static long standing
-	connection, so if you instantiate lots of Emitter's, the connection
-	will be created once; i.e. the client will be instantiated once.
+        The thing with the mtgraphite client is that it's a static long standing
+        connection, so if you instantiate lots of Emitter's, the connection
+        will be created once; i.e. the client will be instantiated once.
         """
         self.assertEqual(MockMTGraphiteClient.call_count, 1)
 
