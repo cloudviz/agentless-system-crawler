@@ -16,7 +16,7 @@ import cPickle as pickle
 
 # Additional modules
 
-import platform_outofband
+import osinfo
 
 # External dependencies that must be pip install'ed separately
 
@@ -121,27 +121,30 @@ class FeaturesCrawler:
                     self._crawl_os, ALL_NAMESPACES, mountpoint):
                 yield (key, feature)
 
-    def _crawl_os(self, mountpoint=None):
+    def _crawl_os(self, mountpoint='/'):
 
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
+
+        feature_key = platform.system().lower()
+        try:
+            os_kernel = platform.platform()
+        except:
+            os_kernel = 'unknown'
+
+        result = osinfo.get_osinfo(mount_point=mountpoint)
+        if result:
+            os_distro = result['os']
+            os_version = result['version']
+        else:
+            os_distro = 'unknown'
+            os_version = 'unknown'
 
         logger.debug('Crawling OS')
         if self.crawl_mode == Modes.INVM:
             logger.debug('Using in-VM state information (crawl mode: ' +
                          self.crawl_mode + ')')
-            feature_key = platform.system().lower()
 
             ips = misc.get_host_ip4_addresses()
-
-            try:
-                distro = platform.linux_distribution()[0]
-            except:
-                distro = 'unknown'
-
-            try:
-                osname = platform.platform()
-            except:
-                osname = 'unknown'
 
             boot_time = psutil.boot_time()
             uptime = int(time.time()) - boot_time
@@ -149,31 +152,28 @@ class FeaturesCrawler:
                 boot_time,
                 uptime,
                 ips,
-                distro,
-                osname,
-                platform.machine(),
-                platform.release(),
-                platform.system().lower(),
-                platform.version(),
+                os_distro,
+                os_version,
+                os_kernel,
+                platform.machine()
             )
+
         elif self.crawl_mode == Modes.MOUNTPOINT:
             logger.debug('Using disk image information (crawl mode: ' +
                          self.crawl_mode + ')')
-            feature_key = \
-                platform_outofband.system(prefix=mountpoint).lower()
+            feature_key = 'linux'
+
             feature_attributes = OSFeature(  # boot time unknown for img
                                              # live IP unknown for img
                 'unsupported',
                 'unsupported',
                 '0.0.0.0',
-                platform_outofband.linux_distribution(
-                    prefix=mountpoint)[0],
-                platform_outofband.platform(prefix=mountpoint),
-                platform_outofband.machine(prefix=mountpoint),
-                platform_outofband.release(prefix=mountpoint),
-                platform_outofband.system(prefix=mountpoint).lower(),
-                platform_outofband.version(prefix=mountpoint),
+                os_distro,
+                os_version,
+                'unknown',
+                'unknown'
             )
+
         elif self.crawl_mode == Modes.OUTVM:
 
             (domain_name, kernel_version, distro, arch) = self.vm
@@ -183,11 +183,9 @@ class FeaturesCrawler:
                 sys.boottime,
                 'unknown',
                 sys.ipaddr,
-                sys.osdistro,
                 sys.osname,
-                sys.osplatform,
                 sys.osrelease,
-                sys.ostype,
+                sys.osplatform,
                 sys.osversion,
             )
             feature_key = sys.ostype
@@ -776,53 +774,42 @@ class FeaturesCrawler:
 
         # package attributes: ["installed", "name", "size", "version"]
 
-        (installtime, name, version, size) = (None, None, None, None)
+        logger.debug('Crawling Packages')
+
+        result = osinfo.get_osinfo(mount_point=root_dir)
+        if result:
+            os_distro = result['os']
+        else:
+            os_distro = 'unknown'
 
         if self.crawl_mode == Modes.INVM:
 
             logger.debug('Using in-VM state information (crawl mode: ' +
                          self.crawl_mode + ')')
-            system_type = platform.system().lower()
-            distro = platform.linux_distribution()[0].lower()
             reload_needed = False
         elif self.crawl_mode == Modes.OUTCONTAINER:
 
             logger.debug('Using outcontainer state information (crawl mode: ' +
                          self.crawl_mode + ')')
-
-            # XXX assuming containers will always run in linux
-
-            system_type = 'linux'
-
-            # The package manager will be discovered after checking for the
-            # existence of /var/lib/dpkg or /ar/lib/rpm
-
-            distro = ''
-
             reload_needed = True
         elif self.crawl_mode == Modes.MOUNTPOINT:
+
             logger.debug('Using disk image information (crawl mode: ' +
                          self.crawl_mode + ')')
-            system_type = \
-                platform_outofband.system(prefix=root_dir).lower()
-            distro = platform_outofband.linux_distribution(prefix=root_dir)[
-                0].lower()
             reload_needed = False
         else:
             raise NotImplementedError('Unsupported crawl mode')
 
         installed_since = self.feature_epoch
-        if system_type != 'linux':
+        if os_distro == 'unknown':
             # Package feature is only valid for Linux platforms.
 
             raise StopIteration()
-        logger.debug('Crawling Packages')
 
         pkg_manager = 'unknown'
-        if distro in ['ubuntu', 'debian']:
+        if os_distro in ['ubuntu', 'debian']:
             pkg_manager = 'dpkg'
-        elif distro.startswith('red hat') or distro in ['redhat',
-                                                        'fedora', 'centos']:
+        elif os_distro in ['redhat', 'red hat', 'rhel', 'fedora', 'centos']:
             pkg_manager = 'rpm'
         elif os.path.exists(os.path.join(root_dir, 'var/lib/dpkg')):
             pkg_manager = 'dpkg'
@@ -845,8 +832,7 @@ class FeaturesCrawler:
             else:
                 logger.warning('Unsupported package manager for Linux distro')
         except Exception as e:
-            logger.error('Error crawling package %s'
-                         % ((name if name else 'Unknown')),
+            logger.error('Error crawling packages',
                          exc_info=True)
             raise CrawlError(e)
 

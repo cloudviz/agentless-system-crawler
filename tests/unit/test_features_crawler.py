@@ -272,47 +272,29 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert fc._cache_get_value('ble') == (None, None)
         assert mocked_time.call_count == 1
 
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
     @mock.patch('crawler.features_crawler.platform.platform',
                 side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.misc.get_host_ip4_addresses',
                 side_effect=lambda: ['1.1.1.1'])
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['linux'])
     @mock.patch('crawler.features_crawler.psutil.boot_time',
                 side_effect=lambda: 1000)
     @mock.patch('crawler.features_crawler.time.time',
                 side_effect=lambda: 1001)
     @mock.patch('crawler.features_crawler.platform.machine',
                 side_effect=lambda: 'machine')
-    @mock.patch('crawler.features_crawler.platform.release',
-                side_effect=lambda: '123v12345')
-    @mock.patch('crawler.features_crawler.platform.version',
-                side_effect=lambda: 'v12345')
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'system')
     def test_crawl_os_invm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for os in fc.crawl_os():
             print os
-            assert os == (
-                'system',
-                OSFeature(
-                    boottime=1000,
-                    uptime=1,
-                    ipaddr=['1.1.1.1'],
-                    osdistro='linux',
-                    osname='platform',
-                    osplatform='machine',
-                    osrelease='123v12345',
-                    ostype='system',
-                    osversion='v12345'))
-        for i, arg in enumerate(args):
-            if i == 0:
-                # system() is called twice
-                assert arg.call_count == 2
-            else:
-                assert arg.call_count == 1
+            assert os == ('linux', OSFeature(boottime=1000, uptime=1, ipaddr=['1.1.1.1'], os='os', os_version='os_version', os_kernel='platform', architecture='machine'))
 
+        for i, arg in enumerate(args):
+            assert arg.call_count == 1
+
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
     @mock.patch('crawler.features_crawler.platform.platform',
                 side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.platform.system',
@@ -337,55 +319,18 @@ class FeaturesCrawlerTests(unittest.TestCase):
             for os in fc.crawl_os():
                 pass
 
-    @mock.patch(
-        'crawler.features_crawler.platform_outofband.linux_distribution',
-        side_effect=lambda prefix: ['linux'])
-    @mock.patch('crawler.features_crawler.platform_outofband.platform',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.machine',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.release',
-                side_effect=lambda prefix: '123v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.version',
-                side_effect=lambda prefix: 'v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.system',
-                side_effect=lambda prefix: 'system')
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
     def test_crawl_os_mountpoint_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.MOUNTPOINT)
         for os in fc.crawl_os():
             print os
-            assert os == (
-                'system',
-                OSFeature(
-                    boottime='unsupported',
-                    uptime='unsupported',
-                    ipaddr='0.0.0.0',
-                    osdistro='linux',
-                    osname='machine',
-                    osplatform='machine',
-                    osrelease='123v12345',
-                    ostype='system',
-                    osversion='v12345'))
+            assert os == ('linux', OSFeature(boottime='unsupported', uptime='unsupported', ipaddr='0.0.0.0', os='os', os_version='os_version', os_kernel='unknown', architecture='unknown'))
         for i, arg in enumerate(args):
-            if i == 0:
-                # system() is called twice
-                assert arg.call_count == 2
-            else:
-                assert arg.call_count == 1
+            assert arg.call_count == 1
 
-    @mock.patch(
-        'crawler.features_crawler.platform_outofband.linux_distribution',
-        side_effect=throw_os_error)
-    @mock.patch('crawler.features_crawler.platform_outofband.platform',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.machine',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.release',
-                side_effect=lambda prefix: '123v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.version',
-                side_effect=lambda prefix: 'v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.system',
-                side_effect=lambda prefix: 'system')
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=throw_os_error)
     def test_crawl_os_mountpoint_mode_failure(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.MOUNTPOINT)
         with self.assertRaises(OSError):
@@ -400,86 +345,43 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.misc.get_host_ip4_addresses',
                 side_effect=lambda: ['1.1.1.1'])
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['linux'])
     @mock.patch('crawler.features_crawler.psutil.boot_time',
                 side_effect=lambda: 1000)
     @mock.patch('crawler.features_crawler.time.time',
                 side_effect=lambda: 1001)
     @mock.patch('crawler.features_crawler.platform.machine',
                 side_effect=lambda: 'machine')
-    @mock.patch('crawler.features_crawler.platform.release',
-                side_effect=lambda: '123v12345')
-    @mock.patch('crawler.features_crawler.platform.version',
-                side_effect=lambda: 'v12345')
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'system')
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
     def test_crawl_os_outcontainer_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
         for os in fc.crawl_os():
             print os
-            assert os == (
-                'system',
-                OSFeature(
-                    boottime=1000,
-                    uptime=1,
-                    ipaddr=['1.1.1.1'],
-                    osdistro='linux',
-                    osname='platform',
-                    osplatform='machine',
-                    osrelease='123v12345',
-                    ostype='system',
-                    osversion='v12345'))
+            assert os == ('linux', OSFeature(boottime=1000, uptime=1, ipaddr=['1.1.1.1'], os='os', os_version='os_version', os_kernel='platform', architecture='machine'))
         for i, arg in enumerate(args):
-            if i == 0:
-                # system() is called twice
-                assert arg.call_count == 2
-            else:
-                assert arg.call_count == 1
+            assert arg.call_count == 1
 
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch(
-        'crawler.features_crawler.platform_outofband.linux_distribution',
-        side_effect=lambda prefix: ['linux'])
-    @mock.patch('crawler.features_crawler.platform_outofband.platform',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.machine',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.release',
-                side_effect=lambda prefix: '123v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.version',
-                side_effect=lambda prefix: 'v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.system',
-                side_effect=lambda prefix: 'system')
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
     def test_crawl_os_outcontainer_mode_avoidsetns(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer('xxxx'))
         for os in fc.crawl_os(avoid_setns=True):
             print os
-            assert os == (
-                'system',
-                OSFeature(
-                    boottime='unsupported',
-                    uptime='unsupported',
-                    ipaddr='0.0.0.0',
-                    osdistro='linux',
-                    osname='machine',
-                    osplatform='machine',
-                    osrelease='123v12345',
-                    ostype='system',
-                    osversion='v12345'))
+            assert os == ('linux', OSFeature(boottime='unsupported', uptime='unsupported', ipaddr='0.0.0.0', os='os', os_version='os_version', os_kernel='unknown', architecture='unknown'))
         for i, arg in enumerate(args):
             print i, arg
             if i == 0:
-                # system() is called twice
-                assert arg.call_count == 2
-                arg.assert_called_with(prefix='/a/b/c')
-            elif i == 6:
+                # get_osinfo()
+                assert arg.call_count == 1
+                arg.assert_called_with(mount_point='/a/b/c')
+            elif i == 1:
                 # get_docker_container_rootfs_path
                 assert arg.call_count == 1
                 arg.assert_called_with('xxxx')
@@ -489,20 +391,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
 
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
-        side_effect=lambda long_id: '/a/b/c')
-    @mock.patch(
-        'crawler.features_crawler.platform_outofband.linux_distribution',
         side_effect=throw_os_error)
-    @mock.patch('crawler.features_crawler.platform_outofband.platform',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.machine',
-                side_effect=lambda prefix: 'machine')
-    @mock.patch('crawler.features_crawler.platform_outofband.release',
-                side_effect=lambda prefix: '123v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.version',
-                side_effect=lambda prefix: 'v12345')
-    @mock.patch('crawler.features_crawler.platform_outofband.system',
-                side_effect=lambda prefix: 'system')
     def test_crawl_os_container_mode_avoidsetns_failure(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer('xxxx'))
@@ -1094,10 +983,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         args[0].assert_called_with('/', 'var/lib/dpkg', 0)
 
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'linux')
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['redhat'])
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'redhat', 'version':'123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True)
     @mock.patch('crawler.features_crawler.get_rpm_packages',
@@ -1148,10 +1035,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'linux')
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['ubuntu'])
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True if 'dpkg' in p else False)
     @mock.patch('crawler.features_crawler.get_dpkg_packages',
@@ -1167,17 +1052,15 @@ class FeaturesCrawlerTests(unittest.TestCase):
         # second time is OUTCONTAINER mode with avoid_setns
         assert args[0].call_count == 2
         args[0].assert_called_with('/a/b/c', 'var/lib/dpkg', 0)
-        args[1].assert_called_with('/a/b/c/var/lib/dpkg')  # path.exists()
+        args[2].assert_called_with(mount_point='/a/b/c')  # get_osinfo()
 
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'linux')
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['redhat'])
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'redhat', 'version':'123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True if 'rpm' in p else False)
     @mock.patch('crawler.features_crawler.get_rpm_packages',
@@ -1193,15 +1076,13 @@ class FeaturesCrawlerTests(unittest.TestCase):
         # second time is OUTCONTAINER mode with avoid_setns
         assert args[0].call_count == 2
         args[0].assert_called_with('/a/b/c', 'var/lib/rpm', 0, True)
-        args[1].assert_called_with('/a/b/c/var/lib/rpm')  # path.exists()
+        args[2].assert_called_with(mount_point='/a/b/c')  # get_osinfo()
 
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'linux')
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['ubuntu'])
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True)
     @mock.patch('crawler.features_crawler.get_dpkg_packages',
@@ -1221,10 +1102,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 pkgarchitecture='x86')
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.features_crawler.platform.system',
-                side_effect=lambda: 'linux')
-    @mock.patch('crawler.features_crawler.platform.linux_distribution',
-                side_effect=lambda: ['ubuntu'])
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True)
     @mock.patch('crawler.features_crawler.get_dpkg_packages',
