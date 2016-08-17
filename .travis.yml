@@ -26,9 +26,17 @@ before_install:
     # might as well upgrade pip to support TLS and get rid of the warnings
     - sudo -H pip install --upgrade pip
     - sudo -H pip install codecov pytest-cov
+    # psvmi specific
+    - sudo apt-get install qemu-kvm
+    - git clone https://github.com/cloudviz/psvmi.git
+    - cd psvmi/psvmi && sudo python setup.py build && sudo python setup.py install && cd -
+    - cp -r psvmi/maps maps
+    - cp -r psvmi/offsets offsets
+    - cp psvmi/header.h .
 
 # command to install dependencies
 # XXX: Now mock complains if we don't `sudo pip install`.
+
 install:
   - sudo -H pip install --ignore-installed -r requirements-test.txt
 
