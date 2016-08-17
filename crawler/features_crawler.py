@@ -21,10 +21,11 @@ import osinfo
 # External dependencies that must be pip install'ed separately
 
 import psutil
+
 try:
-    from psvmi import system_info
+    import psvmi
 except ImportError:
-    system_info = None
+    psvmi = None
 
 from namespace import run_as_another_namespace, ALL_NAMESPACES
 from crawler_exceptions import CrawlError
@@ -33,7 +34,7 @@ from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
                       ProcessFeature, MetricFeature, ConnectionFeature,
                       PackageFeature, MemoryFeature, CpuFeature,
                       InterfaceFeature, LoadFeature, DockerPSFeature,
-                      DockerHistoryFeature)
+                      DockerHistoryFeature, ModuleFeature, CpuHwFeature)
 import misc
 from crawlmodes import Modes
 from package_utils import get_rpm_packages, get_dpkg_packages
@@ -59,6 +60,7 @@ class FeaturesCrawler:
         config_file_discovery_heuristic=None,
         crawl_mode=Modes.INVM,
         vm=None,
+        vm_context=None,
         container=None,
     ):
 
@@ -72,7 +74,6 @@ class FeaturesCrawler:
                              'instantiated in OUTVM mode without '
                              'a vm.')
 
-
         saved_args = locals()
         logger.debug('FeaturesCrawler: %s' % (saved_args))
         self.feature_epoch = feature_epoch
@@ -82,6 +83,7 @@ class FeaturesCrawler:
         self.crawl_mode = crawl_mode
         self.container = container
         self.vm = vm
+        self.vm_context = vm_context
 
     """
     To calculate rates like packets sent per second, we need to
@@ -103,6 +105,13 @@ class FeaturesCrawler:
 
     # crawl the OS information
     # mountpoint only used for out-of-band crawling
+
+    def get_vm_context(self):
+        if self.vm_context is None:
+            (domain_name, kernel_version, distro, arch) = self.vm
+            self.vm_context = psvmi.context_init(
+                domain_name, domain_name, kernel_version, distro, arch)
+        return self.vm_context
 
     def crawl_os(self, mountpoint=None, avoid_setns=False):
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
@@ -175,20 +184,20 @@ class FeaturesCrawler:
             )
 
         elif self.crawl_mode == Modes.OUTVM:
-
-            (domain_name, kernel_version, distro, arch) = self.vm
-            sys = system_info(domain_name, kernel_version, distro, arch)
-            uptime = int(time.time()) - sys.boottime
-            feature_attributes = OSFeature(
-                sys.boottime,
-                'unknown',
-                sys.ipaddr,
-                sys.osname,
-                sys.osrelease,
-                sys.osplatform,
-                sys.osversion,
-            )
-            feature_key = sys.ostype
+            if psvmi is None:
+                raise NotImplementedError()
+            else:
+                sys = psvmi.system_info(self.get_vm_context())
+                feature_attributes = OSFeature(
+                    sys.boottime,
+                    'unknown',
+                    sys.ipaddr,
+                    sys.osdistro,
+                    sys.osname,
+                    sys.osplatform,
+                    sys.osversion,
+                )
+                feature_key = sys.ostype
         else:
             raise NotImplementedError('Unsupported crawl mode')
         yield (feature_key, feature_attributes)
@@ -518,6 +527,9 @@ class FeaturesCrawler:
 
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
+        if self.crawl_mode == Modes.OUTVM:
+            raise NotImplementedError()
+
         logger.debug('Crawling Disk partitions')
         for partition in psutil.disk_partitions(all=True):
             pdiskusage = psutil.disk_usage(partition.mountpoint)
@@ -539,10 +551,16 @@ class FeaturesCrawler:
 
     def _crawl_processes(self):
 
-        created_since = 0
+        created_since = -1
         logger.debug('Crawling Processes: since={0}'.format(created_since))
 
-        list = psutil.process_iter()
+        if self.crawl_mode == Modes.OUTVM:
+            if psvmi is None:
+                raise NotImplementedError()
+            else:
+                list = psvmi.process_iter(self.get_vm_context())
+        else:
+            list = psutil.process_iter()
 
         for p in list:
             create_time = (
@@ -612,10 +630,15 @@ class FeaturesCrawler:
 
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
-        created_since = 0
+        created_since = -1
         logger.debug('Crawling Connections: since={0}'.format(created_since))
-
-        list = psutil.process_iter()
+        if self.crawl_mode == Modes.OUTVM:
+            if psvmi is None:
+                raise NotImplementedError()
+            else:
+                list = psvmi.process_iter(self.get_vm_context())
+        else:
+            list = psutil.process_iter()
 
         for p in list:
             pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
@@ -680,13 +703,56 @@ class FeaturesCrawler:
                 self._crawl_metrics, ALL_NAMESPACES):
             yield (key, feature)
 
+    def _crawl_metrics_cpu_percent(self, process):
+        p = process
+        cpu_percent = 0
+        if self.crawl_mode == Modes.OUTVM:
+            feature_key = '{0}-{1}'.format('process', p.ident())
+            cache_key = '{0}-{1}'.format('OUTVM', feature_key)
+
+            curr_proc_cpu_time, curr_sys_cpu_time = p.get_cpu_times()
+
+            (cputimeList, timestamp) = self._cache_get_value(cache_key)
+            self._cache_put_value(
+                cache_key, [curr_proc_cpu_time, curr_sys_cpu_time])
+
+            if cputimeList != None:
+                prev_proc_cpu_time = cputimeList[0]
+                prev_sys_cpu_time = cputimeList[1]
+
+                if prev_proc_cpu_time and prev_sys_cpu_time:
+                    if curr_proc_cpu_time == -1 or prev_proc_cpu_time == -1:
+                        cpu_percent = -1  # unsupported for this VM
+                    else:
+                        if curr_sys_cpu_time == prev_sys_cpu_time:
+                            cpu_percent = 0
+                        else:
+                            cpu_percent = float(curr_proc_cpu_time - prev_proc_cpu_time) * 100 / \
+                                (curr_sys_cpu_time - prev_sys_cpu_time)
+        else:
+            cpu_percent = (
+                p.get_cpu_percent(
+                    interval=0) if hasattr(
+                    p.get_cpu_percent,
+                    '__call__') else p.cpu_percent)
+        return cpu_percent
+
     def _crawl_metrics(self):
 
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
 
-        created_since = 0
+        created_since = -1
         logger.debug('Crawling Metrics')
-        for p in psutil.process_iter():
+
+        if self.crawl_mode == Modes.OUTVM:
+            if psvmi is None:
+                raise NotImplementedError()
+            else:
+                list = psvmi.process_iter(self.get_vm_context())
+        else:
+            list = psutil.process_iter()
+
+        for p in list:
             create_time = (
                 p.create_time() if hasattr(
                     p.create_time,
@@ -713,11 +779,9 @@ class FeaturesCrawler:
                     p.get_io_counters() if hasattr(
                         p.get_io_counters,
                         '__call__') else p.io_counters)
-                cpu_percent = (
-                    p.get_cpu_percent(
-                        interval=0) if hasattr(
-                        p.get_cpu_percent,
-                        '__call__') else p.cpu_percent)
+
+                cpu_percent = self._crawl_metrics_cpu_percent(p)
+
                 memory_percent = (
                     p.get_memory_percent() if hasattr(
                         p.get_memory_percent,
@@ -857,15 +921,17 @@ class FeaturesCrawler:
             feature_attributes = MemoryFeature(vm.used, vm.buffers, vm.cached,
                                                vm.free, util_percentage)
         elif self.crawl_mode == Modes.OUTVM:
+            if psvmi is None:
+                raise NotImplementedError()
+            else:
+                sysmem = psvmi.system_memory_info(self.get_vm_context())
+                feature_attributes = MemoryFeature(
+                    sysmem.memory_used,
+                    sysmem.memory_buffered,
+                    sysmem.memory_cached,
+                    sysmem.memory_free,
+                    sysmem.memory_used * 100 / (sysmem.memory_used + sysmem.memory_free))
 
-            (domain_name, kernel_version, distro, arch) = self.vm
-            sys = system_info(domain_name, kernel_version, distro, arch)
-            feature_attributes = MemoryFeature(
-                sys.memory_used,
-                sys.memory_buffered,
-                sys.memory_cached,
-                sys.memory_free,
-                sys.memory_free / (sys.memory_used + sys.memory_buffered))
         elif self.crawl_mode == Modes.OUTCONTAINER:
 
             used = buffered = cached = free = 'unknown'
@@ -954,6 +1020,9 @@ class FeaturesCrawler:
                 host_cpu_feature[index] = feature_attributes
                 if self.crawl_mode == Modes.INVM:
                     yield (feature_key, feature_attributes)
+
+        if self.crawl_mode == Modes.OUTVM:
+            raise NotImplementedError()
 
         if self.crawl_mode == Modes.OUTCONTAINER:
 
@@ -1083,19 +1152,33 @@ class FeaturesCrawler:
 
         logger.debug('Crawling interface information')
 
-        _counters = psutil.net_io_counters(pernic=True)
-        for ifname in _counters:
-            interface = _counters[ifname]
-            curr_count = [
-                interface.bytes_sent,
-                interface.bytes_recv,
-                interface.packets_sent,
-                interface.packets_recv,
-                interface.errout,
-                interface.errin,
-            ]
-
-            yield (ifname, curr_count)
+        if self.crawl_mode == Modes.OUTVM:
+            if psvmi is None:
+                raise NotImplementedError()
+            else:
+                for interface in psvmi.interface_iter(self.get_vm_context()):
+                    curr_count = [
+                        interface.bytes_sent,
+                        interface.bytes_recv,
+                        interface.packets_sent,
+                        interface.packets_recv,
+                        interface.errout,
+                        interface.errin,
+                    ]
+                    yield (interface.ifname, curr_count)
+        else:
+            _counters = psutil.net_io_counters(pernic=True)
+            for ifname in _counters:
+                interface = _counters[ifname]
+                curr_count = [
+                    interface.bytes_sent,
+                    interface.bytes_recv,
+                    interface.packets_sent,
+                    interface.packets_recv,
+                    interface.errout,
+                    interface.errin,
+                ]
+                yield (ifname, curr_count)
 
     def crawl_load(self):
         for (key, feature) in self._crawl_wrapper(
@@ -1105,6 +1188,9 @@ class FeaturesCrawler:
     def _crawl_load(self):
 
         assert(self.crawl_mode is not Modes.OUTCONTAINER)
+
+        if self.crawl_mode == Modes.OUTVM:
+            raise NotImplementedError()
 
         logger.debug('Crawling system load')
         feature_key = 'load'
@@ -1156,6 +1242,43 @@ class FeaturesCrawler:
         except Exception as e:
             logger.error('Error crawling docker inspect', exc_info=True)
             raise CrawlError(e)
+
+    def crawl_modules(self):
+        for (key, feature) in self._crawl_wrapper(
+                self._crawl_modules, ALL_NAMESPACES):
+            yield (key, feature)
+
+    def _crawl_modules(self):
+        logger.debug('Crawling loaded modules')
+
+        if self.crawl_mode != Modes.OUTVM:
+            raise NotImplementedError()
+
+        if psvmi is None:
+            raise NotImplementedError()
+
+        for module in psvmi.module_iter(self.get_vm_context()):
+            yield ('', module)
+
+    def crawl_cpuHw(self):
+        logger.debug('Crawling cpu hw stats- model/type etc.')
+        for (key, feature) in self._crawl_wrapper(
+                self._crawl_cpuHw, ALL_NAMESPACES):
+            yield (key, feature)
+
+    def _crawl_cpuHw(self):
+        logger.debug('Crawling loaded modules')
+
+        if self.crawl_mode != Modes.OUTVM:
+            raise NotImplementedError()
+
+        if psvmi is None:
+            raise NotImplementedError()
+
+        cpu = psvmi.cpuHw_info(self.get_vm_context())
+
+        feature_key = '{0}-{1}'.format('cpu', cpu.cpu_vendor_id)
+        yield (feature_key, cpu)
 
     def _crawl_wrapper(self, _function, namespaces=ALL_NAMESPACES, *args):
         # TODO: add kwargs

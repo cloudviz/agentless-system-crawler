@@ -399,30 +399,32 @@ class FeaturesCrawlerTests(unittest.TestCase):
             for os in fc.crawl_os(avoid_setns=True):
                 pass
 
-    def test_crawl_os_outvm_mode_without_vm_failure(self, *args):
+    def _test_crawl_os_outvm_mode_without_vm_failure(self, *args):
         with self.assertRaises(ValueError):
             fc = FeaturesCrawler(crawl_mode=Modes.OUTVM)
 
-    @mock.patch('crawler.features_crawler.system_info',
-                side_effect=lambda dn, kv, d, a: psvmi_sysinfo(1000,
-                                                               '1.1.1.1',
-                                                               'osdistro',
-                                                               'osname',
-                                                               'osplatform',
-                                                               'osrelease',
-                                                               'ostype',
-                                                               'osversion',
-                                                               1000000,
-                                                               100000,
-                                                               100000,
-                                                               100000))
-    def test_crawl_os_outvm_mode_without_vm(self, *args):
+    @mock.patch('crawler.features_crawler.psvmi.context_init',
+                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
+
+    @mock.patch('crawler.features_crawler.psvmi.system_info',
+                side_effect=lambda vmc: psvmi_sysinfo(1000,
+                                                       '1.1.1.1',
+                                                       'osdistro',
+                                                       'osname',
+                                                       'osplatform',
+                                                       'osrelease',
+                                                       'ostype',
+                                                       'osversion',
+                                                       1000000,
+                                                       100000,
+                                                       100000,
+                                                       100000))
+    def _test_crawl_os_outvm_mode_without_vm(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
         for os in fc.crawl_os():
             pass
         assert args[0].call_count == 1
-        args[0].assert_called_with('dn', '2.6', 'ubuntu', 'x86')
 
     @mock.patch('crawler.features_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -944,6 +946,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
             assert f.write == 20
         assert args[0].call_count == 1
 
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
     @mock.patch('crawler.features_crawler.platform.system',
                 side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.linux_distribution',
@@ -967,6 +971,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         args[0].assert_called_with('/', 'var/lib/dpkg', 0)
 
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
     @mock.patch('crawler.features_crawler.platform.system',
                 side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.linux_distribution',
@@ -1004,6 +1010,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         args[0].assert_called_with('/', 'var/lib/rpm', 0, False)
 
+    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
+                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
     @mock.patch('crawler.features_crawler.platform.system',
@@ -1144,10 +1152,14 @@ class FeaturesCrawlerTests(unittest.TestCase):
             for (k, f) in fc.crawl_memory():
                 pass
         assert args[0].call_count == 1
+    
+    @mock.patch('crawler.features_crawler.psvmi.context_init',
+                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
 
-    @mock.patch('crawler.features_crawler.system_info',
-                side_effect=lambda dn, kv, d, a: psvmi_memory(10, 20, 30, 40))
-    def test_crawl_memory_outvm_mode(self, *args):
+    @mock.patch('crawler.features_crawler.psvmi.system_memory_info',
+                side_effect=lambda vmc: psvmi_memory(10, 20, 30, 40))
+    
+    def _test_crawl_memory_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
         for (k, f) in fc.crawl_memory():
@@ -1156,7 +1168,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 memory_buffered=20,
                 memory_cached=30,
                 memory_free=40,
-                memory_util_percentage=1)
+                memory_util_percentage=20)
         assert args[0].call_count == 1
 
     @mock.patch('crawler.features_crawler.psutil.virtual_memory',

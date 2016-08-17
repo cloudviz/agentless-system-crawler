@@ -1,4 +1,4 @@
--rrequirements.txt
+-r requirements.txt
 simplejson==3.8.2
 flake8==2.6.2
 pylint==1.6.2
