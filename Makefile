@@ -41,6 +41,7 @@ setupelk:
 	@echo "Please create an index by @timestamp on kibana dashboard"
 	
 test:
+	@if [ ! -d psvmi ]; then git clone https://github.com/cloudviz/psvmi.git; fi
 	docker build -t agentless-system-crawler-test -f Dockerfile.test .
 	docker run --privileged -ti --rm agentless-system-crawler-test
 unit:
