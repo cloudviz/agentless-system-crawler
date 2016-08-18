@@ -51,9 +51,6 @@ class FeaturesCrawler:
     container and at every crawling interval.
     """
 
-    # feature_epoch must be a UTC timestamp. If > 0 only features
-    # accessed/modified/created since this time are crawled
-
     def __init__(
         self,
         feature_epoch=0,
@@ -84,6 +81,28 @@ class FeaturesCrawler:
         self.container = container
         self.vm = vm
         self.vm_context = vm_context
+
+	self.funcdict = {
+	  'os': self.crawl_os,
+	  'disk': self.crawl_disk_partitions,
+	  'metric': self.crawl_metrics,
+	  'process': self.crawl_processes,
+	  'connection': self.crawl_connections,
+	  'package': self.crawl_packages,
+	  'file': self.crawl_files,
+	  'config': self.crawl_config_files,
+	  'memory': self.crawl_memory,
+	  'cpu': self.crawl_cpu,
+	  'interface': self.crawl_interface,
+	  'load': self.crawl_load,
+	  'dockerps': self.crawl_dockerps,
+	  'dockerhistory': self.crawl_dockerhistory,
+	  'dockerinspect': self.crawl_dockerinspect,
+	  '_test_infinite_loop': self.crawl_test_infinite_loop,
+	  '_test_crash': self.crawl_test_crash,
+	}
+
+
 
     """
     To calculate rates like packets sent per second, we need to
