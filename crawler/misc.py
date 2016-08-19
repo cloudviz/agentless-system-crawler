@@ -83,6 +83,18 @@ def process_is_crawler(pid):
         proc = psutil.Process(pid)
         cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
                                          ) else proc.cmdline)
+	# curr is the crawler process
+
+	curr = psutil.Process(os.getpid())
+	curr_cmdline = (
+	    curr.cmdline() if hasattr(
+		curr.cmdline,
+		'__call__') else curr.cmdline)
+	if cmdline == curr_cmdline:
+	    return True
+
+        # Process not found
+	return False
     except psutil.NoSuchProcess as exc:
         # If the process does not exist, then it's definitely not the crawler
         return False
@@ -90,17 +102,6 @@ def process_is_crawler(pid):
         # If we don't have permissions to see that process details, then it can
         # not be this process.
         return False
-
-    # curr is the crawler process
-
-    curr = psutil.Process(os.getpid())
-    curr_cmdline = (
-        curr.cmdline() if hasattr(
-            curr.cmdline,
-            '__call__') else curr.cmdline)
-    if cmdline == curr_cmdline:
-        return True
-    return False
 
 
 class NullHandler(logging.Handler):
