@@ -208,15 +208,12 @@ if __name__ == '__main__':
             Modes.INVM,
             Modes.OUTVM,
             Modes.MOUNTPOINT,
-            Modes.DEVICE,
-            Modes.FILE,
-            Modes.ISCSI,
             Modes.OUTCONTAINER,
             Modes.MESOS,
         ],
         default=Modes.INVM,
         help='The crawler mode: '
-             '{INVM,OUTVM,MOUNTPOINT,DEVICE,FILE,ISCSI,OUTCONTAINER}. '
+             '{INVM,OUTVM,MOUNTPOINT,OUTCONTAINER}. '
              'Defaults to INVM',
     )
     parser.add_argument(
@@ -386,21 +383,6 @@ if __name__ == '__main__':
             # reported file path.
             options['config']['root_dir_alias'] = '/'
 
-        elif args.crawlmode == 'DEVICE':
-            print ('NOT IMPLEMENTED! Will Need to specify device location for '
-                   'DEVICE mode')
-            sys.exit(1)
-        elif args.crawlmode == 'FILE':
-            if args.inputfile:
-                params['inputfile'] = args.inputfile
-            else:
-                print ('Need to specify frame file location (--inputfile) '
-                       'for FILE mode')
-                sys.exit(1)
-        elif args.crawlmode == 'ISCSI':
-            print ('NOT IMPLEMENTED! Will Need to somehow specify connection '
-                   'info for ISCSI mode')
-            sys.exit(1)
         if args.crawlmode == 'OUTCONTAINER':
             if args.crawlContainers:
                 options['docker_containers_list'] = args.crawlContainers

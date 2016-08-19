@@ -29,7 +29,7 @@ except Exception as e:
 import psutil
 
 from emitter import Emitter
-from features_crawler import FeaturesCrawler
+import features_crawler
 from containers import get_filtered_list_of_containers
 import defaults
 import misc
@@ -51,201 +51,30 @@ def signal_handler_exit(signum, stack):
     should_exit = True
 
 
-def snapshot_single_frame(
+def _snapshot_single_frame(
     emitter,
     features=defaults.DEFAULT_FEATURES_TO_CRAWL,
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     crawler=None,
-    inputfile="undefined",
     ignore_exceptions=True,
 ):
 
-    # Special-casing Reading from a frame file as input here:
-    # - Sweep through entire file, if feature.type is in features, emit
-    #   feature.key and feature.value
-    # - Emit also validates schema as usual, so do not try to pass
-    #   noncompliant stuff in the input frame file; it will bounce.
-
     global should_exit
-    crawlmode = crawler.crawl_mode
-    if crawlmode == Modes.FILE:
-        logger.debug(
-            'Reading features from local frame file {0}'.format(inputfile))
-        FeatureFormat = namedtuple('FeatureFormat', ['type', 'key',
-                                                     'value'])
-        if inputfile is None or not os.path.exists(inputfile):
-            logger.error('Input frame file: ' + inputfile +
-                         ' does not exist.')
-        with open(inputfile, 'r') as fd:
-            csv.field_size_limit(sys.maxsize)  # to handle large values
-            csv_reader = csv.reader(fd, delimiter='\t', quotechar="'")
-            num_features = 0
-            for row in csv_reader:
-                feature_data = FeatureFormat(
-                    row[0], json.loads(
-                        row[1]), json.loads(
-                        row[2], object_pairs_hook=OrderedDict))
 
-                num_features += 1
-
-                # Emit only if in the specified features-to-crawl list
-
-                if feature_data.type in features:
-                    emitter.emit(feature_data.key, feature_data.value,
-                                 feature_data.type)
-            logger.info('Read %d feature rows from %s' % (num_features,
-                                                          inputfile))
-    else:
-        for feature in features.split(','):
-            feature_options = options.get(
-                feature, defaults.DEFAULT_CRAWL_OPTIONS[feature])
-            if should_exit:
-                break
-            if feature_options is None:
-                continue
-            try:
-                _crawl_single_feature(feature,
-                                      feature_options,
-                                      crawlmode,
-                                      crawler,
-                                      emitter)
-            except Exception as e:
-                logger.exception(e)
-                if not ignore_exceptions:
-                    raise e
-
-
-def _crawl_single_feature(feature,
-                          feature_options,
-                          crawlmode,
-                          crawler,
-                          emitter):
-    if feature == 'os':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, val) in crawler.crawl_os(**feature_options):
+    for feature in features.split(','):
+	feature_options = options.get(
+	    feature, defaults.DEFAULT_CRAWL_OPTIONS[feature])
+	if should_exit:
+	    break
+	if feature_options is None:
+	    continue
+	try:
+            for (key, val) in crawler.funcdict[feature](**feature_options):
                 emitter.emit(key, val, feature)
-    if feature == 'disk':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, val) in \
-                    crawler.crawl_disk_partitions(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'metric':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (key, val) in \
-                    crawler.crawl_metrics(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'process':
-        if crawlmode in [Modes.INVM, Modes.OUTVM, Modes.OUTCONTAINER]:
-            for (key, val) in \
-                    crawler.crawl_processes(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'connection':
-        if crawlmode in [Modes.INVM, Modes.OUTVM, Modes.OUTCONTAINER]:
-            for (key, val) in \
-                    crawler.crawl_connections(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'package':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, val) in \
-                    crawler.crawl_packages(**feature_options):
-                emitter.emit(key, val, feature)
-    if feature == 'file':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER, Modes.MOUNTPOINT]:
-            for (key, val) in crawler.crawl_files(**feature_options):
-                emitter.emit(key, val, feature)
-    if feature == 'config':
-        for (key, val) in \
-                crawler.crawl_config_files(**feature_options):
-            emitter.emit(key, val, feature)
-    if feature == 'memory':
-        if crawlmode in [Modes.INVM, Modes.OUTVM, Modes.OUTCONTAINER]:
-            for (key, val) in crawler.crawl_memory(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'cpu':
-        if crawlmode in [Modes.INVM, Modes.OUTVM]:
-            feature_options['per_cpu'] = True
-            for (key, val) in crawler.crawl_cpu(**feature_options):
-                emitter.emit(key, val, feature)
-        elif crawlmode in [Modes.OUTCONTAINER]:
-            feature_options['per_cpu'] = False
-            for (key, val) in crawler.crawl_cpu(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'interface':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (key, val) in \
-                    crawler.crawl_interface(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'load':
-        if crawlmode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (key, val) in crawler.crawl_load(**feature_options):
-                emitter.emit(key, val, feature)
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'dockerps':
-        if crawlmode in [Modes.INVM]:
-            for (key, val) in \
-                    crawler.crawl_dockerps(**feature_options):
-                emitter.emit(key, val, 'dockerps')
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'dockerhistory':
-        if crawlmode in [Modes.OUTCONTAINER]:
-            for (key, val) in \
-                    crawler.crawl_dockerhistory(**feature_options):
-                emitter.emit(key, val, 'dockerhistory')
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == 'dockerinspect':
-        if crawlmode in [Modes.OUTCONTAINER]:
-            for (key, val) in \
-                    crawler.crawl_dockerinspect(**feature_options):
-                emitter.emit(key, val, 'dockerinspect')
-        else:
-            logger.warning('Cannot crawl feature: ' + feature +
-                           ' in crawl mode: ' + crawlmode +
-                           '. Skipping...')
-    if feature == '_test_infinite_loop':
-        for (key, val) in \
-                crawler.crawl_test_infinite_loop(**feature_options):
-            emitter.emit(key, val, feature)
-    if feature == '_test_crash':
-        for (key, val) in \
-                crawler.crawl_test_crash(**feature_options):
-            emitter.emit(key, val, feature)
+	except Exception as exc:
+	    logger.exception(exc)
+	    if not ignore_exceptions:
+		raise exc
 
 
 def snapshot_generic(
@@ -255,25 +84,19 @@ def snapshot_generic(
     features=defaults.DEFAULT_FEATURES_TO_CRAWL,
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     format='csv',
-    inputfile='undefined',
     overwrite=False,
     namespace='',
-    since='BOOT',
-    since_timestamp=0,
+    ignore_exceptions=True
 ):
 
-    crawler = FeaturesCrawler(feature_epoch=since_timestamp,
-                              crawl_mode=crawlmode)
+    crawler = features_crawler.FeaturesCrawler(crawl_mode=crawlmode)
 
-    compress = options['compress']
     metadata = {
         'namespace': namespace,
         'features': features,
         'timestamp': int(time.time()),
         'system_type': 'vm',
-        'since': since,
-        'since_timestamp': since_timestamp,
-        'compress': compress,
+        'compress': options['compress'],
         'overwrite': overwrite,
     }
 
@@ -285,19 +108,23 @@ def snapshot_generic(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-        snapshot_single_frame(emitter, features,
-                              options, crawler, inputfile)
+        _snapshot_single_frame(emitter=emitter,
+                               features=features,
+                               options=options,
+                               crawler=crawler,
+                               ignore_exceptions=ignore_exceptions)
+
+
 def snapshot_mesos(
     crawlmode=Modes.MESOS,
     urls=['stdout://'],
     snapshot_num=0,
+    features=None,
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     format='csv',
-    inputfile='undefined',
     overwrite=False,
     namespace='',
-    since='BOOT',
-    since_timestamp=0,
+    ignore_exceptions=True,
 ):
     mesos_stats = snapshot_crawler_mesos_frame(options['mesos_url'])
 
@@ -306,8 +133,6 @@ def snapshot_mesos(
         'namespace': namespace,
         'timestamp': int(time.time()),
         'system_type': 'mesos',
-        'since': since,
-        'since_timestamp': since_timestamp,
         'compress': compress,
         'overwrite': overwrite,
     }
@@ -323,23 +148,22 @@ def snapshot_mesos(
         snapshot_crawler_mesos_frame(options['mesos_url'])
 
 
-
 def snapshot_container(
     urls=['stdout://'],
     snapshot_num=0,
     features=defaults.DEFAULT_FEATURES_TO_CRAWL,
     options=defaults.DEFAULT_CRAWL_OPTIONS,
     format='csv',
-    inputfile='undefined',
     overwrite=False,
     container=None,
-    since='BOOT',
-    since_timestamp=0,
+    ignore_exceptions=True,
 ):
-    crawler = FeaturesCrawler(
-        feature_epoch=since_timestamp,
-        crawl_mode=Modes.OUTCONTAINER,
-        container=container)
+    if not container:
+        raise ValueError('snapshot_container can only be called with a '
+                         'container object already initialized.')
+
+    crawler = features_crawler.FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
+                                               container=container)
 
     compress = options['compress']
     extra_metadata = options['metadata']['extra_metadata']
@@ -350,8 +174,6 @@ def snapshot_container(
         'system_type': 'container',
         'features': features,
         'timestamp': int(time.time()),
-        'since': since,
-        'since_timestamp': since_timestamp,
         'compress': compress,
         'container_long_id': container.long_id,
         'container_name': container.name,
@@ -387,36 +209,11 @@ def snapshot_container(
         format=format,
     ) as emitter:
 
-        snapshot_single_frame(emitter, features, options,
-                              crawler, inputfile)
-
-
-def get_initial_since_values(since):
-    last_snapshot_time = (
-        psutil.boot_time() if hasattr(
-            psutil, 'boot_time') else psutil.BOOT_TIME)
-    if since == 'EPOCH':
-        since_timestamp = 0
-    elif since == 'BOOT':
-        since_timestamp = (
-            psutil.boot_time() if hasattr(
-                psutil, 'boot_time') else psutil.BOOT_TIME)
-
-    elif since == 'LASTSNAPSHOT':
-        # subsequent snapshots will update this value
-        since_timestamp = last_snapshot_time
-    else:
-
-        # check if the value of since is a UTC timestamp (integer)
-
-        try:
-            since_timestamp = int(since)
-        except:
-            logger.error(
-                'Invalid value since={0}, defaulting to BOOT'.format(since))
-            # subsequent snapshots will update this value
-            since_timestamp = last_snapshot_time
-    return since_timestamp, last_snapshot_time
+        _snapshot_single_frame(emitter=emitter,
+                               features=features,
+                               options=options,
+                               crawler=crawler,
+                               ignore_exceptions=ignore_exceptions)
 
 
 def snapshot(
@@ -424,10 +221,8 @@ def snapshot(
     namespace=misc.get_host_ipaddr(),
     features=defaults.DEFAULT_FEATURES_TO_CRAWL,
     options=defaults.DEFAULT_CRAWL_OPTIONS,
-    since='BOOT',
     frequency=-1,
     crawlmode=Modes.INVM,
-    inputfile='Undefined',
     format='csv',
     overwrite=False,
 ):
@@ -442,10 +237,8 @@ def snapshot(
     :param namespace: This a pointer to a specific system (e.g. IP for INVM).
     :param features: List of features to crawl.
     :param options: Tree of options with details like what config files.
-    :param since: Calculate deltas or not. XXX needs some work.
     :param frequency: Target time period for iterations. -1 means just one run.
     :param crawlmode: What's the system we want to crawl.
-    :param inputfile: Applies to mode.FILE. The frame emitted is this file.
     :param format: The format of the frame, defaults to csv.
     """
 
@@ -460,7 +253,6 @@ def snapshot(
     plugins_manager.reload_env_plugin(plugin_places=plugin_places,
                                       environment=environment)
 
-    since_timestamp, last_snapshot_time = get_initial_since_values(since)
     next_iteration_time = None
 
     snapshot_num = 0
@@ -519,18 +311,12 @@ def snapshot(
                     features=features,
                     options=options,
                     format=format,
-                    inputfile=inputfile,
                     container=container,
-                    since=since,
-                    since_timestamp=since_timestamp,
                     overwrite=overwrite
                 )
 
         elif crawlmode in (Modes.INVM,
-                           Modes.MOUNTPOINT,
-                           Modes.DEVICE,
-                           Modes.FILE,
-                           Modes.ISCSI):
+                           Modes.MOUNTPOINT):
 
             snapshot_generic(
                 crawlmode=crawlmode,
@@ -539,10 +325,7 @@ def snapshot(
                 features=features,
                 options=options,
                 format=format,
-                inputfile=inputfile,
                 namespace=namespace,
-                since=since,
-                since_timestamp=since_timestamp,
                 overwrite=overwrite
             )
         elif crawlmode in (Modes.MESOS):
@@ -552,18 +335,11 @@ def snapshot(
                 snapshot_num=snapshot_num,
                 options=options,
                 format=format,
-                inputfile=inputfile,
                 overwrite=overwrite,
                 namespace=namespace,
-                since=since,
-                since_timestamp=since_timestamp
             )
         else:
             raise RuntimeError('Unknown Mode')
-
-        if since == 'LASTSNAPSHOT':
-            # Subsequent snapshots will update this value.
-            since_timestamp = snapshot_time
 
         # Frequency <= 0 means only one run.
         if frequency < 0 or should_exit:

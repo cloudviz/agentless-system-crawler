@@ -406,7 +406,7 @@ class Emitter:
             self._close_file()
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
-            return False
+            raise exc
         try:
             self._close_file()
             for url in self.urls:
@@ -435,4 +435,3 @@ class Emitter:
             'Emitted {0} features in {1} seconds'.format(
                 self.num_features,
                 elapsed_time))
-        return True
