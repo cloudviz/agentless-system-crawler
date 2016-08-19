@@ -40,7 +40,9 @@ class MiscTests(unittest.TestCase):
             # There should not be a /a/b/c/d/e file
             crawler.misc.subprocess_run('/a/b/c/d/e', shell=False)
 
-    def test_get_process_env(self):
+    @mock.patch('crawler.misc.open')
+    def test_get_process_env(self, mock_open):
+        mock_open.return_value = open('tests/unit/mock_environ_file')
         env = crawler.misc.get_process_env(pid=os.getpid())
         assert env.has_key('HOME')
         with self.assertRaises(TypeError):

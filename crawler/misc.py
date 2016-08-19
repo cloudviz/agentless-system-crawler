@@ -81,12 +81,15 @@ def process_is_crawler(pid):
 
     try:
         proc = psutil.Process(pid)
+        cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
+                                         ) else proc.cmdline)
     except psutil.NoSuchProcess as exc:
         # If the process does not exist, then it's definitely not the crawler
         return False
-
-    cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
-                                         ) else proc.cmdline)
+    except psutil.AccessDenied as exc:
+        # If we don't have permissions to see that process details, then it can
+        # not be this process.
+        return False
 
     # curr is the crawler process
 

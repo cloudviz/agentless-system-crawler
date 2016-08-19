@@ -282,6 +282,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda: 1000)
     @mock.patch('crawler.features_crawler.time.time',
                 side_effect=lambda: 1001)
+    @mock.patch('crawler.features_crawler.platform.system',
+                side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.machine',
                 side_effect=lambda: 'machine')
     def test_crawl_os_invm_mode(self, *args):
@@ -349,6 +351,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda: 1000)
     @mock.patch('crawler.features_crawler.time.time',
                 side_effect=lambda: 1001)
+    @mock.patch('crawler.features_crawler.platform.system',
+                side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.machine',
                 side_effect=lambda: 'machine')
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
