@@ -15,12 +15,10 @@
 
 import json
 import urllib2
-import socket
 import logging
 import logging.handlers
 import collections
 import os
-from emitter import Emitter
 
 logger = None
 PREFIX = "mesos-master"
@@ -37,11 +35,13 @@ Stat = collections.namedtuple('Stat', ('type', 'path'))
 
 logger = logging.getLogger('crawlutils')
 
+
 def configure_crawler_mesos(inurl):
     logger.debug('Mesos url %s' % inurl)
     CONFIGS.append({
         'mesos_url': inurl
     })
+
 
 def fetch_stats(mesos_version):
     if CONFIGS == []:
@@ -50,13 +50,12 @@ def fetch_stats(mesos_version):
         })
     logger.debug('connecting to %s' % CONFIGS[0]['mesos_url'])
     try:
-        result = json.loads(urllib2.urlopen(CONFIGS[0]['mesos_url'], timeout=10).read())
-    except urllib2.URLError, e:
-        logger.exception('Exception opening mesos url %s',None)
+        result = json.loads(
+            urllib2.urlopen(CONFIGS[0]['mesos_url'], timeout=10).read())
+    except urllib2.URLError:
+        logger.exception('Exception opening mesos url %s', None)
         return None
     logger.debug('mesos_stats %s' % result)
-    print "result"
-    print result
     return result
 
 

@@ -22,17 +22,20 @@ class ContainerInvalidEnvironment(Exception):
 
     pass
 
+
 class ContainerNonExistent(Exception):
 
     """The container does not exist."""
 
     pass
 
+
 class DockerutilsException(Exception):
 
     """Exception from the dockerutils module."""
 
     pass
+
 
 class DockerutilsNoJsonLog(DockerutilsException):
 
@@ -41,11 +44,13 @@ class DockerutilsNoJsonLog(DockerutilsException):
 
     pass
 
+
 class AlchemyInvalidMetadata(ContainerInvalidEnvironment):
 
     """Invalid or non-present alchemy metadata file."""
 
     pass
+
 
 class AlchemyInvalidContainer(ContainerInvalidEnvironment):
 
@@ -88,11 +93,13 @@ class EmitterEmitTimeout(Exception):
 
     pass
 
+
 class MTGraphiteInvalidTenant(Exception):
 
     """Invalid tenant"""
 
     pass
+
 
 class NamespaceFailedMntSetns(Exception):
 

@@ -93,7 +93,7 @@ class DockerContainer(Container):
         repo_tag = inspect.get('RepoTag', '')
         self.docker_image_long_name = repo_tag
         self.docker_image_short_name = os.path.basename(repo_tag)
-        if ':' in repo_tag and not '/' in repo_tag.rsplit(':', 1)[1]:
+        if (':' in repo_tag) and ('/' not in repo_tag.rsplit(':', 1)[1]):
             self.docker_image_tag = repo_tag.rsplit(':', 1)[1]
         else:
             self.docker_image_tag = ''
@@ -112,9 +112,9 @@ class DockerContainer(Container):
             logger.exception(e)
             self.root_fs = None
 
-        self._set_logfiles_links_source()
+        self._set_log_links_source()
         self._set_environment_specific_options(container_opts)
-        self._set_logfiles_links_source_and_dest()
+        self._set_log_links_source_and_dest()
 
     def is_docker_container(self):
         return True
@@ -144,20 +144,20 @@ class DockerContainer(Container):
             _options = {'root_fs': self.root_fs, 'type': 'docker',
                         'name': self.name, 'host_namespace': host_namespace,
                         'container_logs': default_logs}
-            runtime_env = plugins_manager.get_runtime_env_plugin()
-            namespace = runtime_env.get_container_namespace(
+            env = plugins_manager.get_runtime_env_plugin()
+            namespace = env.get_container_namespace(
                 self.long_id, _options)
             if not namespace:
-                _env = runtime_env.get_environment_name()
+                _env = env.get_environment_name()
                 logger.warning('Container %s does not have %s '
                                'metadata.' % (self.short_id, _env))
                 raise ContainerInvalidEnvironment('')
             self.namespace = namespace
 
-            self.log_prefix = runtime_env.get_container_log_prefix(
+            self.log_prefix = env.get_container_log_prefix(
                 self.long_id, _options)
 
-            self.logfiles_links_source.extend(runtime_env.get_container_log_file_list(
+            self.logfiles_links_source.extend(env.get_container_log_file_list(
                 self.long_id, _options))
         except ValueError:
             # XXX-kollerr: plugins are not supposed to throw ValueError
@@ -279,9 +279,9 @@ class DockerContainer(Container):
 
         try:
             shutil.rmtree(host_log_dir)
-        except (IOError, OSError) as e:
-            logger.error('Could not delete directory: %s' % host_log_dir)
-            pass
+        except (IOError, OSError) as exc:
+            logger.error('Could not delete directory %s: %s' %
+                         (host_log_dir, exc))
 
     def _parse_log_locations(self, var=None):
         """
@@ -300,7 +300,7 @@ class DockerContainer(Container):
             logger.debug('There is a problem with the env. variables: %s' % e)
         return logs
 
-    def _set_logfiles_links_source(self):
+    def _set_log_links_source(self):
         """
         Sets the list of container logs that we should maintain links for.
 
@@ -316,8 +316,8 @@ class DockerContainer(Container):
         logs = self._parse_log_locations(var='LOG_LOCATIONS')
         self.logfiles_links_source.extend(logs)
 
-    def _set_logfiles_links_source_and_dest(self,
-                                            options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def _set_log_links_source_and_dest(self,
+                                       options=defaults.DEFAULT_CRAWL_OPTIONS):
         """
         Returns list of log files as a list of dictionaries `{name, type,
         source, dest}` to be linked to `host_log_dir`.
@@ -363,8 +363,9 @@ class DockerContainer(Container):
                 if name.startswith(mount['Destination']):
                     lname = name.replace(mount['Destination'], mount['Source'])
                     if "*" in lname:
-                        src_dest = [(s, s.replace(mount['Source'], mount[
-                                     'Destination'])) for s in glob.glob(lname)]
+                        src_dest = [(s, s.replace(mount['Source'],
+                                                  mount['Destination']))
+                                    for s in glob.glob(lname)]
                     else:
                         src_dest = [(lname, name)]
                 else:

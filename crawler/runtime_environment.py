@@ -1,5 +1,6 @@
 from yapsy.IPlugin import IPlugin
 
+
 class IRuntimeEnvironment(IPlugin):
 
     """

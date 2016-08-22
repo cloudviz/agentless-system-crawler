@@ -7,14 +7,9 @@
 #
 
 
-import sys
-import os
 import logging
-from collections import namedtuple, OrderedDict
 import time
-import csv
 import signal
-import json
 from ctypes import CDLL
 import uuid
 from mesos import snapshot_crawler_mesos_frame
@@ -25,8 +20,6 @@ except Exception as e:
     libc = None
 
 # External dependencies that must be pip install'ed separately
-
-import psutil
 
 from emitter import Emitter
 import features_crawler
@@ -62,19 +55,19 @@ def _snapshot_single_frame(
     global should_exit
 
     for feature in features.split(','):
-	feature_options = options.get(
-	    feature, defaults.DEFAULT_CRAWL_OPTIONS[feature])
-	if should_exit:
-	    break
-	if feature_options is None:
-	    continue
-	try:
+        feature_options = options.get(
+            feature, defaults.DEFAULT_CRAWL_OPTIONS[feature])
+        if should_exit:
+            break
+        if feature_options is None:
+            continue
+        try:
             for (key, val) in crawler.funcdict[feature](**feature_options):
                 emitter.emit(key, val, feature)
-	except Exception as exc:
-	    logger.exception(exc)
-	    if not ignore_exceptions:
-		raise exc
+        except Exception as exc:
+            logger.exception(exc)
+            if not ignore_exceptions:
+                raise exc
 
 
 def snapshot_generic(
@@ -126,8 +119,6 @@ def snapshot_mesos(
     namespace='',
     ignore_exceptions=True,
 ):
-    mesos_stats = snapshot_crawler_mesos_frame(options['mesos_url'])
-
     compress = options['compress']
     metadata = {
         'namespace': namespace,
@@ -145,7 +136,8 @@ def snapshot_mesos(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-        snapshot_crawler_mesos_frame(options['mesos_url'])
+        frame = snapshot_crawler_mesos_frame(options['mesos_url'])
+        emitter.emit('mesos', frame)
 
 
 def snapshot_container(

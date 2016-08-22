@@ -1,22 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-##
+#
 # Wrapper around the crawlutils module that provides:
 # (a) an autonomous push mode via command-line invocation, and
 # (b) a network pull mode via an HTTP REST interface (xxx CURRENTLY DISABLED)
-##
+#
 
 import os
 import sys
 import logging
 import logging.handlers
 import time
-import traceback
 import multiprocessing
-import tempfile
 import argparse
-import cPickle as pickle
 import json
 import copy
 
@@ -31,6 +28,7 @@ from crawlmodes import Modes
 CRAWLER_HOST = misc.get_host_ipaddr()
 
 logger = None
+
 
 def setup_logger(logger_name, logfile='crawler.log', process_id=None):
     _logger = logging.getLogger(logger_name)
@@ -47,10 +45,11 @@ def setup_logger(logger_name, logfile='crawler.log', process_id=None):
         '%(asctime)s %(processName)-10s %(levelname)-8s %(message)s')
     h.setFormatter(f)
     _logger.addHandler(h)
+    return _logger
 
 
 def crawler_worker(process_id, logfile, params):
-    setup_logger('crawlutils', logfile, process_id)
+    logger = setup_logger('crawlutils', logfile, process_id)
     setup_logger('yapsy', logfile, process_id)
 
     # Starting message
@@ -62,7 +61,11 @@ def crawler_worker(process_id, logfile, params):
     crawlutils.snapshot(**params)
 
 
-def start_autonomous_crawler(num_processes, logfile):
+def start_autonomous_crawler(num_processes, logfile, params, options):
+
+    setup_logger('crawler-main', logfile)
+    logger = logging.getLogger('crawler-main')
+    logger.info('Starting crawler at {0}'.format(CRAWLER_HOST))
 
     if params['crawlmode'] == 'OUTCONTAINER':
         jobs = []
@@ -127,9 +130,7 @@ def start_autonomous_crawler(num_processes, logfile):
         crawlutils.snapshot(**params)
 
 
-# Main listen/exec loop
-
-if __name__ == '__main__':
+def main():
 
     euid = os.geteuid()
     if euid != 0:
@@ -304,8 +305,8 @@ if __name__ == '__main__':
         dest='overwrite',
         action='store_true',
         default=False,
-        help='overwrite file type url parameter and strip trailing sequence number'
-    )
+        help='overwrite file type url parameter and strip trailing '
+             'sequence number')
     parser.add_argument(
         '--avoidSetns',
         dest='avoid_setns',
@@ -411,8 +412,8 @@ if __name__ == '__main__':
             sys.exit(1)
     options['link_container_log_files'] = args.linkContainerLogFiles
 
-    setup_logger('crawler-main', args.logfile)
-    logger = logging.getLogger('crawler-main')
-    logger.info('Starting crawler at {0}'.format(CRAWLER_HOST))
+    start_autonomous_crawler(args.numprocesses, args.logfile, params, options)
 
-    start_autonomous_crawler(args.numprocesses, args.logfile)
+
+if __name__ == '__main__':
+    main()

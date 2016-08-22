@@ -1,5 +1,4 @@
 import os
-import subprocess
 import logging
 import tempfile
 import shutil
@@ -125,16 +124,16 @@ def _rpm_reload_db(
     try:
         dump_dir = tempfile.mkdtemp()
 
-        _ = subprocess_run(['/usr/bin/db_dump',
-                            os.path.join(dbpath, 'Packages'),
-                            '-f',
-                            os.path.join(dump_dir, 'Packages')],
-                           shell=False)
-        _ = subprocess_run(['/usr/bin/db_load',
-                            '-f',
-                            os.path.join(dump_dir, 'Packages'),
-                            os.path.join(reloaded_db_dir, 'Packages')],
-                           shell=False)
+        subprocess_run(['/usr/bin/db_dump',
+                        os.path.join(dbpath, 'Packages'),
+                        '-f',
+                        os.path.join(dump_dir, 'Packages')],
+                       shell=False)
+        subprocess_run(['/usr/bin/db_load',
+                        '-f',
+                        os.path.join(dump_dir, 'Packages'),
+                        os.path.join(reloaded_db_dir, 'Packages')],
+                       shell=False)
     finally:
         logger.debug('Deleting directory: %s' % (dump_dir))
         shutil.rmtree(dump_dir)

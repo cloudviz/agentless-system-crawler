@@ -23,11 +23,6 @@ import kafka as kafka_python
 import pykafka
 import requests
 
-from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
-                      ProcessFeature, MetricFeature, ConnectionFeature,
-                      PackageFeature, MemoryFeature, CpuFeature,
-                      InterfaceFeature, LoadFeature, DockerPSFeature,
-                      DockerHistoryFeature)
 from misc import NullHandler
 
 
@@ -245,13 +240,14 @@ class Emitter:
     def __make_http_post(self, url, headers, payload, max_emit_retries):
         for attempt in range(max_emit_retries):
             try:
-                response = requests.post(
-                    url, headers=headers, params=self.emitter_args, data=payload)
+                response = requests.post(url, headers=headers,
+                                         params=self.emitter_args,
+                                         data=payload)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
                 logger.error(
-                    "POST to %s resulted in exception (attempt %d of %d), will not re-try" %
-                    (url, attempt + 1, max_emit_retries))
+                    "POST to %s resulted in exception (attempt %d of %d), "
+                    "will not re-try" % (url, attempt + 1, max_emit_retries))
                 break
             except requests.exceptions.RequestException as e:
                 logger.exception(e)
@@ -261,8 +257,10 @@ class Emitter:
                 time.sleep(2.0 ** attempt * 0.1)
                 continue
             if response.status_code != requests.codes.ok:
-                logger.error("POST to %s resulted in status code %s: %s (attempt %d of %d)" % (
-                    url, str(response.status_code), response.text, attempt + 1, max_emit_retries))
+                logger.error("POST to %s resulted in status code %s: %s "
+                             "(attempt %d of %d)" %
+                             (url, str(response.status_code),
+                              response.text, attempt + 1, max_emit_retries))
                 time.sleep(2.0 ** attempt * 0.1)
             else:
                 break
