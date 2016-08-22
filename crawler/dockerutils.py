@@ -7,14 +7,13 @@ import semantic_version
 import docker
 import misc
 
+from crawler_exceptions import (DockerutilsNoJsonLog,
+                                DockerutilsException)
 
 # version at which docker image layer organization changed
 VERSION_SPEC = semantic_version.Spec('>=1.10.0')
 
 logger = logging.getLogger('crawlutils')
-
-from crawler_exceptions import (DockerutilsNoJsonLog,
-                                DockerutilsException)
 
 
 def exec_dockerps():
@@ -74,7 +73,8 @@ def exec_dockerinspect(long_id):
 
     try:
         # get the first RepoTag
-        inspect['RepoTag'] = client.inspect_image(inspect['Image'])['RepoTags'][0]
+        inspect['RepoTag'] = client.inspect_image(
+            inspect['Image'])['RepoTags'][0]
     except (docker.errors.DockerException, KeyError, IndexError):
         inspect['RepoTag'] = ''
 
@@ -96,7 +96,7 @@ def _get_docker_storage_driver():
             base_url='unix://var/run/docker.sock', version='auto')
         driver = client.info()['Driver']
     except (docker.errors.DockerException, KeyError):
-        pass # try to continue with the default of 'devicemapper'
+        pass  # try to continue with the default of 'devicemapper'
 
     if driver in all_drivers:
         return driver
@@ -181,7 +181,9 @@ def get_docker_container_json_logs_path(long_id, inspect=None):
     if path and os.path.isfile(path):
         return path
 
-    raise DockerutilsNoJsonLog('Container %s does not have a json log.' % long_id)
+    raise DockerutilsNoJsonLog(
+        'Container %s does not have a json log.' %
+        long_id)
 
 
 def _get_docker_server_version():

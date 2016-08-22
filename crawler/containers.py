@@ -131,5 +131,4 @@ def get_filtered_list_of_containers(
         if num == process_id:
             filtered_list.append(container)
 
-
     return filtered_list

@@ -6,9 +6,7 @@ import inspect
 import logging
 import socket
 import subprocess
-import re
 import psutil
-import ctypes
 
 # Additional modules
 
@@ -82,23 +80,23 @@ def process_is_crawler(pid):
     try:
         proc = psutil.Process(pid)
         cmdline = (proc.cmdline() if hasattr(proc.cmdline, '__call__'
-                                         ) else proc.cmdline)
-	# curr is the crawler process
+                                             ) else proc.cmdline)
+        # curr is the crawler process
 
-	curr = psutil.Process(os.getpid())
-	curr_cmdline = (
-	    curr.cmdline() if hasattr(
-		curr.cmdline,
-		'__call__') else curr.cmdline)
-	if cmdline == curr_cmdline:
-	    return True
+        curr = psutil.Process(os.getpid())
+        curr_cmdline = (
+            curr.cmdline() if hasattr(
+                curr.cmdline,
+                '__call__') else curr.cmdline)
+        if cmdline == curr_cmdline:
+            return True
 
         # Process not found
-	return False
-    except psutil.NoSuchProcess as exc:
+        return False
+    except psutil.NoSuchProcess:
         # If the process does not exist, then it's definitely not the crawler
         return False
-    except psutil.AccessDenied as exc:
+    except psutil.AccessDenied:
         # If we don't have permissions to see that process details, then it can
         # not be this process.
         return False

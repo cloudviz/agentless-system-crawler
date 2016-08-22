@@ -56,8 +56,8 @@ class MTGraphiteTests(unittest.TestCase):
         assert mt.next_timeout == 1001
         assert mt.host == '2.2.2.2'
         assert mt.port == '123'
-        assert mt.tenant_id == 'crawler'
-        assert mt.tenant_password == 'password'
+        assert mt.tenant == 'crawler'
+        assert mt.password == 'password'
         args[0].assert_called()
 
     @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda : 1000)

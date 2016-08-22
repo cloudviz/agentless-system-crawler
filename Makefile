@@ -46,7 +46,7 @@ test:
 	docker run --privileged -ti --rm agentless-system-crawler-test
 
 unit:
-	python2.7 setup.py test --addopts '--fulltrace --cov=. tests/unit/test_crawlutils.py'
+	python2.7 setup.py test --addopts '--fulltrace --cov=. tests/unit'
 
 clean:
 	@echo -ne "Stopping and removing crawler container..."

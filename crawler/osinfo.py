@@ -73,13 +73,15 @@ def get_osinfo_from_redhat_centos(mount_point='/'):
     try:
         with open(_get_file_name(mount_point, CENTOS_RELEASE), 'r') as lsbp:
             return parse_redhat_centos_release(lsbp.readlines())
-    except IOError as exc:
+    except IOError:
         try:
-            with open(_get_file_name(mount_point, REDHAT_RELEASE), 'r') as lsbp:
+            with open(_get_file_name(mount_point,
+                                     REDHAT_RELEASE), 'r') as lsbp:
                 return parse_redhat_centos_release(lsbp.readlines())
         except IOError:
             try:
-                with open(_get_file_name(mount_point, SYSTEM_RELEASE), 'r') as lsbp:
+                with open(_get_file_name(mount_point,
+                                         SYSTEM_RELEASE), 'r') as lsbp:
                     return parse_redhat_centos_release(lsbp.readlines())
             except IOError:
                 return {}
@@ -89,7 +91,7 @@ def get_osinfo_from_lsb_release(mount_point='/'):
     try:
         with open(_get_file_name(mount_point, LSB_RELEASE), 'r') as lsbp:
             return parse_lsb_release(lsbp.readlines())
-    except IOError as ioe:
+    except IOError:
         return {}
 
 
@@ -97,7 +99,7 @@ def get_osinfo_from_os_release(mount_point='/'):
     try:
         with open(_get_file_name(mount_point, OS_RELEASE), 'r') as lsbp:
             return parse_os_release(lsbp.readlines())
-    except IOError as ioe:
+    except IOError:
         try:
             with open(USR_OS_RELEASE, 'r') as lsbp:
                 return parse_os_release(lsbp.readlines())

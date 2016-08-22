@@ -8,8 +8,6 @@ import sys
 import types
 import signal
 import ctypes
-import cPickle as pickle
-import misc
 from crawler_exceptions import (CrawlTimeoutError,
                                 CrawlError,
                                 NamespaceFailedMntSetns)
@@ -41,6 +39,7 @@ def get_errno_msg():
 def get_libc():
     global libc
     return libc
+
 
 def get_pid_namespace(pid):
     try:

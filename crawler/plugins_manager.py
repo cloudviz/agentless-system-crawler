@@ -3,6 +3,7 @@ from crawler_exceptions import RuntimeEnvironmentPluginNotFound
 from runtime_environment import IRuntimeEnvironment
 import misc
 
+
 def load_env_plugin(plugin_places=[misc.execution_path('plugins')],
                     environment='cloudsight'):
     pm = PluginManager(plugin_info_ext='plugin')
@@ -20,9 +21,10 @@ def load_env_plugin(plugin_places=[misc.execution_path('plugins')],
         # but in case there are more, pick the first one.
         if env_plugin.plugin_object.get_environment_name() == environment:
             return env_plugin.plugin_object
-    raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" runtime '
+    raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
                                            'environment plugin at %s' %
                                            (environment, plugin_places))
+
 
 def reload_env_plugin(plugin_places=[misc.execution_path('plugins')],
                       environment='cloudsight'):
@@ -32,6 +34,7 @@ def reload_env_plugin(plugin_places=[misc.execution_path('plugins')],
 # default runtime environment: cloudsigth and plugins in 'plugins/'
 runtime_env = load_env_plugin(plugin_places=[misc.execution_path('plugins')],
                               environment='cloudsight')
+
 
 def get_runtime_env_plugin():
     global runtime_env

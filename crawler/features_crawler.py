@@ -6,13 +6,9 @@ import os
 import stat
 import logging
 import codecs
-import subprocess
-import tempfile
-import shutil
 import fnmatch
 import re
 import time
-import cPickle as pickle
 
 # Additional modules
 
@@ -32,9 +28,8 @@ from crawler_exceptions import CrawlError
 import dockerutils
 from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
                       ProcessFeature, MetricFeature, ConnectionFeature,
-                      PackageFeature, MemoryFeature, CpuFeature,
-                      InterfaceFeature, LoadFeature, DockerPSFeature,
-                      DockerHistoryFeature, ModuleFeature, CpuHwFeature)
+                      MemoryFeature, CpuFeature,
+                      InterfaceFeature, LoadFeature, DockerPSFeature)
 import misc
 from crawlmodes import Modes
 from package_utils import get_rpm_packages, get_dpkg_packages
@@ -82,27 +77,25 @@ class FeaturesCrawler:
         self.vm = vm
         self.vm_context = vm_context
 
-	self.funcdict = {
-	  'os': self.crawl_os,
-	  'disk': self.crawl_disk_partitions,
-	  'metric': self.crawl_metrics,
-	  'process': self.crawl_processes,
-	  'connection': self.crawl_connections,
-	  'package': self.crawl_packages,
-	  'file': self.crawl_files,
-	  'config': self.crawl_config_files,
-	  'memory': self.crawl_memory,
-	  'cpu': self.crawl_cpu,
-	  'interface': self.crawl_interface,
-	  'load': self.crawl_load,
-	  'dockerps': self.crawl_dockerps,
-	  'dockerhistory': self.crawl_dockerhistory,
-	  'dockerinspect': self.crawl_dockerinspect,
-	  '_test_infinite_loop': self.crawl_test_infinite_loop,
-	  '_test_crash': self.crawl_test_crash,
-	}
-
-
+        self.funcdict = {
+            'os': self.crawl_os,
+            'disk': self.crawl_disk_partitions,
+            'metric': self.crawl_metrics,
+            'process': self.crawl_processes,
+            'connection': self.crawl_connections,
+            'package': self.crawl_packages,
+            'file': self.crawl_files,
+            'config': self.crawl_config_files,
+            'memory': self.crawl_memory,
+            'cpu': self.crawl_cpu,
+            'interface': self.crawl_interface,
+            'load': self.crawl_load,
+            'dockerps': self.crawl_dockerps,
+            'dockerhistory': self.crawl_dockerhistory,
+            'dockerinspect': self.crawl_dockerinspect,
+            '_test_infinite_loop': self.crawl_test_infinite_loop,
+            '_test_crash': self.crawl_test_crash,
+        }
 
     """
     To calculate rates like packets sent per second, we need to
@@ -270,7 +263,8 @@ class FeaturesCrawler:
         accessed_since = self.feature_epoch
         saved_args = locals()
         logger.debug('crawl_files: %s' % (saved_args))
-        if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT, Modes.OUTCONTAINER]:
+        if self.crawl_mode in [Modes.INVM, Modes.MOUNTPOINT,
+                               Modes.OUTCONTAINER]:
             assert os.path.isdir(root_dir)
             if root_dir_alias is None:
                 root_dir_alias = root_dir
@@ -600,7 +594,7 @@ class FeaturesCrawler:
                     try:
                         cwd = (p.cwd() if hasattr(p, 'cwd') and
                                hasattr(p.cwd, '__call__') else p.getcwd())
-                    except Exception as e:
+                    except Exception:
                         logger.error('Error crawling process %s for cwd'
                                      % pid, exc_info=True)
                         cwd = 'unknown'
@@ -735,7 +729,7 @@ class FeaturesCrawler:
             self._cache_put_value(
                 cache_key, [curr_proc_cpu_time, curr_sys_cpu_time])
 
-            if cputimeList != None:
+            if cputimeList is not None:
                 prev_proc_cpu_time = cputimeList[0]
                 prev_sys_cpu_time = cputimeList[1]
 
@@ -746,8 +740,10 @@ class FeaturesCrawler:
                         if curr_sys_cpu_time == prev_sys_cpu_time:
                             cpu_percent = 0
                         else:
-                            cpu_percent = float(curr_proc_cpu_time - prev_proc_cpu_time) * 100 / \
-                                (curr_sys_cpu_time - prev_sys_cpu_time)
+                            cpu_percent = (float(curr_proc_cpu_time -
+                                                 prev_proc_cpu_time) * 100 /
+                                           float(curr_sys_cpu_time -
+                                                 prev_sys_cpu_time))
         else:
             cpu_percent = (
                 p.get_cpu_percent(
@@ -830,8 +826,10 @@ class FeaturesCrawler:
 
         if not (avoid_setns and self.crawl_mode == Modes.OUTCONTAINER):
             try:
-                for (key, feature) in self._crawl_wrapper(
-                        self._crawl_packages, ALL_NAMESPACES, dbpath, root_dir):
+                for (key, feature) in self._crawl_wrapper(self._crawl_packages,
+                                                          ALL_NAMESPACES,
+                                                          dbpath,
+                                                          root_dir):
                     yield (key, feature)
                 return
             except CrawlError as e:
@@ -949,7 +947,8 @@ class FeaturesCrawler:
                     sysmem.memory_buffered,
                     sysmem.memory_cached,
                     sysmem.memory_free,
-                    sysmem.memory_used * 100 / (sysmem.memory_used + sysmem.memory_free))
+                    (sysmem.memory_used * 100 / (sysmem.memory_used +
+                                                 sysmem.memory_free)))
 
         elif self.crawl_mode == Modes.OUTCONTAINER:
 

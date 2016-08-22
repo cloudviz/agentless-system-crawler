@@ -5,7 +5,6 @@ import socket
 import ssl
 import struct
 import time
-import unittest
 import re
 
 from crawler_exceptions import MTGraphiteInvalidTenant
@@ -32,18 +31,19 @@ class MTGraphiteClient(object):
         self.host_url = host_url
 
         # A MTGraphite URL should look like:
-        #  mtgraphite://<host>:<port>/<tenant_id>:<password>
+        #  mtgraphite://<host>:<port>/<tenant>:<password>
 
-        regex = re.compile(r'^mtgraphite://([^:/]+):([^:/]+)/([^:/]+):([^:/]+)$')
+        regex = re.compile(
+            r'^mtgraphite://([^:/]+):([^:/]+)/([^:/]+):([^:/]+)$')
         if not regex.match(host_url):
-            raise ValueError('The MTGraphite URL format is invalid. It should be:'
-                             ' mtgraphite://<host>:<port>/<tenant_id>:<password>')
+            raise ValueError('The MTGraphite URL is invalid. It should be:'
+                             ' mtgraphite://<host>:<port>/<tenant>:<pass>')
 
         matches = regex.search(host_url)
         self.host = matches.group(1)
         self.port = matches.group(2)
-        self.tenant_id = matches.group(3)
-        self.tenant_password = matches.group(4)
+        self.tenant = matches.group(3)
+        self.password = matches.group(4)
 
         # create a connection only when we need it, but keep it alive
 
@@ -54,9 +54,9 @@ class MTGraphiteClient(object):
         self.msgset = []
         self.next_timeout = time.time() + batch_send_every_t
 
-    # #################
-    #   Private API  #
-    # #################
+    #
+    # Private API  #
+    #
 
     def _create_identification_message(self, self_identifier):
         identification_message = """"""
@@ -65,17 +65,21 @@ class MTGraphiteClient(object):
         identification_message += self_identifier
         return identification_message
 
-    def _create_authentication_message(self, tenant_id, tenant_password, supertenant=True):
+    def _create_authentication_msg(
+        self,
+        tenant,
+        password,
+            supertenant=True):
         authentication_message = """"""
         if supertenant:
             authentication_message += '2S'
         else:
             authentication_message += '2T'
-        authentication_message += chr(len(tenant_id))
-        authentication_message += tenant_id
+        authentication_message += chr(len(tenant))
+        authentication_message += tenant
         authentication_message += \
-            chr(len(tenant_password))
-        authentication_message += tenant_password
+            chr(len(password))
+        authentication_message += password
         return authentication_message
 
     def _send_and_check_identification_message(self, identification_message):
@@ -102,8 +106,7 @@ class MTGraphiteClient(object):
         logger.info('MTGraphite authentication server response of %s'
                     % code)
         if code == '0A':
-            raise MTGraphiteInvalidTenant('Invalid tenant auth, please check the '
-                                          'tenant id or password!')
+            raise MTGraphiteInvalidTenant('Invalid password')
 
     def _get_socket(self):
         '''Get or create a connection to a broker using host and port'''
@@ -132,18 +135,18 @@ class MTGraphiteClient(object):
                 self._send_and_check_identification_message(
                     identification_message)
 
-                authentication_message = self._create_authentication_message(
-                    self.tenant_id, self.tenant_password)
-                # We check once for
+                msg = self._create_authentication_msg(self.tenant,
+                                                      self.password,
+                                                      supertenant=True)
+                # We first try with a super tenant account.
                 try:
-                    self._send_and_check_authentication_message(
-                        authentication_message)
+                    self._send_and_check_authentication_message(msg)
                 except Exception as e:
-                    print("Attempting to log in as tenant")
-                    authentication_message = self._create_authentication_message(
-                        self.tenant_id, self.tenant_password, supertenant=False)
-                    self._send_and_check_authentication_message(
-                        authentication_message)
+                    logger.info("Attempting to log in as tenant")
+                    msg = self._create_authentication_msg(self.tenant,
+                                                          self.password,
+                                                          supertenant=False)
+                    self._send_and_check_authentication_message(msg)
                 return self.conn
 
             except Exception as e:
@@ -224,9 +227,9 @@ class MTGraphiteClient(object):
                                  )
                     raise
 
-    # ################
-    #   Public API  #
-    # ################
+    #
+    # Public API  #
+    #
 
     def close(self):
         if self.conn:

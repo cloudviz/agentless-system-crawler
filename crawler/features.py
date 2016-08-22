@@ -115,4 +115,3 @@ CpuHwFeature = namedtuple('CpuHwFeature', [
     'cpu_khz',
     'cpu_cache_size_kb',
     'cpu_num_cores'])
-

@@ -3,15 +3,12 @@
 import os
 import logging
 import defaults
-from crawler_exceptions import (
-    ContainerInvalidEnvironment,
-    AlchemyInvalidMetadata,
-    AlchemyInvalidContainer)
 
 logger = logging.getLogger('crawlutils')
 
 
 class Container(object):
+
     """
     This class abstracts a running Linux container.
 
@@ -34,7 +31,8 @@ class Container(object):
         self.log_prefix = None
         self.log_file_list = None
 
-        # XXX(kollerr): when running in alchemy environment, non-alchemy containres should be ignored
+        # XXX(kollerr): when running in alchemy environment, non-alchemy
+        # containres should be ignored
 
     def __eq__(self, other):
         """
