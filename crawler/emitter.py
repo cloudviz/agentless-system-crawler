@@ -156,8 +156,27 @@ class Emitter:
                                                   metric, value, timestamp)
             self.emitfile.write(tmp_message)
 
-    # Added optional feature_type so that we can bypass feature type discovery
-    # for FILE crawlmode
+    def _emit_metadata_feature(self):
+        metadata = copy.deepcopy(self.emitter_args)
+
+        # Update timestamp to the actual emit time
+
+        metadata['timestamp'] = \
+            time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        if 'extra' in metadata:
+            del metadata['extra']
+            if self.emitter_args['extra']:
+                metadata.update(json.loads(self.emitter_args['extra'
+                                                             ]))
+        if 'extra_all_features' in metadata:
+            del metadata['extra_all_features']
+        if self.format == 'csv' or self.format == 'json':
+            self.csv_writer.writerow(
+                ['metadata',
+                 json.dumps('metadata'),
+                 json.dumps(metadata,
+                            separators=(',', ':'))])
+            self.num_features += 1
 
     def emit(
         self,
@@ -166,34 +185,14 @@ class Emitter:
         feature_type=None,
     ):
 
-        # Add metadata as first feature
-
         if self.num_features == 0:
-            metadata = copy.deepcopy(self.emitter_args)
-
-            # Update timestamp to the actual emit time
-
-            metadata['timestamp'] = \
-                time.strftime('%Y-%m-%dT%H:%M:%S%z')
-            if 'extra' in metadata:
-                del metadata['extra']
-                if self.emitter_args['extra']:
-                    metadata.update(json.loads(self.emitter_args['extra'
-                                                                 ]))
-            if 'extra_all_features' in metadata:
-                del metadata['extra_all_features']
-            if self.format == 'csv' or self.format == 'json':
-                self.csv_writer.writerow(
-                    ['metadata',
-                     json.dumps('metadata'),
-                     json.dumps(metadata,
-                                separators=(',', ':'))])
-                self.num_features += 1
+            self._emit_metadata_feature()
 
         if isinstance(feature_val, dict):
             feature_val_as_dict = feature_val
         else:
             feature_val_as_dict = feature_val._asdict()
+
         if 'extra' in self.emitter_args and self.emitter_args['extra'] \
                 and 'extra_all_features' in self.emitter_args \
                 and self.emitter_args['extra_all_features']:
@@ -394,6 +393,24 @@ class Emitter:
             output_path += '.gz'
         shutil.move(self.temp_fpath, output_path)
 
+    def _publish(self, url):
+        logger.debug('Emitting frame to {0}'.format(url))
+        if url.startswith('stdout://'):
+            self._publish_to_stdout()
+        elif url.startswith('http://'):
+            self._publish_to_http(url, self.max_emit_retries)
+        elif url.startswith('file://'):
+            self._write_to_file(url)
+        elif url.startswith('kafka://'):
+            self._publish_to_kafka(url, self.max_emit_retries)
+        elif url.startswith('mtgraphite://'):
+            self._publish_to_mtgraphite(url)
+        else:
+            if os.path.exists(self.temp_fpath):
+                os.remove(self.temp_fpath)
+            raise EmitterUnsupportedProtocol(
+                'Unsupported URL protocol {0}'.format(url))
+
     def __exit__(
         self,
         typ,
@@ -405,28 +422,15 @@ class Emitter:
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
             raise exc
+
         try:
             self._close_file()
             for url in self.urls:
-                logger.debug('Emitting frame to {0}'.format(url))
-                if url.startswith('stdout://'):
-                    self._publish_to_stdout()
-                elif url.startswith('http://'):
-                    self._publish_to_http(url, self.max_emit_retries)
-                elif url.startswith('file://'):
-                    self._write_to_file(url)
-                elif url.startswith('kafka://'):
-                    self._publish_to_kafka(url, self.max_emit_retries)
-                elif url.startswith('mtgraphite://'):
-                    self._publish_to_mtgraphite(url)
-                else:
-                    if os.path.exists(self.temp_fpath):
-                        os.remove(self.temp_fpath)
-                    raise EmitterUnsupportedProtocol(
-                        'Unsupported URL protocol {0}'.format(url))
+                self._publish(url)
         finally:
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
+
         self.end_time = time.time()
         elapsed_time = self.end_time - self.begin_time
         logger.info(
