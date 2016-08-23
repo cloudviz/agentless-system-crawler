@@ -15,6 +15,8 @@ VERSION_SPEC = semantic_version.Spec('>=1.10.0')
 
 logger = logging.getLogger('crawlutils')
 
+SUPPORTED_DRIVERS = ['btrfs', 'devicemapper', 'aufs', 'vfs']
+
 
 def exec_dockerps():
     """
@@ -81,13 +83,20 @@ def exec_dockerinspect(long_id):
     return inspect
 
 
+def _get_docker_storage_driver_using_proc_mounts():
+    for l in open('/proc/mounts', 'r'):
+        _, mnt, _, _, _, _ = l.split(' ')
+        for driver in SUPPORTED_DRIVERS:
+            if mnt == '/var/lib/docker/' + driver:
+                return driver
+
+
 def _get_docker_storage_driver():
     """
     We will try several steps in order to ensure that we return
     one of the 4 types (btrfs, devicemapper, aufs, vfs).
     """
     driver = None
-    all_drivers = ['btrfs', 'devicemapper', 'aufs', 'vfs']
 
     # Step 1, get it from "docker info"
 
@@ -98,34 +107,22 @@ def _get_docker_storage_driver():
     except (docker.errors.DockerException, KeyError):
         pass  # try to continue with the default of 'devicemapper'
 
-    if driver in all_drivers:
+    if driver in SUPPORTED_DRIVERS:
         return driver
 
     # Step 2, get it from /proc/mounts
 
     try:
-        for l in open('/proc/mounts', 'r'):
-            (
-                _,
-                mnt,
-                fstype,
-                options,
-                _,
-                _,
-            ) = l.split(' ')
-            for d in all_drivers:
-                if mnt == '/var/lib/docker/' + d:
-                    driver = d
-                    break
+        driver = _get_docker_storage_driver_using_proc_mounts()
     except IOError:
         logger.debug('Could not read /proc/mounts')
 
-    if driver in all_drivers:
+    if driver in SUPPORTED_DRIVERS:
         return driver
 
     # Step 3, we default to "devicemapper" (last resort)
 
-    if driver not in all_drivers:
+    if driver not in SUPPORTED_DRIVERS:
 
         driver = 'devicemapper'
 
@@ -206,6 +203,117 @@ except DockerutilsException:
     driver = None
 
 
+def _get_container_rootfs_path_dm(long_id, inspect=None):
+
+    if not inspect:
+        inspect = exec_dockerinspect(long_id)
+
+    pid = str(inspect['State']['Pid'])
+
+    rootfs_path = None
+    device = None
+    try:
+        with open('/proc/' + pid + '/mounts', 'r') as f:
+            for line in f:
+                _device, _mountpoint, _, _, _, _ = line.split()
+                if _mountpoint == '/' and _device != 'rootfs':
+                    device = _device
+        with open('/proc/mounts', 'r') as f:
+            for line in f:
+                _device, _mountpoint, _, _, _, _ = line.split()
+                if device in line:
+                    rootfs_path = _mountpoint
+                    break
+    except IOError as e:
+        logger.warning(str(e))
+    if not rootfs_path or rootfs_path == '/':
+        raise DockerutilsException('Failed to get rootfs on devicemapper')
+
+    return rootfs_path + '/rootfs'
+
+
+def _get_container_rootfs_path_btrfs(long_id, inspect=None):
+
+    rootfs_path = None
+
+    if VERSION_SPEC.match(semantic_version.Version(server_version)):
+        btrfs_path = None
+        mountid_path = ('/var/lib/docker/image/btrfs/layerdb/mounts/' +
+                        long_id + '/mount-id')
+        try:
+            with open(mountid_path, 'r') as f:
+                btrfs_path = f.read().strip()
+        except IOError as e:
+            logger.warning(str(e))
+        if not btrfs_path:
+            raise DockerutilsException('Failed to get rootfs on btrfs')
+        rootfs_path = '/var/lib/docker/btrfs/subvolumes/' + btrfs_path
+    else:
+        btrfs_path = None
+        try:
+            for submodule in misc.btrfs_list_subvolumes('/var/lib/docker'):
+                _, _, _, _, _, _, _, _, mountpoint = submodule
+                if (long_id in mountpoint) and ('init' not in mountpoint):
+                    btrfs_path = mountpoint
+                    break
+        except RuntimeError:
+            pass
+        if not btrfs_path:
+            raise DockerutilsException('Failed to get rootfs on btrfs')
+        rootfs_path = '/var/lib/docker/' + btrfs_path
+
+    return rootfs_path
+
+
+def _get_container_rootfs_path_aufs(long_id, inspect=None):
+
+    rootfs_path = None
+
+    if VERSION_SPEC.match(semantic_version.Version(server_version)):
+        aufs_path = None
+        mountid_path = ('/var/lib/docker/image/aufs/layerdb/mounts/' +
+                        long_id + '/mount-id')
+        try:
+            with open(mountid_path, 'r') as f:
+                aufs_path = f.read().strip()
+        except IOError as e:
+            logger.warning(str(e))
+        if not aufs_path:
+            raise DockerutilsException('Failed to get rootfs on aufs')
+        rootfs_path = '/var/lib/docker/aufs/mnt/' + aufs_path
+    else:
+        rootfs_path = None
+        for _path in ['/var/lib/docker/aufs/mnt/' + long_id,
+                      '/var/lib/docker/aufs/diff/' + long_id]:
+            if os.path.isdir(_path) and os.listdir(_path):
+                rootfs_path = _path
+                break
+        if not rootfs_path:
+            raise DockerutilsException('Failed to get rootfs on aufs')
+
+    return rootfs_path
+
+
+def _get_container_rootfs_path_vfs(long_id, inspect=None):
+
+    rootfs_path = None
+
+    vfs_path = None
+    mountid_path = ('/var/lib/docker/image/vfs/layerdb/mounts/' +
+                    long_id + '/mount-id')
+    try:
+        with open(mountid_path, 'r') as f:
+            vfs_path = f.read().strip()
+    except IOError as e:
+        logger.warning(str(e))
+    if not vfs_path:
+        raise DockerutilsException('Failed to get rootfs on vfs')
+
+    rootfs_path = '/var/lib/docker/vfs/dir/' + vfs_path
+
+    return rootfs_path
+
+
 def get_docker_container_rootfs_path(long_id, inspect=None):
     """
     Returns the path to a container root (with ID=long_id) in the docker host
@@ -239,100 +347,14 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
                 ', server_version=' + server_version)
 
     if driver == 'devicemapper':
-
-        if not inspect:
-            inspect = exec_dockerinspect(long_id)
-
-        pid = str(inspect['State']['Pid'])
-
-        device = None
-        try:
-            with open('/proc/' + pid + '/mounts', 'r') as f:
-                for line in f:
-                    _device, _mountpoint, _, _, _, _ = line.split()
-                    if _mountpoint == '/' and _device != 'rootfs':
-                        device = _device
-            with open('/proc/mounts', 'r') as f:
-                for line in f:
-                    _device, _mountpoint, _, _, _, _ = line.split()
-                    if device in line:
-                        rootfs_path = _mountpoint
-                        break
-        except IOError as e:
-            logger.warning(str(e))
-        if not rootfs_path or rootfs_path == '/':
-            raise DockerutilsException('Failed to get rootfs on devicemapper')
-
-        rootfs_path = rootfs_path + '/rootfs'
-
+        rootfs_path = _get_container_rootfs_path_dm(long_id, inspect)
     elif driver == 'btrfs':
-
-        if VERSION_SPEC.match(semantic_version.Version(server_version)):
-            btrfs_path = None
-            mountid_path = ('/var/lib/docker/image/btrfs/layerdb/mounts/' +
-                            long_id + '/mount-id')
-            try:
-                with open(mountid_path, 'r') as f:
-                    btrfs_path = f.read().strip()
-            except IOError as e:
-                logger.warning(str(e))
-            if not btrfs_path:
-                raise DockerutilsException('Failed to get rootfs on btrfs')
-            rootfs_path = '/var/lib/docker/btrfs/subvolumes/' + btrfs_path
-        else:
-            btrfs_path = None
-            try:
-                for submodule in misc.btrfs_list_subvolumes('/var/lib/docker'):
-                    _, _, _, _, _, _, _, _, mountpoint = submodule
-                    if (long_id in mountpoint) and ('init' not in mountpoint):
-                        btrfs_path = mountpoint
-                        break
-            except RuntimeError:
-                pass
-            if not btrfs_path:
-                raise DockerutilsException('Failed to get rootfs on btrfs')
-            rootfs_path = '/var/lib/docker/' + btrfs_path
-
+        rootfs_path = _get_container_rootfs_path_btrfs(long_id, inspect)
     elif driver == 'aufs':
-
-        if VERSION_SPEC.match(semantic_version.Version(server_version)):
-            aufs_path = None
-            mountid_path = ('/var/lib/docker/image/aufs/layerdb/mounts/' +
-                            long_id + '/mount-id')
-            try:
-                with open(mountid_path, 'r') as f:
-                    aufs_path = f.read().strip()
-            except IOError as e:
-                logger.warning(str(e))
-            if not aufs_path:
-                raise DockerutilsException('Failed to get rootfs on aufs')
-            rootfs_path = '/var/lib/docker/aufs/mnt/' + aufs_path
-        else:
-            rootfs_path = None
-            for _path in ['/var/lib/docker/aufs/mnt/' + long_id,
-                          '/var/lib/docker/aufs/diff/' + long_id]:
-                if os.path.isdir(_path) and os.listdir(_path):
-                    rootfs_path = _path
-                    break
-            if not rootfs_path:
-                raise DockerutilsException('Failed to get rootfs on aufs')
-
+        rootfs_path = _get_container_rootfs_path_aufs(long_id, inspect)
     elif driver == 'vfs':
-
-        vfs_path = None
-        mountid_path = ('/var/lib/docker/image/vfs/layerdb/mounts/' +
-                        long_id + '/mount-id')
-        try:
-            with open(mountid_path, 'r') as f:
-                vfs_path = f.read().strip()
-        except IOError as e:
-            logger.warning(str(e))
-        if not vfs_path:
-            raise DockerutilsException('Failed to get rootfs on vfs')
-        rootfs_path = '/var/lib/docker/vfs/dir/' + vfs_path
-
+        rootfs_path = _get_container_rootfs_path_vfs(long_id, inspect)
     else:
-
         raise DockerutilsException('Not supported docker storage driver.')
 
     return rootfs_path
