@@ -25,9 +25,9 @@ import requests
 
 from misc import NullHandler
 
-
 logger = logging.getLogger('crawlutils')
-
+# Kafka logs too much
+logging.getLogger('kafka').addHandler(NullHandler())
 
 def kafka_send(kurl, temp_fpath, format, topic, queue=None):
     try:
@@ -58,7 +58,6 @@ def kafka_send(kurl, temp_fpath, format, topic, queue=None):
             raise
     finally:
         queue and queue.close()
-
 
 class Emitter:
 
@@ -314,38 +313,37 @@ class Emitter:
                 'kafka://[ip|hostname]:[port]/[kafka_topic]. '
                 'For example: kafka://1.1.1.1:1234/metrics' % url)
 
-        # Kafka logs too much
-        h = NullHandler()
-        logging.getLogger('kafka').addHandler(h)
-
         queue = multiprocessing.Queue()
         try:
-            child_process = multiprocessing.Process(
-                name='kafka-emitter', target=kafka_send, args=(
-                    kurl, self.temp_fpath, self.format, topic, queue))
-            child_process.start()
-        except OSError:
+            try:
+                child_process = multiprocessing.Process(
+                    name='kafka-emitter', target=kafka_send, args=(
+                        kurl, self.temp_fpath, self.format, topic, queue))
+                child_process.start()
+            except OSError:
+                #queue.close() # closing queue in finally clause
+                raise
+    
+            try:
+                (result, child_exception) = queue.get(
+                    timeout=self.kafka_timeout_secs)
+            except Queue.Empty:
+                child_exception = EmitterEmitTimeout()
+    
+            child_process.join(self.kafka_timeout_secs)
+    
+            if child_process.is_alive():
+                errmsg = ('Timed out waiting for process %d to exit.' %
+                          child_process.pid)
+                #queue.close() # closing queue in finally clause
+                os.kill(child_process.pid, 9)
+                logger.error(errmsg)
+                raise EmitterEmitTimeout(errmsg)
+    
+            if child_exception:
+                raise child_exception
+        finally:
             queue.close()
-            raise
-
-        try:
-            (result, child_exception) = queue.get(
-                timeout=self.kafka_timeout_secs)
-        except Queue.Empty:
-            child_exception = EmitterEmitTimeout()
-
-        child_process.join(self.kafka_timeout_secs)
-
-        if child_process.is_alive():
-            errmsg = ('Timed out waiting for process %d to exit.' %
-                      child_process.pid)
-            queue.close()
-            os.kill(child_process.pid, 9)
-            logger.error(errmsg)
-            raise EmitterEmitTimeout(errmsg)
-
-        if child_exception:
-            raise child_exception
 
     def _publish_to_kafka(self, url, max_emit_retries=8):
         if self.format == 'json':
