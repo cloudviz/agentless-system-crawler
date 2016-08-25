@@ -323,15 +323,15 @@ class Emitter:
             except OSError:
                 #queue.close() # closing queue in finally clause
                 raise
-    
+
             try:
                 (result, child_exception) = queue.get(
                     timeout=self.kafka_timeout_secs)
             except Queue.Empty:
                 child_exception = EmitterEmitTimeout()
-    
+
             child_process.join(self.kafka_timeout_secs)
-    
+
             if child_process.is_alive():
                 errmsg = ('Timed out waiting for process %d to exit.' %
                           child_process.pid)
@@ -339,7 +339,7 @@ class Emitter:
                 os.kill(child_process.pid, 9)
                 logger.error(errmsg)
                 raise EmitterEmitTimeout(errmsg)
-    
+
             if child_exception:
                 raise child_exception
         finally:

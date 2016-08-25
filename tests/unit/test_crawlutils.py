@@ -50,7 +50,7 @@ class MockedFeaturesCrawler:
 
     def __init__(self, *args, **kwargs):
         self.funcdict = {
-          'os': self.crawl_os
+            'os': self.crawl_os
         }
 
     def crawl_os(self, *args, **kwargs):
@@ -60,7 +60,7 @@ class MockedFeaturesCrawlerFailure:
 
     def __init__(self, *args, **kwargs):
         self.funcdict = {
-          'os': self.crawl_os
+            'os': self.crawl_os
         }
 
     def crawl_os(self, *args, **kwargs):
@@ -137,10 +137,10 @@ class ContainerTests(unittest.TestCase):
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_mesos(self, *args):
         snapshot_mesos(snapshot_num=123,
-                           features='frame',
-                           urls=['stdout://', 'file:///tmp/frame',
-                                 'kafka://ip:123/topic'],
-                           ignore_exceptions=False)
+                       features='frame',
+                       urls=['stdout://', 'file:///tmp/frame',
+                             'kafka://ip:123/topic'],
+                       ignore_exceptions=False)
         # MockedEmitter is doing all the checks
 
 
@@ -151,7 +151,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_mesos(self, *args):
         with self.assertRaises(OSError):
             snapshot_mesos(snapshot_num=123,
-                               features='frame',
-                               urls=['stdout://', 'file:///tmp/frame',
-                                     'kafka://ip:123/topic'],
-                               ignore_exceptions=False)
+                           features='frame',
+                           urls=['stdout://', 'file:///tmp/frame',
+                                 'kafka://ip:123/topic'],
+                           ignore_exceptions=False)

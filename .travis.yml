@@ -39,6 +39,7 @@ before_install:
 
 install:
   - sudo -H pip install --ignore-installed -r requirements-test.txt
+  - echo "fix whitespace errors with 'autopep8 --select E1 --recursive --in-place .'" && flake8  --select E1
 
 # command to run tests
 script:
