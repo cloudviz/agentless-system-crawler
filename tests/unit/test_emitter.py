@@ -281,13 +281,13 @@ class EmitterTests(unittest.TestCase):
         emitter.__enter__()
         with self.assertRaises(ValueError):
             emitter.__exit__(None, ValueError('a'), None)
-        
+
         with self.assertRaises(ValueError):
             with Emitter(urls=['file:///tmp/test_emitter'],
-                              emitter_args={'extra': '{"a2}',
-                                        'extra_all_features': True,
-                                        'uuid': 'aaaaaa'},
-                              format='csv') as emitter:
+                         emitter_args={'extra': '{"a2}',
+                                       'extra_all_features': True,
+                                       'uuid': 'aaaaaa'},
+                         format='csv') as emitter:
                 raise ValueError('bla')
 
     def test_emitter_incorrect_json(self):

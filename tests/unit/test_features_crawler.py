@@ -408,21 +408,21 @@ class FeaturesCrawlerTests(unittest.TestCase):
             fc = FeaturesCrawler(crawl_mode=Modes.OUTVM)
 
     @mock.patch('crawler.features_crawler.psvmi.context_init',
-                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
 
     @mock.patch('crawler.features_crawler.psvmi.system_info',
                 side_effect=lambda vmc: psvmi_sysinfo(1000,
-                                                       '1.1.1.1',
-                                                       'osdistro',
-                                                       'osname',
-                                                       'osplatform',
-                                                       'osrelease',
-                                                       'ostype',
-                                                       'osversion',
-                                                       1000000,
-                                                       100000,
-                                                       100000,
-                                                       100000))
+                                                      '1.1.1.1',
+                                                      'osdistro',
+                                                      'osname',
+                                                      'osplatform',
+                                                      'osrelease',
+                                                      'ostype',
+                                                      'osversion',
+                                                      1000000,
+                                                      100000,
+                                                      100000,
+                                                      100000))
     def _test_crawl_os_outvm_mode_without_vm(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -1156,13 +1156,13 @@ class FeaturesCrawlerTests(unittest.TestCase):
             for (k, f) in fc.crawl_memory():
                 pass
         assert args[0].call_count == 1
-    
+
     @mock.patch('crawler.features_crawler.psvmi.context_init',
-                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
 
     @mock.patch('crawler.features_crawler.psvmi.system_memory_info',
                 side_effect=lambda vmc: psvmi_memory(10, 20, 30, 40))
-    
+
     def _test_crawl_memory_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))

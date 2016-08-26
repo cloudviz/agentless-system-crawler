@@ -2,14 +2,14 @@ from unittest import TestCase
 import unittest
 import mock
 from crawler.osinfo import (_get_file_name,
-                    parse_lsb_release, 
-                    parse_os_release, 
-                    parse_redhat_release, 
-                    parse_centos_release,
-                    get_osinfo_from_lsb_release,
-                    get_osinfo_from_os_release,
-                    get_osinfo_from_redhat_centos
-                    )
+                            parse_lsb_release, 
+                            parse_os_release, 
+                            parse_redhat_release, 
+                            parse_centos_release,
+                            get_osinfo_from_lsb_release,
+                            get_osinfo_from_os_release,
+                            get_osinfo_from_redhat_centos
+                            )
 
 class Test_osinfo(TestCase):
 
@@ -32,19 +32,19 @@ class Test_osinfo(TestCase):
                  'HOME_URL="http://www.ubuntu.com/"',
                  'SUPPORT_URL="http://help.ubuntu.com/"',
                  'BUG_REPORT_URL="http://bugs.launchpad.net/ubuntu/"'
-                ]
+                 ]
         result = parse_os_release(data)
         self.assertEqual(result['os'], 'ubuntu')
         self.assertEqual(result['version'], '14.04')
 
     def test_alpine_parse_os_release(self):
         data = [ 'NAME="Alpine Linux"',
-                'ID=alpine',
-                'VERSION_ID=3.4.0',
-                'PRETTY_NAME="Alpine Linux v3.4"',
-                'HOME_URL="http://alpinelinux.org"',
-                'BUG_REPORT_URL="http://bugs.alpinelinux.org"'
-               ]
+                 'ID=alpine',
+                 'VERSION_ID=3.4.0',
+                 'PRETTY_NAME="Alpine Linux v3.4"',
+                 'HOME_URL="http://alpinelinux.org"',
+                 'BUG_REPORT_URL="http://bugs.alpinelinux.org"'
+                 ]
 
         result = parse_os_release(data)
         self.assertEqual(result['os'], 'alpine')
@@ -110,7 +110,7 @@ class Test_osinfo(TestCase):
                  'HOME_URL="http://www.ubuntu.com/"',
                  'SUPPORT_URL="http://help.ubuntu.com/"',
                  'BUG_REPORT_URL="http://bugs.launchpad.net/ubuntu/"'
-                ]
+                 ]
         with mock.patch('__builtin__.open', mock.mock_open(read_data="\n".join(data)), \
                         create=True) as m:
             m.return_value.__iter__.return_value = data
