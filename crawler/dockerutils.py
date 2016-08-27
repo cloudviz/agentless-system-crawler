@@ -89,6 +89,7 @@ def _get_docker_storage_driver_using_proc_mounts():
         for driver in SUPPORTED_DRIVERS:
             if mnt == '/var/lib/docker/' + driver:
                 return driver
+    raise OSError('Could not find the driver in /proc/mounts')
 
 
 def _get_docker_storage_driver():
@@ -114,7 +115,7 @@ def _get_docker_storage_driver():
 
     try:
         driver = _get_docker_storage_driver_using_proc_mounts()
-    except IOError:
+    except (OSError, IOError):
         logger.debug('Could not read /proc/mounts')
 
     if driver in SUPPORTED_DRIVERS:

@@ -30,6 +30,12 @@ class ContainerNonExistent(Exception):
     pass
 
 
+class ContainerWithoutCgroups(Exception):
+
+    """Can not find the cgroup node for a container"""
+
+    pass
+
 class DockerutilsException(Exception):
 
     """Exception from the dockerutils module."""
