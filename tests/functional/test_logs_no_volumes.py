@@ -69,13 +69,13 @@ class DockerContainerTests(unittest.TestCase):
         self.docker_container.log_file_list = [
             {'name': '/data/test1.log', 'type': None}]
 
-        self.docker_container._set_log_links_source_and_dest(
+        self.docker_container._set_logs_list(
             {'logcrawler':{'host_log_basedir':self.host_log_dir}})
         log_list = self.docker_container.logs_list
-        for log_dict in log_list:
-            if log_dict['name'] == '/data/test1.log':
+        for log in log_list:
+            if log.name == '/data/test1.log':
                 self.assertEqual(
-                    log_dict['dest'], self.host_log_dir +
+                    log.dest, self.host_log_dir +
                     '/data/test1.log'
                 )
 

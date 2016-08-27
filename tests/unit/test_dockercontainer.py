@@ -145,6 +145,9 @@ class MockedRuntimeEnv():
 def mocked_get_runtime_env():
     return MockedRuntimeEnv()
 
+def mocked_get_container_json_logs_path(id, inspect):
+    return '/var/lib/docker/abc/container/log.json'
+
 @mock.patch('crawler.dockercontainer.exec_dockerps',
             side_effect=mocked_exec_dockerps)
 @mock.patch('crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
@@ -353,6 +356,20 @@ class DockerDockerContainerTests(unittest.TestCase):
             '/var/log/crawler_container_logs/random_prefix/var/log/2')
         c.unlink_logfiles()
         assert mock_symlink.call_count == 4
+        assert mock_rmtree.call_count == 1
+
+    @mock.patch('crawler.dockercontainer.os.makedirs')
+    @mock.patch('crawler.dockercontainer.os.symlink')
+    @mock.patch('crawler.dockercontainer.shutil.rmtree')
+    @mock.patch('crawler.dockercontainer.get_docker_container_json_logs_path',
+                side_effect=mocked_get_container_json_logs_path)
+    def test_link_and_unlink_docker_json_logfile(self, mock_json_logs, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+        c = DockerContainer("valid_rootfs_id")
+        c.link_logfiles()
+        mock_symlink.assert_called_with('/var/lib/docker/abc/container/log.json',
+                                        '/var/log/crawler_container_logs/random_prefix/docker.log')
+        c.unlink_logfiles()
+        assert mock_symlink.call_count == 5
         assert mock_rmtree.call_count == 1
 
     @mock.patch('crawler.dockercontainer.os.makedirs')

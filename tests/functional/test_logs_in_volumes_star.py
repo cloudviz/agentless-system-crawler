@@ -73,14 +73,14 @@ class DockerContainerTests(unittest.TestCase):
         self.docker_container.log_file_list = [
             {'name': '/data/test*.log', 'type': None}]
 
-        self.docker_container._set_log_links_source_and_dest(
+        self.docker_container._set_logs_list(
             {'logcrawler':{'host_log_basedir':self.host_log_dir}})
         log_list = self.docker_container.logs_list
-        for log_dict in log_list:
-            if log_dict['name'] == '/data/test*.log':
-                assert os.path.basename(log_dict['dest']) in self.log_file_list
+        for log in log_list:
+            if log.name == '/data/test*.log':
+                assert os.path.basename(log.dest) in self.log_file_list
                 assert os.path.basename(
-                    log_dict['source']) in self.log_file_list
+                    log.source) in self.log_file_list
 
 if __name__ == '__main__':
     logging.basicConfig(filename='test_dockerutils.log', filemode='a',
