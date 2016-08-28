@@ -424,7 +424,10 @@ class Emitter:
         try:
             self._close_file()
             for url in self.urls:
-                self._publish(url)
+                try:
+                    self._publish(url)
+                except EmitterEmitTimeout as exc:
+                    logger.warning("Failed to emit due to timout, continuing anyway...")
         finally:
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
