@@ -1,3 +1,4 @@
+import logging
 import unittest
 import tempfile
 import os
@@ -17,7 +18,7 @@ def get_container_log_files(path, options):
 
 
 @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
-            side_effect=lambda id : 'rootfs')
+            side_effect=lambda id: 'rootfs')
 class DockerContainerTests(unittest.TestCase):
 
     def setUp(self):
@@ -28,7 +29,6 @@ class DockerContainerTests(unittest.TestCase):
             with open(os.path.join(self.volume, logf), 'w') as logp:
                 logp.write(logf)
 
-
     def tearDown(self):
         shutil.rmtree(self.volume)
         shutil.rmtree(self.host_log_dir)
@@ -36,41 +36,43 @@ class DockerContainerTests(unittest.TestCase):
     def test_get_logfiles_list(self, *args):
 
         inspect = {
-            "Id": "1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847",
+            "Id": ("1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea"
+                   "24e847"),
             "Created": "2016-07-06T16:38:05.479090842Z",
             "State": {
                 "Status": "running",
                 "Running": True,
-                "Pid": 11186
-            },
-            "Image": "sha256:07c86167cdc4264926fa5d2894e34a339ad27f730e8cc81a16cd21b7479e8eac",
+                "Pid": 11186},
+            "Image": ("sha256:07c86167cdc4264926fa5d2894e34a339ad27f730e8cc81a"
+                      "16cd21b7479e8eac"),
             "Name": "/pensive_rosalind",
-            "LogPath": "/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847-json.log",
-            "HostnamePath": "/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847/hostname",
+            "LogPath": ("/var/lib/docker/containers/1e744b5e3e11e848863fefe9d9"
+                        "a8b3731070c6b0c702a04d2b8ab948ea24e847/1e744b5e3e11e8"
+                        "48863fefe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847"
+                        "-json.log"),
+            "HostnamePath": ("/var/lib/docker/containers/1e744b5e3e11e848863fe"
+                             "fe9d9a8b3731070c6b0c702a04d2b8ab948ea24e847"
+                             "/hostname"),
             "Mounts": [],
             "Config": {
-                    "Cmd": [
-                        "bash"
-                    ],
-                "Image": "ubuntu:trusty"
-            },
+                "Cmd": ["bash"],
+                "Image": "ubuntu:trusty"},
             "docker_image_long_name": "long_name/short_name",
             "docker_image_short_name": "short_name",
             "docker_image_tag": "image_tag",
             "docker_image_registry": "image_registry",
             "owner_namespace": "owner_namespace",
-            "NetworkSettings": {
-            }
-        }
+            "NetworkSettings": {}}
         self.docker_container = crawler.dockercontainer.\
             DockerContainer(inspect['Id'], inspect)
 
-        self.docker_container._get_container_log_files = get_container_log_files
+        self.docker_container.\
+            _get_container_log_files = get_container_log_files
         self.docker_container.log_file_list = [
             {'name': '/data/test1.log', 'type': None}]
 
         self.docker_container._set_logs_list(
-            {'logcrawler':{'host_log_basedir':self.host_log_dir}})
+            {'logcrawler': {'host_log_basedir': self.host_log_dir}})
         log_list = self.docker_container.logs_list
         for log in log_list:
             if log.name == '/data/test1.log':
@@ -80,7 +82,10 @@ class DockerContainerTests(unittest.TestCase):
                 )
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='test_dockerutils.log', filemode='a',
-                        format='%(asctime)s %(levelname)s : %(message)s', level=logging.DEBUG)
+    logging.basicConfig(
+        filename='test_dockerutils.log',
+        filemode='a',
+        format='%(asctime)s %(levelname)s : %(message)s',
+        level=logging.DEBUG)
 
     unittest.main()

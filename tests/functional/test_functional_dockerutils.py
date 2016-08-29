@@ -1,10 +1,9 @@
+import logging
 import unittest
 import docker
 import requests.exceptions
 import tempfile
-import os
 import shutil
-import subprocess
 
 from crawler.dockerutils import (
     exec_dockerps,
@@ -26,9 +25,11 @@ class DockerUtilsTests(unittest.TestCase):
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
-                    "Sorry, this test requires a machine with no docker containers running.")
-        except requests.exceptions.ConnectionError as e:
-            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
+                    "Sorry, this test requires a machine with no docker"
+                    "containers running.")
+        except requests.exceptions.ConnectionError:
+            print ("Error connecting to docker daemon, are you in the docker"
+                   "group? You need to be in the docker group.")
 
         self.docker.pull(repository='alpine', tag='latest')
         self.container = self.docker.create_container(
@@ -70,7 +71,10 @@ class DockerUtilsTests(unittest.TestCase):
         assert root.startswith('/var/lib/docker')
 
     if __name__ == '__main__':
-        logging.basicConfig(filename='test_dockerutils.log', filemode='a',
-                            format='%(asctime)s %(levelname)s : %(message)s', level=logging.DEBUG)
+        logging.basicConfig(
+            filename='test_dockerutils.log',
+            filemode='a',
+            format='%(asctime)s %(levelname)s : %(message)s',
+            level=logging.DEBUG)
 
         unittest.main()

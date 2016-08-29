@@ -102,9 +102,12 @@ class MiscTests(unittest.TestCase):
     @mock.patch('crawler.misc.subprocess_run')
     def test_btrfs_list_subvolumes_with_list(self, mock_run):
         mock_run.return_value = (
-            'ID 257 gen 7 top level 5 path btrfs/subvolumes/a60a763cbaaedd3ac2b77bff939019fda876d8a187cb7e85789bb36377accbce\n'
-            'ID 258 gen 8 top level 5 path btrfs/subvolumes/9212798f6483145839c72f06a6bc2b0e456ca2b9ec14ea70e2948f098ce51077\n'
-            'ID 278 gen 1908 top level 5 path btrfs/subvolumes/7cd6c219c63e0282ddbd8437c9b2a0220aff40bbfd6734503bcd58e5afa28426\n')
+            ("ID 257 gen 7 top level 5 path btrfs/subvolumes/a60a763cbaaedd3ac"
+             "2b77bff939019fda876d8a187cb7e85789bb36377accbce\n"
+             "ID 258 gen 8 top level 5 path btrfs/subvolumes/9212798f648314583"
+             "9c72f06a6bc2b0e456ca2b9ec14ea70e2948f098ce51077\n"
+             "ID 278 gen 1908 top level 5 path btrfs/subvolumes/7cd6c219c63e02"
+             "82ddbd8437c9b2a0220aff40bbfd6734503bcd58e5afa28426\n"))
 
         assert list(
             crawler.misc.btrfs_list_subvolumes('asd')) == [
@@ -117,7 +120,8 @@ class MiscTests(unittest.TestCase):
                 'level',
                 '5',
                 'path',
-                'btrfs/subvolumes/a60a763cbaaedd3ac2b77bff939019fda876d8a187cb7e85789bb36377accbce'],
+                ("btrfs/subvolumes/a60a763cbaaedd3ac2b77bff939019fda876d8a187c"
+                    "b7e85789bb36377accbce")],
             [
                 'ID',
                 '258',
@@ -127,7 +131,8 @@ class MiscTests(unittest.TestCase):
                 'level',
                 '5',
                 'path',
-                'btrfs/subvolumes/9212798f6483145839c72f06a6bc2b0e456ca2b9ec14ea70e2948f098ce51077'],
+                ("btrfs/subvolumes/9212798f6483145839c72f06a6bc2b0e456ca2b9ec1"
+                    "4ea70e2948f098ce51077")],
             [
                 'ID',
                 '278',
@@ -137,4 +142,5 @@ class MiscTests(unittest.TestCase):
                 'level',
                 '5',
                 'path',
-                'btrfs/subvolumes/7cd6c219c63e0282ddbd8437c9b2a0220aff40bbfd6734503bcd58e5afa28426']]
+                ("btrfs/subvolumes/7cd6c219c63e0282ddbd8437c9b2a0220aff40bbfd6"
+                    "734503bcd58e5afa28426")]]

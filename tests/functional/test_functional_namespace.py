@@ -1,14 +1,13 @@
+import logging
 import unittest
 import docker
 import requests.exceptions
 import tempfile
-import os
 import shutil
-import subprocess
 import sys
 
 from crawler.namespace import run_as_another_namespace
-from crawler.crawler_exceptions import CrawlTimeoutError, CrawlError
+from crawler.crawler_exceptions import CrawlTimeoutError
 
 all_namespaces = ["user", "pid", "uts", "ipc", "net", "mnt"]
 
@@ -32,7 +31,7 @@ def func_crash(arg):
 
 def func_infinite_loop(arg):
     while True:
-        a = 1
+        pass
 
 # Tests conducted with a single container running.
 
@@ -46,9 +45,11 @@ class NamespaceLibTests(unittest.TestCase):
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
-                    "Sorry, this test requires a machine with no docker containers running.")
-        except requests.exceptions.ConnectionError as e:
-            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
+                    "Sorry, this test requires a machine with no docker"
+                    "containers running.")
+        except requests.exceptions.ConnectionError:
+            print ("Error connecting to docker daemon, are you in the docker"
+                   "group? You need to be in the docker group.")
 
         self.docker.pull(repository='alpine', tag='latest')
         self.container = self.docker.create_container(
@@ -78,27 +79,30 @@ class NamespaceLibTests(unittest.TestCase):
 
     def test_run_as_another_namespace_crashing_function(self):
         try:
-            res = run_as_another_namespace(
+            run_as_another_namespace(
                 self.pid, all_namespaces, func_crash, "arg")
-        except FooError, e:
+        except FooError:
             # we shuld get a FooError exception
             pass  # all good
-        except Exception, e:
-            assert false
+        except Exception:
+            assert False
 
     # TODO: why it fails here and not at old/test_namespace.py?
     def _test_run_as_another_namespace_infinite_loop_function(self):
         try:
-            res = run_as_another_namespace(
+            run_as_another_namespace(
                 self.pid, all_namespaces, func_infinite_loop, "arg")
-        except CrawlTimeoutError, e:
+        except CrawlTimeoutError:
             # we should get a TimeoutError exception
             pass  # all good
-        except Exception, e:
-            assert false
+        except Exception:
+            assert False
 
     if __name__ == '__main__':
-        logging.basicConfig(filename='test_namespace.log', filemode='a',
-                            format='%(asctime)s %(levelname)s : %(message)s', level=logging.DEBUG)
+        logging.basicConfig(
+            filename='test_namespace.log',
+            filemode='a',
+            format='%(asctime)s %(levelname)s : %(message)s',
+            level=logging.DEBUG)
 
         unittest.main()
