@@ -1,15 +1,15 @@
 import mock
 import unittest
-import os
 import requests
 import copy
-import shutil
 
 from crawler import crawler_exceptions
 from crawler.dockercontainer import DockerContainer, list_docker_containers
 
+
 def mocked_exists(pid):
     return True
+
 
 def mocked_docker_inspect(long_id):
     if long_id == 'no_container_id':
@@ -37,6 +37,7 @@ def mocked_docker_inspect(long_id):
         }
     inspect['Id'] = long_id
     return inspect
+
 
 def mocked_exec_dockerps():
     inspect1 = {
@@ -101,24 +102,31 @@ def mocked_exec_dockerps():
     }
     return [inspect1, inspect2, inspect3]
 
+
 def mocked_get_rootfs(long_id):
     if long_id == 'valid_rootfs_id':
         return '/tmp/something/docker/' + long_id
     else:
         raise requests.exceptions.HTTPError
 
-def mocked_symlink_oserror(a,b):
+
+def mocked_symlink_oserror(a, b):
     raise OSError()
 
-def mocked_symlink_exception(a,b):
+
+def mocked_symlink_exception(a, b):
     raise Exception()
+
 
 def mocked_rmtree_exception(path):
     raise OSError()
 
+
 class MockedRuntimeEnv():
+
     def get_environment_name(self):
         return 'cloudsight'
+
     def get_container_namespace(self, long_id, options):
         if long_id == 'good_id':
             return 'random_namespace'
@@ -130,23 +138,31 @@ class MockedRuntimeEnv():
             return None
         else:
             return 'other_namespace'
+
     def get_container_log_file_list(self, long_id, options):
         logs = copy.deepcopy(options['container_logs'])
         if long_id == 'good_id':
-            logs.extend([{'name':'/var/log/1', 'type':None}, {'name':'/var/log/2', 'type':None}])
+            logs.extend([{'name': '/var/log/1', 'type': None},
+                         {'name': '/var/log/2', 'type': None}])
         elif long_id == 'throw_value_error_id':
             raise ValueError()
         elif long_id == 'valid_rootfs_id':
-            logs.extend([{'name':'/var/log/1', 'type':None}, {'name':'/var/log/2', 'type':None}, {'name':'../../as','type':None}])
+            logs.extend([{'name': '/var/log/1', 'type': None},
+                         {'name': '/var/log/2', 'type': None},
+                         {'name': '../../as', 'type': None}])
         return logs
+
     def get_container_log_prefix(self, long_id, options):
         return 'random_prefix'
+
 
 def mocked_get_runtime_env():
     return MockedRuntimeEnv()
 
+
 def mocked_get_container_json_logs_path(id, inspect):
     return '/var/lib/docker/abc/container/log.json'
+
 
 @mock.patch('crawler.dockercontainer.exec_dockerps',
             side_effect=mocked_exec_dockerps)
@@ -157,13 +173,15 @@ def mocked_get_container_json_logs_path(id, inspect):
 @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
             side_effect=mocked_get_rootfs)
 class DockerDockerContainerTests(unittest.TestCase):
+
     def setUp(self):
         pass
 
     def tearDown(self):
         pass
 
-    def test_list_docker_containers(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_list_docker_containers(self, mock_get_rootfs, mock_inspect,
+                                    mocked_get_runtime_env, mocked_dockerps):
         n = 0
         for c in list_docker_containers():
             assert c.long_id == 'good_id'
@@ -171,23 +189,34 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert mocked_get_runtime_env.call_count == 3
         assert n == 2
 
-    def test_list_docker_containers_with_opts(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_list_docker_containers_with_opts(self, mock_get_rootfs,
+                                              mock_inspect,
+                                              mocked_get_runtime_env,
+                                              mocked_dockerps):
         n = 0
-        for c in list_docker_containers({'long_id_to_namespace_map':{'good_id':'good_id_namespace'}}):
+        for c in list_docker_containers({'long_id_to_namespace_map':
+                                         {'good_id': 'good_id_namespace'}}):
             assert c.long_id == 'good_id'
             assert c.namespace == 'good_id_namespace'
             n += 1
-        # get_namespace from the runtime_env is called only once because of the map
+        # get_namespace from the runtime_env is called only once because of the
+        # map
         assert mocked_get_runtime_env.call_count == 1
         assert n == 2
 
-    def test_init(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_init(
+            self,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("good_id")
         mock_inspect.assert_called()
         assert not c.root_fs
         assert mocked_get_runtime_env.call_count == 1
 
-    def test_init_from_inspect(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_init_from_inspect(self, mock_get_rootfs, mock_inspect,
+                               mocked_get_runtime_env, mocked_dockerps):
         inspect = {
             "Id": "good_id",
             "Created": "2016-07-06T16:38:05.479090842Z",
@@ -213,7 +242,9 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert not c.root_fs
         assert mocked_get_runtime_env.call_count == 1
 
-    def test_init_from_inspect_w_repotags(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_init_from_inspect_w_repotags(self, mock_get_rootfs, mock_inspect,
+                                          mocked_get_runtime_env,
+                                          mocked_dockerps):
         inspect = {
             "Id": "good_id",
             "Created": "2016-07-06T16:38:05.479090842Z",
@@ -245,7 +276,9 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert c.docker_image_registry == 'registry.com:123'
         assert c.owner_namespace == 'ric'
 
-    def test_init_from_inspect_w_repotags2(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_init_from_inspect_w_repotags2(self, mock_get_rootfs, mock_inspect,
+                                           mocked_get_runtime_env,
+                                           mocked_dockerps):
         inspect = {
             "Id": "good_id",
             "Created": "2016-07-06T16:38:05.479090842Z",
@@ -277,39 +310,74 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert c.docker_image_registry == 'registry.com:123'
         assert c.owner_namespace == ''
 
-    def test_init_failed(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_init_failed(self, mock_get_rootfs, mock_inspect,
+                         mocked_get_runtime_env, mocked_dockerps):
         with self.assertRaises(crawler_exceptions.ContainerNonExistent):
-            c = DockerContainer("no_container_id")
+            DockerContainer("no_container_id")
         assert mocked_get_runtime_env.call_count == 0
 
-    def test_init_wrong_environment(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_init_wrong_environment(
+            self,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         with self.assertRaises(crawler_exceptions.ContainerInvalidEnvironment):
-            c = DockerContainer("no_namespace")
+            DockerContainer("no_namespace")
         with self.assertRaises(crawler_exceptions.ContainerInvalidEnvironment):
-            c = DockerContainer("throw_bad_environment_exception_id")
+            DockerContainer("throw_bad_environment_exception_id")
         with self.assertRaises(Exception):
-            c = DockerContainer("throw_non_handled_exception_id")
+            DockerContainer("throw_non_handled_exception_id")
         with self.assertRaises(crawler_exceptions.ContainerInvalidEnvironment):
-            c = DockerContainer("throw_value_error_id")
+            DockerContainer("throw_value_error_id")
 
-    def test_is_docker(self, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_is_docker(
+            self,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("good_id")
         assert c.is_docker_container()
         print(c)
 
-    @mock.patch('crawler.dockercontainer.os.path.ismount', side_effect=lambda x: True if x == '/cgroup/memory' else False)
-    def test_memory_cgroup(self, mocked_ismount, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    @mock.patch('crawler.dockercontainer.os.path.ismount',
+                side_effect=lambda x: True if x == '/cgroup/memory' else False)
+    def test_memory_cgroup(
+            self,
+            mocked_ismount,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("good_id")
-        assert c.get_memory_cgroup_path('abc') == '/cgroup/memory/docker/good_id/abc'
+        assert c.get_memory_cgroup_path(
+            'abc') == '/cgroup/memory/docker/good_id/abc'
 
-    @mock.patch('crawler.dockercontainer.os.path.ismount', side_effect=lambda x: True if x == '/cgroup/cpuacct' else False)
-    def test_cpu_cgroup(self, mocked_ismount, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    @mock.patch(
+        'crawler.dockercontainer.os.path.ismount',
+        side_effect=lambda x: True if x == '/cgroup/cpuacct' else False)
+    def test_cpu_cgroup(
+            self,
+            mocked_ismount,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("good_id")
-        assert c.get_cpu_cgroup_path('abc') == '/cgroup/cpuacct/docker/good_id/abc'
+        assert c.get_cpu_cgroup_path(
+            'abc') == '/cgroup/cpuacct/docker/good_id/abc'
 
     @mock.patch('crawler.dockercontainer.os.makedirs')
     @mock.patch('crawler.dockercontainer.os.symlink')
-    def test_link_logfiles(self, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_link_logfiles(
+            self,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
         mock_symlink.assert_called_with(
@@ -319,9 +387,19 @@ class DockerDockerContainerTests(unittest.TestCase):
 
     @mock.patch('crawler.dockercontainer.os.makedirs')
     @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.misc.get_process_env',
-                side_effect=lambda x : {'LOG_LOCATIONS':'/var/env/1,/var/env/2'})
-    def test_link_logfiles_env_variable(self, mock_get_env, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    @mock.patch(
+        'crawler.dockercontainer.misc.get_process_env',
+        side_effect=lambda x: {
+            'LOG_LOCATIONS': '/var/env/1,/var/env/2'})
+    def test_link_logfiles_env_variable(
+            self,
+            mock_get_env,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
         mock_symlink.assert_called_with(
@@ -332,7 +410,14 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.os.makedirs')
     @mock.patch('crawler.dockercontainer.os.symlink',
                 side_effect=mocked_symlink_oserror)
-    def test_link_logfiles_symlink_oserror(self, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_link_logfiles_symlink_oserror(
+            self,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
         # no exceptoin should be thrown
@@ -340,7 +425,14 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.os.makedirs')
     @mock.patch('crawler.dockercontainer.os.symlink',
                 side_effect=mocked_symlink_exception)
-    def test_link_logfiles_symlink_exception(self, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_link_logfiles_symlink_exception(
+            self,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
         # no exceptoin should be thrown
@@ -348,7 +440,15 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.os.makedirs')
     @mock.patch('crawler.dockercontainer.os.symlink')
     @mock.patch('crawler.dockercontainer.shutil.rmtree')
-    def test_link_and_unlink_logfiles(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_link_and_unlink_logfiles(
+            self,
+            mock_rmtree,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
         mock_symlink.assert_called_with(
@@ -363,11 +463,21 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.shutil.rmtree')
     @mock.patch('crawler.dockercontainer.get_docker_container_json_logs_path',
                 side_effect=mocked_get_container_json_logs_path)
-    def test_link_and_unlink_docker_json_logfile(self, mock_json_logs, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_link_and_unlink_docker_json_logfile(
+            self,
+            mock_json_logs,
+            mock_rmtree,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
-        mock_symlink.assert_called_with('/var/lib/docker/abc/container/log.json',
-                                        '/var/log/crawler_container_logs/random_prefix/docker.log')
+        mock_symlink.assert_called_with(
+            '/var/lib/docker/abc/container/log.json',
+            '/var/log/crawler_container_logs/random_prefix/docker.log')
         c.unlink_logfiles()
         assert mock_symlink.call_count == 5
         assert mock_rmtree.call_count == 1
@@ -376,7 +486,15 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.os.symlink')
     @mock.patch('crawler.dockercontainer.shutil.rmtree',
                 side_effect=mocked_rmtree_exception)
-    def test_link_and_unlink_logfiles_failed_rmtree(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_link_and_unlink_logfiles_failed_rmtree(
+            self,
+            mock_rmtree,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         c = DockerContainer("valid_rootfs_id")
         c.link_logfiles()
         mock_symlink.assert_called_with(
@@ -390,7 +508,15 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.os.symlink')
     @mock.patch('crawler.dockercontainer.shutil.rmtree',
                 side_effect=mocked_rmtree_exception)
-    def test_links_with_mounts(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_links_with_mounts(
+            self,
+            mock_rmtree,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         inspect = {
             "Id": "valid_rootfs_id",
             "Created": "2016-07-06T16:38:05.479090842Z",
@@ -403,8 +529,8 @@ class DockerDockerContainerTests(unittest.TestCase):
             "Name": "/pensive_rosalind",
             # /var in the container is mapped to /mount/in/the/host
             # container was started with -v /var/in/the/host:/var
-            "Mounts": [{'Source':'/var/in/the/host',
-                        'Destination':'/var'}],
+            "Mounts": [{'Source': '/var/in/the/host',
+                        'Destination': '/var'}],
             "Config": {
                     "Cmd": [
                         "bash"
@@ -427,7 +553,15 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('crawler.dockercontainer.shutil.rmtree',
                 side_effect=mocked_rmtree_exception)
     # In older docker versions, the inspect field for Mounts was called Volumes
-    def test_links_with_volumes(self, mock_rmtree, mock_symlink, mock_makedirs, mock_get_rootfs, mock_inspect, mocked_get_runtime_env, mocked_dockerps):
+    def test_links_with_volumes(
+            self,
+            mock_rmtree,
+            mock_symlink,
+            mock_makedirs,
+            mock_get_rootfs,
+            mock_inspect,
+            mocked_get_runtime_env,
+            mocked_dockerps):
         inspect = {
             "Id": "valid_rootfs_id",
             "Created": "2016-07-06T16:38:05.479090842Z",
@@ -440,7 +574,7 @@ class DockerDockerContainerTests(unittest.TestCase):
             "Name": "/pensive_rosalind",
             # /var in the container is mapped to /mount/in/the/host
             # container was started with -v /var/in/the/host:/var
-            "Volumes": {'/var':'/var/in/the/host'},
+            "Volumes": {'/var': '/var/in/the/host'},
             "Config": {
                     "Cmd": [
                         "bash"
@@ -461,6 +595,7 @@ class DockerDockerContainerTests(unittest.TestCase):
     # TODO test _get_cgroup_dir when ismount fails
 
     def _test_non_implemented_methods(self):
+        c = DockerContainer("some_id")
         with self.assertRaises(NotImplementedError):
             c.get_memory_cgroup_path()
         with self.assertRaises(NotImplementedError):

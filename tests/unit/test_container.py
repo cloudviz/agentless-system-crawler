@@ -1,13 +1,15 @@
 import mock
 import unittest
-import os
 
 from crawler.container import Container
+
 
 def mocked_exists(pid):
     return True
 
+
 class ContainerTests(unittest.TestCase):
+
     def setUp(self):
         pass
 

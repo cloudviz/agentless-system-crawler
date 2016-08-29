@@ -1,6 +1,5 @@
 import mock
 import unittest
-import os
 
 from crawler.crawlutils import (snapshot_generic,
                                 snapshot_container,
@@ -9,6 +8,7 @@ from crawler.crawlmodes import Modes
 
 
 class MockedDockerContainer:
+
     def __init__(self):
         self.namespace = 'namespace'
         self.short_id = 'short_id'
@@ -20,10 +20,13 @@ class MockedDockerContainer:
         self.docker_image_short_name = 'image_short_name'
         self.docker_image_tag = 'image_tag'
         self.docker_image_registry = 'image_registry'
+
     def is_docker_container(self):
         return True
 
+
 class MockedEmitter:
+
     def __init__(self, urls=None, emitter_args=None, format='csv'):
         self.emitter_args = emitter_args
         if emitter_args['system_type'] == 'container':
@@ -46,6 +49,7 @@ class MockedEmitter:
         if self.emitter_args['system_type'] != 'mesos':
             assert self.args == ('linux', {'os': 'some_os'}, 'os')
 
+
 class MockedFeaturesCrawler:
 
     def __init__(self, *args, **kwargs):
@@ -55,6 +59,7 @@ class MockedFeaturesCrawler:
 
     def crawl_os(self, *args, **kwargs):
         yield ('linux', {'os': 'some_os'})
+
 
 class MockedFeaturesCrawlerFailure:
 
@@ -70,7 +75,9 @@ class MockedFeaturesCrawlerFailure:
 def throw_os_error(*args, **kwargs):
     raise OSError()
 
+
 class ContainerTests(unittest.TestCase):
+
     def setUp(self):
         pass
 
@@ -89,7 +96,6 @@ class ContainerTests(unittest.TestCase):
                                'kafka://ip:123/topic'],
                          ignore_exceptions=False)
         # MockedEmitter is doing all the checks
-
 
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawlerFailure, autospec=True)
@@ -117,7 +123,6 @@ class ContainerTests(unittest.TestCase):
                            ignore_exceptions=False)
         # MockedEmitter is doing all the checks
 
-
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawlerFailure, autospec=True)
     @mock.patch('crawler.crawlutils.Emitter',
@@ -132,7 +137,7 @@ class ContainerTests(unittest.TestCase):
                                ignore_exceptions=False)
 
     @mock.patch('crawler.crawlutils.snapshot_crawler_mesos_frame',
-                side_effect=lambda options : {'mesos'})
+                side_effect=lambda options: {'mesos'})
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_mesos(self, *args):
@@ -142,7 +147,6 @@ class ContainerTests(unittest.TestCase):
                              'kafka://ip:123/topic'],
                        ignore_exceptions=False)
         # MockedEmitter is doing all the checks
-
 
     @mock.patch('crawler.crawlutils.snapshot_crawler_mesos_frame',
                 side_effect=throw_os_error)

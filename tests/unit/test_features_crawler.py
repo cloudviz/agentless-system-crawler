@@ -1,9 +1,5 @@
 import mock
 import unittest
-import os
-import requests
-import copy
-import shutil
 import types
 from collections import namedtuple
 
@@ -13,7 +9,6 @@ from crawler.features import (
     OSFeature,
     ConfigFeature,
     DiskFeature,
-    MetricFeature,
     PackageFeature,
     MemoryFeature,
     CpuFeature,
@@ -170,7 +165,9 @@ psutils_memory = namedtuple('psutils_memory', 'used free buffers cached')
 psutils_cpu = namedtuple(
     'psutils_cpu',
     'idle nice user iowait system irq steal')
-psutils_net = namedtuple('psutils_net', 'bytes_sent bytes_recv packets_sent packets_recv errout errin')
+psutils_net = namedtuple(
+    'psutils_net',
+    'bytes_sent bytes_recv packets_sent packets_recv errout errin')
 
 
 def mocked_disk_partitions(all):
@@ -261,7 +258,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
         pass
 
     def test_init(self, *args):
-        fc = FeaturesCrawler()
+        FeaturesCrawler()
 
     @mock.patch('crawler.features_crawler.time.time',
                 side_effect=lambda: 123)
@@ -272,8 +269,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert fc._cache_get_value('ble') == (None, None)
         assert mocked_time.call_count == 1
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'os',
+            'version': 'os_version'})
     @mock.patch('crawler.features_crawler.platform.platform',
                 side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.misc.get_host_ip4_addresses',
@@ -290,13 +290,25 @@ class FeaturesCrawlerTests(unittest.TestCase):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for os in fc.crawl_os():
             print os
-            assert os == ('linux', OSFeature(boottime=1000, uptime=1, ipaddr=['1.1.1.1'], os='os', os_version='os_version', os_kernel='platform', architecture='machine'))
+            assert os == (
+                'linux',
+                OSFeature(
+                    boottime=1000,
+                    uptime=1,
+                    ipaddr=['1.1.1.1'],
+                    os='os',
+                    os_version='os_version',
+                    os_kernel='platform',
+                    architecture='machine'))
 
         for i, arg in enumerate(args):
             assert arg.call_count == 1
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'os',
+            'version': 'os_version'})
     @mock.patch('crawler.features_crawler.platform.platform',
                 side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.platform.system',
@@ -321,13 +333,25 @@ class FeaturesCrawlerTests(unittest.TestCase):
             for os in fc.crawl_os():
                 pass
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'os',
+            'version': 'os_version'})
     def test_crawl_os_mountpoint_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.MOUNTPOINT)
         for os in fc.crawl_os():
             print os
-            assert os == ('linux', OSFeature(boottime='unsupported', uptime='unsupported', ipaddr='0.0.0.0', os='os', os_version='os_version', os_kernel='unknown', architecture='unknown'))
+            assert os == (
+                'linux',
+                OSFeature(
+                    boottime='unsupported',
+                    uptime='unsupported',
+                    ipaddr='0.0.0.0',
+                    os='os',
+                    os_version='os_version',
+                    os_kernel='unknown',
+                    architecture='unknown'))
         for i, arg in enumerate(args):
             assert arg.call_count == 1
 
@@ -341,7 +365,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
 
     def test_crawl_os_outcontainer_mode_without_container_failure(self, *args):
         with self.assertRaises(ValueError):
-            fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER)
+            FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER)
 
     @mock.patch('crawler.features_crawler.platform.platform',
                 side_effect=lambda: 'platform')
@@ -357,28 +381,52 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda: 'machine')
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'os',
+            'version': 'os_version'})
     def test_crawl_os_outcontainer_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
         for os in fc.crawl_os():
             print os
-            assert os == ('linux', OSFeature(boottime=1000, uptime=1, ipaddr=['1.1.1.1'], os='os', os_version='os_version', os_kernel='platform', architecture='machine'))
+            assert os == (
+                'linux',
+                OSFeature(
+                    boottime=1000,
+                    uptime=1,
+                    ipaddr=['1.1.1.1'],
+                    os='os',
+                    os_version='os_version',
+                    os_kernel='platform',
+                    architecture='machine'))
         for i, arg in enumerate(args):
             assert arg.call_count == 1
 
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None : {'os': 'os', 'version': 'os_version'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'os',
+            'version': 'os_version'})
     def test_crawl_os_outcontainer_mode_avoidsetns(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer('xxxx'))
         for os in fc.crawl_os(avoid_setns=True):
             print os
-            assert os == ('linux', OSFeature(boottime='unsupported', uptime='unsupported', ipaddr='0.0.0.0', os='os', os_version='os_version', os_kernel='unknown', architecture='unknown'))
+            assert os == (
+                'linux',
+                OSFeature(
+                    boottime='unsupported',
+                    uptime='unsupported',
+                    ipaddr='0.0.0.0',
+                    os='os',
+                    os_version='os_version',
+                    os_kernel='unknown',
+                    architecture='unknown'))
         for i, arg in enumerate(args):
             print i, arg
             if i == 0:
@@ -405,11 +453,10 @@ class FeaturesCrawlerTests(unittest.TestCase):
 
     def _test_crawl_os_outvm_mode_without_vm_failure(self, *args):
         with self.assertRaises(ValueError):
-            fc = FeaturesCrawler(crawl_mode=Modes.OUTVM)
+            FeaturesCrawler(crawl_mode=Modes.OUTVM)
 
     @mock.patch('crawler.features_crawler.psvmi.context_init',
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
-
     @mock.patch('crawler.features_crawler.psvmi.system_info',
                 side_effect=lambda vmc: psvmi_sysinfo(1000,
                                                       '1.1.1.1',
@@ -950,8 +997,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
             assert f.write == 20
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.platform.system',
                 side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.linux_distribution',
@@ -975,8 +1025,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         args[0].assert_called_with('/', 'var/lib/dpkg', 0)
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.platform.system',
                 side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.linux_distribution',
@@ -993,8 +1046,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         args[0].assert_called_with('/', 'var/lib/dpkg', 0)
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'redhat', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'redhat',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True)
     @mock.patch('crawler.features_crawler.get_rpm_packages',
@@ -1014,8 +1070,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         args[0].assert_called_with('/', 'var/lib/rpm', 0, False)
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
     @mock.patch('crawler.features_crawler.platform.system',
@@ -1047,8 +1106,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True if 'dpkg' in p else False)
     @mock.patch('crawler.features_crawler.get_dpkg_packages',
@@ -1071,8 +1133,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'redhat', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'redhat',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True if 'rpm' in p else False)
     @mock.patch('crawler.features_crawler.get_rpm_packages',
@@ -1093,8 +1158,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch(
         'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
         side_effect=lambda long_id: '/a/b/c')
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True)
     @mock.patch('crawler.features_crawler.get_dpkg_packages',
@@ -1114,8 +1182,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 pkgarchitecture='x86')
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.features_crawler.osinfo.get_osinfo',
-                side_effect=lambda mount_point=None: {'os':'ubuntu', 'version':'123'})
+    @mock.patch(
+        'crawler.features_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
     @mock.patch('crawler.features_crawler.os.path.exists',
                 side_effect=lambda p: True)
     @mock.patch('crawler.features_crawler.get_dpkg_packages',
@@ -1159,10 +1230,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
 
     @mock.patch('crawler.features_crawler.psvmi.context_init',
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
-
     @mock.patch('crawler.features_crawler.psvmi.system_memory_info',
                 side_effect=lambda vmc: psvmi_memory(10, 20, 30, 40))
-
     def _test_crawl_memory_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -1288,7 +1357,6 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 1
 
-
     @mock.patch(
         'crawler.features_crawler.psutil.net_io_counters',
         side_effect=lambda pernic: {'interface1-unit-tests':
@@ -1302,13 +1370,25 @@ class FeaturesCrawlerTests(unittest.TestCase):
     def test_crawl_interface_invm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for (k, f) in fc.crawl_interface():
-            assert f == InterfaceFeature(if_octets_tx=0, if_octets_rx=0, if_packets_tx=0, if_packets_rx=0, if_errors_tx=0, if_errors_rx=0)
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
 
         # Each crawl in crawlutils.py instantiates a FeaturesCrawler object
 
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for (k, f) in fc.crawl_interface():
-            assert f == InterfaceFeature(if_octets_tx=0, if_octets_rx=0, if_packets_tx=0, if_packets_rx=0, if_errors_tx=0, if_errors_rx=0)
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
         assert args[0].call_count == 2
 
     @mock.patch('crawler.features_crawler.psutil.net_io_counters',
@@ -1343,19 +1423,31 @@ class FeaturesCrawlerTests(unittest.TestCase):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
         for (k, f) in fc.crawl_interface():
-            assert f == InterfaceFeature(if_octets_tx=0, if_octets_rx=0, if_packets_tx=0, if_packets_rx=0, if_errors_tx=0, if_errors_rx=0)
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
 
         # Each crawl in crawlutils.py instantiates a FeaturesCrawler object
 
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
         for (k, f) in fc.crawl_interface():
-            assert f == InterfaceFeature(if_octets_tx=0, if_octets_rx=0, if_packets_tx=0, if_packets_rx=0, if_errors_tx=0, if_errors_rx=0)
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
         assert args[0].call_count == 2
         assert args[1].call_count == 2
 
     @mock.patch('crawler.features_crawler.os.getloadavg',
-                side_effect=lambda : [1,2,3])
+                side_effect=lambda: [1, 2, 3])
     def test_crawl_load_invm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for (k, f) in fc.crawl_load():
@@ -1374,7 +1466,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
     @mock.patch('crawler.features_crawler.os.getloadavg',
-                side_effect=lambda : [1,2,3])
+                side_effect=lambda: [1, 2, 3])
     def test_crawl_load_outcontainer_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
@@ -1383,17 +1475,23 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
         assert args[1].call_count == 1
 
-
     @mock.patch('crawler.features_crawler.dockerutils.exec_dockerps',
-                side_effect=lambda : [{'State':{'Running':True},
-                                       'Image':'reg/image:latest',
-                                       'Config':{'Cmd':'command'},
-                                       'Name':'name',
-                                       'Id':'id'}])
+                side_effect=lambda: [{'State': {'Running': True},
+                                      'Image': 'reg/image:latest',
+                                      'Config': {'Cmd': 'command'},
+                                      'Name': 'name',
+                                      'Id': 'id'}])
     def test_crawl_dockerps_invm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.INVM)
         for (k, f) in fc.crawl_dockerps():
-            assert f == DockerPSFeature(Status=True, Created=0, Image='reg/image:latest', Ports=[], Command='command', Names='name', Id='id')
+            assert f == DockerPSFeature(
+                Status=True,
+                Created=0,
+                Image='reg/image:latest',
+                Ports=[],
+                Command='command',
+                Names='name',
+                Id='id')
         assert args[0].call_count == 1
 
     @mock.patch('crawler.features_crawler.dockerutils.exec_dockerps',
@@ -1406,8 +1504,9 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
 
     @mock.patch('crawler.features_crawler.dockerutils.exec_docker_history',
-                side_effect=lambda long_id : [{'Id':'image1', 'random':'abc'},
-                                              {'Id':'image2', 'random':'abc'}])
+                side_effect=lambda long_id: [
+                    {'Id': 'image1', 'random': 'abc'},
+                    {'Id': 'image2', 'random': 'abc'}])
     def test_crawl_dockerhistory_outcontainer_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))
@@ -1426,9 +1525,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 1
 
-
     @mock.patch('crawler.features_crawler.dockerutils.exec_dockerinspect',
-                side_effect=lambda long_id : {'Id':'image1', 'random':'abc'})
+                side_effect=lambda long_id: {'Id': 'image1', 'random': 'abc'})
     def test_crawl_dockerinspect_outcontainer_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                              container=DummyContainer(123))

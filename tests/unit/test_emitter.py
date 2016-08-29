@@ -1,14 +1,10 @@
 from capturing import Capturing
 import mock
 import unittest
-import docker
 import requests.exceptions
 import tempfile
 import os
-import shutil
-import subprocess
 import gzip
-import zlib
 
 import crawler.crawler_exceptions
 from crawler.emitter import Emitter
@@ -66,6 +62,7 @@ class MockProducer:
         if self.timeout:
             while True:
                 a = 1
+                assert a
 
 
 class MockTopic:
@@ -134,6 +131,7 @@ class EmitterTests(unittest.TestCase):
                                        'compress': True}) as emitter:
                 emitter.emit("dummy", {'test': 'bla'}, 'dummy')
         output = "%s" % _output
+        assert output
 
     def test_emitter_csv_simple_file(self):
         with Emitter(urls=['file:///tmp/test_emitter'],
@@ -641,7 +639,8 @@ class EmitterTests(unittest.TestCase):
         metadata = {}
         metadata['namespace'] = 'namespace777'
         retries = 2
-        with self.assertRaises(crawler.crawler_exceptions.EmitterUnsupportedFormat):
+        with self.assertRaises(
+                crawler.crawler_exceptions.EmitterUnsupportedFormat):
             with Emitter(urls=['kafka://1.1.1.1:123/badtopic'],
                          emitter_args=metadata,
                          format='blablafformat',
@@ -681,7 +680,8 @@ class EmitterTests(unittest.TestCase):
         metadata = {}
         metadata['namespace'] = 'namespace777'
         retries = 2
-        #with self.assertRaises(crawler.crawler_exceptions.EmitterEmitTimeout):
+        # with
+        # self.assertRaises(crawler.crawler_exceptions.EmitterEmitTimeout):
         with Emitter(urls=['kafka://1.1.1.1:123/timeouttopic'],
                      emitter_args=metadata,
                      max_emit_retries=retries,
@@ -724,7 +724,8 @@ class EmitterTests(unittest.TestCase):
             with self.assertRaises(RandomKafkaException):
                 crawler.emitter.kafka_send(
                     '1.1.1.1', path, 'graphite', 'badtopic')
-            with self.assertRaises(crawler.crawler_exceptions.EmitterUnsupportedFormat):
+            with self.assertRaises(
+                    crawler.crawler_exceptions.EmitterUnsupportedFormat):
                 crawler.emitter.kafka_send('1.1.1.1', path, 'xxx', 'badtopic')
         finally:
             os.remove(path)
@@ -774,7 +775,7 @@ class EmitterTests(unittest.TestCase):
                           'test4': 12345.00000},
                          'dummy_feature')
         """
-        The thing with the mtgraphite client is that it's a static long standing
+        The thing with the mtgraphite client is that it's a static long standin
         connection, so if you instantiate lots of Emitter's, the connection
         will be created once; i.e. the client will be instantiated once.
         """

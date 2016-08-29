@@ -1,52 +1,70 @@
 import mock
 import unittest
-import os
 
 from crawler.mtgraphite import MTGraphiteClient
 from crawler.crawler_exceptions import MTGraphiteInvalidTenant
 
+
 class MockedSocket:
+
     def settimeout(self, n):
         pass
+
     def write(self, str):
         return len(str)
 
+
 class MockedConnection:
+
     def __init__(self):
         print 'init mocked connection'
+
     def connect(self, *args):
         pass
+
     def getsockname(self):
         return ['host']
+
     def close(self):
         pass
+
     def write(self, str):
         return len(str)
+
     def read(self, n):
         return '1A' * n
 
+
 class MockedConnectionBadPassword:
+
     def __init__(self):
         print 'init mocked connection'
+
     def connect(self, *args):
         pass
+
     def getsockname(self):
         return ['host']
+
     def close(self):
         pass
+
     def write(self, str):
         return len(str)
+
     def read(self, n):
-        return '0A' * n # bad password
+        return '0A' * n  # bad password
+
 
 class MTGraphiteTests(unittest.TestCase):
+
     def setUp(self):
         pass
 
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda : 1000)
+    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda: 1000)
     def test_init(self, *args):
         mt = MTGraphiteClient('mtgraphite://2.2.2.2:123/crawler:password',
                               batch_send_every_t=1,
@@ -60,7 +78,7 @@ class MTGraphiteTests(unittest.TestCase):
         assert mt.password == 'password'
         args[0].assert_called()
 
-    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda : 1000)
+    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda: 1000)
     def test_init_bad_urls(self, *args):
 
         with self.assertRaises(ValueError):
@@ -88,13 +106,14 @@ class MTGraphiteTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mt = MTGraphiteClient('host')
         mt = MTGraphiteClient('mtgraphite://host.com:234/crawler:password')
+        assert mt
 
     @mock.patch('crawler.mtgraphite.time.sleep')
-    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda : 1000)
+    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda: 1000)
     @mock.patch('crawler.mtgraphite.socket.socket',
                 side_effect=lambda a, b: MockedSocket())
     @mock.patch('crawler.mtgraphite.ssl.wrap_socket',
-                side_effect=lambda s, cert_reqs : MockedConnection())
+                side_effect=lambda s, cert_reqs: MockedConnection())
     def test_send(self, *args):
         mt = MTGraphiteClient('mtgraphite://2.2.2.2:123/crawler:password',
                               batch_send_every_t=1000,
@@ -120,14 +139,14 @@ class MTGraphiteTests(unittest.TestCase):
         assert mt.msgset == []
 
         mt.close()
-        assert mt.conn == None
+        assert mt.conn is None
 
     @mock.patch('crawler.mtgraphite.time.sleep')
-    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda : 1000)
+    @mock.patch('crawler.mtgraphite.time.time', side_effect=lambda: 1000)
     @mock.patch('crawler.mtgraphite.socket.socket',
                 side_effect=lambda a, b: MockedSocket())
     @mock.patch('crawler.mtgraphite.ssl.wrap_socket',
-                side_effect=lambda s, cert_reqs : MockedConnectionBadPassword())
+                side_effect=lambda s, cert_reqs: MockedConnectionBadPassword())
     def test_send_bad_password(self, *args):
         mt = MTGraphiteClient('mtgraphite://2.2.2.2:123/crawler:password',
                               batch_send_every_t=1000,

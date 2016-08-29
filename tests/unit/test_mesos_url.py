@@ -2,6 +2,7 @@
 from mock import patch, Mock
 from crawler.mesos import fetch_stats
 
+
 @patch('crawler.mesos.urllib2.urlopen')
 def mytest(mock_urlopen):
     a = Mock()
@@ -9,7 +10,7 @@ def mytest(mock_urlopen):
     mock_urlopen.return_value = a
     res = fetch_stats("0.22.0")
     print res
-    if res == None:
+    if res is None:
         assert res
 
 
