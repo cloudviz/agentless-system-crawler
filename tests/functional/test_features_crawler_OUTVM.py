@@ -1,24 +1,16 @@
 import unittest
-import docker
-import requests.exceptions
-import tempfile
-import os
-import shutil
 import subprocess
 import time
 import re
 
-from crawler.emitter import Emitter
 from crawler.features_crawler import FeaturesCrawler
 
-from crawler.dockercontainer import DockerContainer
-from crawler.dockerutils import exec_dockerinspect
 
-from crawler.features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
-                              ProcessFeature, MetricFeature, ConnectionFeature,
-                              PackageFeature, MemoryFeature, CpuFeature,
-                              InterfaceFeature, LoadFeature, DockerPSFeature,
-                              DockerHistoryFeature, ModuleFeature, CpuHwFeature)
+from crawler.features import (
+    ProcessFeature,
+    MetricFeature,
+    MemoryFeature,
+)
 
 
 # Tests the FeaturesCrawler class
@@ -51,9 +43,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
 
     def initialize_crawlers(self):
         for _vmID in FeaturesCrawlerTests.vmIDs:
-            # follwoing regex match based pid find works, but no need for complexity!
-            # also not grepping for vm name helps when --pid=host is being used to run docker
-            #_qemu_pid = self.get_qemu_pid(_vmID[0])
+            # follwoing regex match based pid find works,
+            # but no need for complexity!
+            # Also not grepping for vm name helps when --pid=host is being
+            # used to run docker
+            # _qemu_pid = self.get_qemu_pid(_vmID[0])
             _vm = (_vmID[4], _vmID[1], _vmID[2], _vmID[3])  # vmID[4]=qemu_pid
             FeaturesCrawlerTests.crawlers.append(
                 FeaturesCrawler(crawl_mode='OUTVM', vm=_vm))
@@ -69,15 +63,25 @@ class FeaturesCrawlerTests(unittest.TestCase):
         subprocess.call(["cp", "psvmi/tests/disk.qcow2", disk_file])
         disk = "format=raw,file=" + disk_file
 
-        qemu_cmd = subprocess.Popen(("qemu-system-x86_64",
-                                     "-kernel", vmlinuz,
-                                     "-append", "init=psvmi_test_init root=/dev/sda console=ttyAMA0 console=ttyS0",
-                                     "-name", vm_name,
-                                     "-m", "512",
-                                     "-smp", "1",
-                                     "-drive", disk,
-                                     "-display", "none",
-                                     "-serial", serial))
+        qemu_cmd = subprocess.Popen(
+            ("qemu-system-x86_64",
+             "-kernel",
+             vmlinuz,
+             "-append",
+             ("init=psvmi_test_init root=/dev/sda console=ttyAMA0 "
+              "console=ttyS0"),
+             "-name",
+             vm_name,
+             "-m",
+             "512",
+             "-smp",
+             "1",
+             "-drive",
+             disk,
+             "-display",
+             "none",
+             "-serial",
+             serial))
 
         vmID.append(str(qemu_cmd.pid))  # vmID[4]=qemu_pid
 
@@ -191,7 +195,9 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 if p.pname == 'psvmi_test_init':
                     assert p.rss > 0
                     assert p.vms > 0
-                    assert p.mempct >= 0  # stritly speaking > 0 but due to rounding in features_crawler.py
+                    assert p.mempct >= 0
+                    # stritly speaking > 0 but due to rounding in
+                    # features_crawler.py
 
             # to see if 100% cpu util shows up for psvmi_test_init
             # time.sleep(1)

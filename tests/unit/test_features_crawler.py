@@ -405,7 +405,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
             assert arg.call_count == 1
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/a/b/c')
     @mock.patch(
         'crawler.features_crawler.osinfo.get_osinfo',
@@ -442,7 +443,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 arg.assert_called_with(prefix='/a/b/c')
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=throw_os_error)
     def test_crawl_os_container_mode_avoidsetns_failure(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
@@ -630,7 +632,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 pass
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/1/2/3')
     @mock.patch('crawler.features_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -685,7 +688,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         args[2].assert_called_with('/')
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/1/2/3')
     @mock.patch('crawler.features_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -801,7 +805,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 2  # codecs open
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/1/2/3')
     @mock.patch('crawler.features_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -821,7 +826,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1  # lstat
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/1/2/3')
     @mock.patch('crawler.features_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -1104,7 +1110,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/a/b/c')
     @mock.patch(
         'crawler.features_crawler.osinfo.get_osinfo',
@@ -1131,7 +1138,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch('crawler.features_crawler.run_as_another_namespace',
                 side_effect=mocked_run_as_another_namespace)
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/a/b/c')
     @mock.patch(
         'crawler.features_crawler.osinfo.get_osinfo',
@@ -1156,7 +1164,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
         args[2].assert_called_with(mount_point='/a/b/c')  # get_osinfo()
 
     @mock.patch(
-        'crawler.features_crawler.dockerutils.get_docker_container_rootfs_path',
+        ("crawler.features_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
         side_effect=lambda long_id: '/a/b/c')
     @mock.patch(
         'crawler.features_crawler.osinfo.get_osinfo',

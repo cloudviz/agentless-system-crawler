@@ -216,7 +216,9 @@ class DockerUtilsTests(unittest.TestCase):
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch(
         'crawler.dockerutils.os.path.isfile',
-        side_effect=lambda p: True if p == '/var/lib/docker/containers/id/id-json.log' else False)
+        side_effect=lambda p:
+            True if p == ("/var/lib/docker/containers/id/id-json.log")
+            else False)
     def test_get_json_logs_path_from_path(self, mock_isfile, mock_client):
         assert dockerutils.get_docker_container_json_logs_path(
             'id') == '/var/lib/docker/containers/id/id-json.log'
@@ -224,7 +226,8 @@ class DockerUtilsTests(unittest.TestCase):
     @mock.patch('crawler.dockerutils.docker.Client',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('crawler.dockerutils.os.path.isfile',
-                side_effect=lambda p: True if p == '/a/b/c/log.json' else False)
+                side_effect=lambda p:
+                    True if p == '/a/b/c/log.json' else False)
     def test_get_json_logs_path_from_daemon(self, mock_isfile, mock_client):
         assert dockerutils.get_docker_container_json_logs_path(
             'id') == '/a/b/c/log.json'
@@ -255,7 +258,9 @@ class DockerUtilsTests(unittest.TestCase):
     def test_get_rootfs_devicemapper(self, mock_open, mock_client):
         dockerutils.driver = 'devicemapper'
         assert dockerutils.get_docker_container_rootfs_path(
-            'id') == '/var/lib/docker/devicemapper/mnt/65fe676c24fe1faea1f06e222cc3811cc9b651c381702ca4f787ffe562a5e39b/rootfs'
+            'id') == ("/var/lib/docker/devicemapper/mnt/"
+                      "65fe676c24fe1faea1f06e222cc3811cc"
+                      "9b651c381702ca4f787ffe562a5e39b/rootfs")
 
     @mock.patch('crawler.dockerutils.docker.Client',
                 side_effect=lambda base_url, version: MockedClient())

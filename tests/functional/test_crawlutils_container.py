@@ -21,9 +21,11 @@ class CrawlutilsContainerTests(unittest.TestCase):
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
-                    "Sorry, this test requires a machine with no docker containers running.")
-        except requests.exceptions.ConnectionError as e:
-            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
+                    "Sorry, this test requires a machine with no docker"
+                    "containers running.")
+        except requests.exceptions.ConnectionError:
+            print ("Error connecting to docker daemon, are you in the docker"
+                   "group? You need to be in the docker group.")
 
         self.docker.pull(repository='ubuntu', tag='latest')
         self.container = self.docker.create_container(
@@ -38,16 +40,15 @@ class CrawlutilsContainerTests(unittest.TestCase):
         shutil.rmtree(self.tempd)
 
     def testCrawlContainer(self):
-        env = os.environ.copy()
-        mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
 
         crawler.crawlutils.snapshot_container(
-            urls=['file://' + self.tempd + '/out/crawler'],
+            urls=[
+                'file://' + self.tempd + '/out/crawler'],
             features='cpu,memory,interface,package',
             format='graphite',
-            container=crawler.dockercontainer.DockerContainer(self.container['Id'])
-        )
+            container=crawler.dockercontainer.DockerContainer(
+                self.container['Id']))
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -64,12 +65,10 @@ class CrawlutilsContainerTests(unittest.TestCase):
         f.close()
 
     def testCrawlInVm(self):
-        env = os.environ.copy()
-        mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
 
         crawler.crawlutils.snapshot_generic(
-            namespace = 'random_namespace',
+            namespace='random_namespace',
             urls=['file://' + self.tempd + '/out/crawler'],
             features='cpu,memory,interface,package',
             format='graphite',

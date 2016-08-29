@@ -2,15 +2,11 @@ import unittest
 import docker
 import requests.exceptions
 import tempfile
-import os
 import shutil
-import subprocess
 
-from crawler.emitter import Emitter
 from crawler.features_crawler import FeaturesCrawler
 
 from crawler.dockercontainer import DockerContainer
-from crawler.dockerutils import exec_dockerinspect
 
 
 # Tests the FeaturesCrawler class
@@ -26,9 +22,11 @@ class FeaturesCrawlerTests(unittest.TestCase):
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
-                    "Sorry, this test requires a machine with no docker containers running.")
-        except requests.exceptions.ConnectionError as e:
-            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
+                    "Sorry, this test requires a machine with no docker"
+                    "containers running.")
+        except requests.exceptions.ConnectionError:
+            print ("Error connecting to docker daemon, are you in the docker"
+                   "group? You need to be in the docker group.")
 
         self.docker.pull(repository='alpine', tag='latest')
         self.container = self.docker.create_container(
@@ -68,7 +66,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
     def test_features_crawler_crawl_outcontainer_processes(self):
         c = DockerContainer(self.container['Id'])
         crawler = FeaturesCrawler(crawl_mode='OUTCONTAINER', container=c)
-        assert len(list(crawler.crawl_processes())) == 2 # sleep + crawler
+        assert len(list(crawler.crawl_processes())) == 2  # sleep + crawler
 
     def test_features_crawler_crawl_outcontainer_mem(self):
         c = DockerContainer(self.container['Id'])
