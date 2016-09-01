@@ -24,7 +24,8 @@ except ImportError:
     psvmi = None
 
 from namespace import run_as_another_namespace, ALL_NAMESPACES
-from crawler_exceptions import CrawlError
+from crawler_exceptions import (CrawlError,
+                                CrawlUnsupportedPackageManager)
 import dockerutils
 from features import (OSFeature, FileFeature, ConfigFeature, DiskFeature,
                       ProcessFeature, MetricFeature, ConnectionFeature,
@@ -473,8 +474,7 @@ class FeaturesCrawler:
 
         assert os.path.isdir(root_dir)
 
-        if root_dir_alias is None:
-            root_dir_alias = root_dir
+        root_dir_alias = root_dir_alias or root_dir
         exclude_dirs = [os.path.join(root_dir, d) for d in
                         exclude_dirs]
         exclude_regex = r'|'.join([fnmatch.translate(d) for d in
@@ -570,68 +570,77 @@ class FeaturesCrawler:
         if self.crawl_mode == Modes.OUTVM:
             if psvmi is None:
                 raise NotImplementedError()
-            else:
-                list = psvmi.process_iter(self.get_vm_context())
+            proc_list = psvmi.process_iter(self.get_vm_context())
         else:
-            list = psutil.process_iter()
+            proc_list = psutil.process_iter()
 
-        for p in list:
+        for p in proc_list:
             create_time = (
                 p.create_time() if hasattr(
                     p.create_time,
                     '__call__') else p.create_time)
-            if create_time > created_since:
-                name = (p.name() if hasattr(p.name, '__call__'
-                                            ) else p.name)
-                cmdline = (p.cmdline() if hasattr(p.cmdline, '__call__'
-                                                  ) else p.cmdline)
-                pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
-                status = (p.status() if hasattr(p.status, '__call__'
-                                                ) else p.status)
-                if status == psutil.STATUS_ZOMBIE:
-                    cwd = 'unknown'  # invalid
-                else:
-                    try:
-                        cwd = (p.cwd() if hasattr(p, 'cwd') and
-                               hasattr(p.cwd, '__call__') else p.getcwd())
-                    except Exception:
-                        logger.error('Error crawling process %s for cwd'
-                                     % pid, exc_info=True)
-                        cwd = 'unknown'
-                ppid = (p.ppid() if hasattr(p.ppid, '__call__'
-                                            ) else p.ppid)
-                try:
-                    if (hasattr(p, 'num_threads') and
-                            hasattr(p.num_threads, '__call__')):
-                        num_threads = p.num_threads()
-                    else:
-                        num_threads = p.get_num_threads()
-                except:
-                    num_threads = 'unknown'
+            if create_time <= created_since:
+                continue
+            yield self._crawl_single_process(p)
 
-                try:
-                    username = (p.username() if hasattr(p, 'username') and
-                                hasattr(p.username, '__call__') else
-                                p.username)
-                except:
-                    username = 'unknown'
+    def _crawl_single_process(self, p):
+        """Returns a ProcessFeature"""
+        create_time = (
+            p.create_time() if hasattr(
+                p.create_time,
+                '__call__') else p.create_time)
 
-                openfiles = []
-                for f in p.get_open_files():
-                    openfiles.append(f.path)
-                openfiles.sort()
-                feature_key = '{0}/{1}'.format(name, pid)
-                yield (feature_key, ProcessFeature(
-                    str(' '.join(cmdline)),
-                    create_time,
-                    cwd,
-                    name,
-                    openfiles,
-                    pid,
-                    ppid,
-                    num_threads,
-                    username,
-                ))
+        name = (p.name() if hasattr(p.name, '__call__'
+                                    ) else p.name)
+        cmdline = (p.cmdline() if hasattr(p.cmdline, '__call__'
+                                          ) else p.cmdline)
+        pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
+        status = (p.status() if hasattr(p.status, '__call__'
+                                        ) else p.status)
+        if status == psutil.STATUS_ZOMBIE:
+            cwd = 'unknown'  # invalid
+        else:
+            try:
+                cwd = (p.cwd() if hasattr(p, 'cwd') and
+                       hasattr(p.cwd, '__call__') else p.getcwd())
+            except Exception:
+                logger.error('Error crawling process %s for cwd'
+                             % pid, exc_info=True)
+                cwd = 'unknown'
+        ppid = (p.ppid() if hasattr(p.ppid, '__call__'
+                                    ) else p.ppid)
+        try:
+            if (hasattr(p, 'num_threads') and
+                    hasattr(p.num_threads, '__call__')):
+                num_threads = p.num_threads()
+            else:
+                num_threads = p.get_num_threads()
+        except:
+            num_threads = 'unknown'
+
+        try:
+            username = (p.username() if hasattr(p, 'username') and
+                        hasattr(p.username, '__call__') else
+                        p.username)
+        except:
+            username = 'unknown'
+
+        openfiles = []
+        for f in p.get_open_files():
+            openfiles.append(f.path)
+        openfiles.sort()
+        feature_key = '{0}/{1}'.format(name, pid)
+        return (feature_key, ProcessFeature(
+            str(' '.join(cmdline)),
+            create_time,
+            cwd,
+            name,
+            openfiles,
+            pid,
+            ppid,
+            num_threads,
+            username,
+        ))
 
     # crawl network connection metadata
     def crawl_connections(self):
@@ -648,12 +657,11 @@ class FeaturesCrawler:
         if self.crawl_mode == Modes.OUTVM:
             if psvmi is None:
                 raise NotImplementedError()
-            else:
-                list = psvmi.process_iter(self.get_vm_context())
+            proc_list = psvmi.process_iter(self.get_vm_context())
         else:
-            list = psutil.process_iter()
+            proc_list = psutil.process_iter()
 
-        for p in list:
+        for p in proc_list:
             pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
             status = (p.status() if hasattr(p.status, '__call__'
                                             ) else p.status)
@@ -668,46 +676,45 @@ class FeaturesCrawler:
 
             if create_time <= created_since:
                 continue
-            try:
-                for c in p.get_connections():
-                    try:
-                        (localipaddr, localport) = c.laddr[:]
-                    except:
+            for conn in p.get_connections():
+                yield self._crawl_single_connection(conn, pid, name)
 
-                        # Older version of psutil uses local_address instead of
-                        # laddr.
+    def _crawl_single_connection(self, c, pid, name):
+        """Returns a ConnectionFeature"""
+        try:
+            (localipaddr, localport) = c.laddr[:]
+        except:
 
-                        (localipaddr, localport) = c.local_address[:]
-                    try:
-                        if c.raddr:
-                            (remoteipaddr, remoteport) = c.raddr[:]
-                        else:
-                            (remoteipaddr, remoteport) = (None, None)
-                    except:
+            # Older version of psutil uses local_address instead of
+            # laddr.
 
-                        # Older version of psutil uses remote_address instead
-                        # of raddr.
+            (localipaddr, localport) = c.local_address[:]
+        try:
+            if c.raddr:
+                (remoteipaddr, remoteport) = c.raddr[:]
+            else:
+                (remoteipaddr, remoteport) = (None, None)
+        except:
 
-                        if c.remote_address:
-                            (remoteipaddr, remoteport) = \
-                                c.remote_address[:]
-                        else:
-                            (remoteipaddr, remoteport) = (None, None)
-                    feature_key = '{0}/{1}/{2}'.format(pid,
-                                                       localipaddr, localport)
-                    yield (feature_key, ConnectionFeature(
-                        localipaddr,
-                        localport,
-                        name,
-                        pid,
-                        remoteipaddr,
-                        remoteport,
-                        str(c.status),
-                    ))
-            except Exception as e:
-                logger.error('Error crawling connection for process %s'
-                             % pid, exc_info=True)
-                raise CrawlError(e)
+            # Older version of psutil uses remote_address instead
+            # of raddr.
+
+            if c.remote_address:
+                (remoteipaddr, remoteport) = \
+                    c.remote_address[:]
+            else:
+                (remoteipaddr, remoteport) = (None, None)
+        feature_key = '{0}/{1}/{2}'.format(pid,
+                                           localipaddr, localport)
+        return (feature_key, ConnectionFeature(
+            localipaddr,
+            localport,
+            name,
+            pid,
+            remoteipaddr,
+            remoteport,
+            str(c.status),
+        ))
 
     # crawl performance metric data
 
@@ -857,56 +864,25 @@ class FeaturesCrawler:
 
         logger.debug('Crawling Packages')
 
-        result = osinfo.get_osinfo(mount_point=root_dir)
-        if result:
-            os_distro = result['os']
-        else:
-            os_distro = 'unknown'
-
-        if self.crawl_mode == Modes.INVM:
-
-            logger.debug('Using in-VM state information (crawl mode: ' +
-                         self.crawl_mode + ')')
+        if self.crawl_mode in (Modes.INVM, Modes.MOUNTPOINT):
             reload_needed = False
         elif self.crawl_mode == Modes.OUTCONTAINER:
-
-            logger.debug('Using outcontainer state information (crawl mode: ' +
-                         self.crawl_mode + ')')
             reload_needed = True
-        elif self.crawl_mode == Modes.MOUNTPOINT:
-
-            logger.debug('Using disk image information (crawl mode: ' +
-                         self.crawl_mode + ')')
-            reload_needed = False
         else:
             raise NotImplementedError('Unsupported crawl mode')
 
         installed_since = self.feature_epoch
-        if os_distro == 'unknown':
-            # Package feature is only valid for Linux platforms.
 
-            raise StopIteration()
-
-        pkg_manager = 'unknown'
-        if os_distro in ['ubuntu', 'debian']:
-            pkg_manager = 'dpkg'
-        elif os_distro in ['redhat', 'red hat', 'rhel', 'fedora', 'centos']:
-            pkg_manager = 'rpm'
-        elif os.path.exists(os.path.join(root_dir, 'var/lib/dpkg')):
-            pkg_manager = 'dpkg'
-        elif os.path.exists(os.path.join(root_dir, 'var/lib/rpm')):
-            pkg_manager = 'rpm'
+        pkg_manager = self._get_package_manager(root_dir)
 
         try:
             if pkg_manager == 'dpkg':
-                if not dbpath:
-                    dbpath = 'var/lib/dpkg'
+                dbpath = dbpath or 'var/lib/dpkg'
                 for (key, feature) in get_dpkg_packages(
                         root_dir, dbpath, installed_since):
                     yield (key, feature)
             elif pkg_manager == 'rpm':
-                if not dbpath:
-                    dbpath = 'var/lib/rpm'
+                dbpath = dbpath or 'var/lib/rpm'
                 for (key, feature) in get_rpm_packages(
                         root_dir, dbpath, installed_since, reload_needed):
                     yield (key, feature)
@@ -916,6 +892,24 @@ class FeaturesCrawler:
             logger.error('Error crawling packages',
                          exc_info=True)
             raise CrawlError(e)
+
+    def _get_package_manager(self, root_dir):
+        result = osinfo.get_osinfo(mount_point=root_dir)
+        if result:
+            os_distro = result['os']
+        else:
+            raise CrawlUnsupportedPackageManager()
+
+        pkg_manager = None
+        if os_distro in ['ubuntu', 'debian']:
+            pkg_manager = 'dpkg'
+        elif os_distro in ['redhat', 'red hat', 'rhel', 'fedora', 'centos']:
+            pkg_manager = 'rpm'
+        elif os.path.exists(os.path.join(root_dir, 'var/lib/dpkg')):
+            pkg_manager = 'dpkg'
+        elif os.path.exists(os.path.join(root_dir, 'var/lib/rpm')):
+            pkg_manager = 'rpm'
+        return pkg_manager
 
     # crawl virtual memory information
 
@@ -952,36 +946,8 @@ class FeaturesCrawler:
 
         elif self.crawl_mode == Modes.OUTCONTAINER:
 
-            used = buffered = cached = free = 'unknown'
             try:
-                with open(self.container.get_memory_cgroup_path('memory.stat'
-                                                                ), 'r') as f:
-                    for line in f:
-                        (key, value) = line.strip().split(' ')
-                        if key == 'total_cache':
-                            cached = int(value)
-                        if key == 'total_active_file':
-                            buffered = int(value)
-
-                with open(self.container.get_memory_cgroup_path(
-                        'memory.limit_in_bytes'), 'r') as f:
-                    limit = int(f.readline().strip())
-
-                with open(self.container.get_memory_cgroup_path(
-                        'memory.usage_in_bytes'), 'r') as f:
-                    used = int(f.readline().strip())
-
-                host_free = psutil.virtual_memory().free
-                container_total = used + min(host_free, limit - used)
-                free = container_total - used
-
-                if 'unknown' not in [used, free] and (free + used) > 0:
-                    util_percentage = float(used) / (free + used) * 100.0
-                else:
-                    util_percentage = 'unknown'
-
-                feature_attributes = MemoryFeature(
-                    used, buffered, cached, free, util_percentage)
+                feature_attributes = self._crawl_memory_outcontainer()
             except Exception as e:
 
                 logger.error('Error crawling memory', exc_info=True)
@@ -990,6 +956,36 @@ class FeaturesCrawler:
             raise NotImplementedError('Unsupported crawl mode')
 
         yield (feature_key, feature_attributes)
+
+    def _crawl_memory_outcontainer(self):
+        used = buffered = cached = free = 'unknown'
+        with open(self.container.get_memory_cgroup_path('memory.stat'
+                                                        ), 'r') as f:
+            for line in f:
+                (key, value) = line.strip().split(' ')
+                if key == 'total_cache':
+                    cached = int(value)
+                if key == 'total_active_file':
+                    buffered = int(value)
+
+        with open(self.container.get_memory_cgroup_path(
+                'memory.limit_in_bytes'), 'r') as f:
+            limit = int(f.readline().strip())
+
+        with open(self.container.get_memory_cgroup_path(
+                'memory.usage_in_bytes'), 'r') as f:
+            used = int(f.readline().strip())
+
+        host_free = psutil.virtual_memory().free
+        container_total = used + min(host_free, limit - used)
+        free = container_total - used
+
+        if 'unknown' not in [used, free] and (free + used) > 0:
+            util_percentage = float(used) / (free + used) * 100.0
+        else:
+            util_percentage = 'unknown'
+
+        return MemoryFeature(used, buffered, cached, free, util_percentage)
 
     def _save_container_cpu_times(self, container_long_id, times):
         cache_key = container_long_id
@@ -1003,138 +999,134 @@ class FeaturesCrawler:
 
         logger.debug('Crawling cpu information')
 
-        if self.crawl_mode not in [
-                Modes.INVM,
-                Modes.OUTCONTAINER,
-                Modes.OUTVM]:
-            raise NotImplementedError('Unsupported crawl mode')
-
-        host_cpu_feature = {}
-        if self.crawl_mode in [Modes.INVM, Modes.OUTCONTAINER]:
-            for (index, cpu) in \
-                    enumerate(psutil.cpu_times_percent(percpu=True)):
-
-                idle = cpu.idle
-                nice = cpu.nice
-                user = cpu.user
-                wait = cpu.iowait
-                system = cpu.system
-                interrupt = cpu.irq
-                steal = cpu.steal
-
-                used = 100 - int(idle)
-
-                feature_key = '{0}-{1}'.format('cpu', index)
-                feature_attributes = CpuFeature(
-                    idle,
-                    nice,
-                    user,
-                    wait,
-                    system,
-                    interrupt,
-                    steal,
-                    used,
-                )
-                host_cpu_feature[index] = feature_attributes
-                if self.crawl_mode == Modes.INVM:
-                    yield (feature_key, feature_attributes)
-
-        if self.crawl_mode == Modes.OUTVM:
-            raise NotImplementedError()
-
-        if self.crawl_mode == Modes.OUTCONTAINER:
-
-            if per_cpu:
-                stat_file_name = 'cpuacct.usage_percpu'
-            else:
-                stat_file_name = 'cpuacct.usage'
-
-            container = self.container
-
+        if self.crawl_mode == Modes.INVM:
+            for key, feature in self._crawl_cpu_invm():
+                yield (key, feature)
+        elif self.crawl_mode == Modes.OUTCONTAINER:
             try:
-                (cpu_usage_t1, prev_time) = \
-                    self._get_prev_container_cpu_times(container.long_id)
-
-                if cpu_usage_t1:
-                    logger.debug('Using previous cpu times for container %s'
-                                 % container.long_id)
-                    interval = time.time() - prev_time
-
-                if not cpu_usage_t1 or interval == 0:
-                    logger.debug(
-                        'There are no previous cpu times for container %s '
-                        'so we will be sleeping for 100 milliseconds' %
-                        container.long_id)
-
-                    with open(container.get_cpu_cgroup_path(stat_file_name),
-                              'r') as f:
-                        cpu_usage_t1 = f.readline().strip().split(' ')
-                    interval = 0.1  # sleep for 100ms
-                    time.sleep(interval)
-
-                with open(container.get_cpu_cgroup_path(stat_file_name),
-                          'r') as f:
-                    cpu_usage_t2 = f.readline().strip().split(' ')
-
-                # Store the cpu times for the next crawl
-
-                self._save_container_cpu_times(container.long_id,
-                                               cpu_usage_t2)
-
-                cpu_user_system = {}
-                path = container.get_cpu_cgroup_path('cpuacct.stat')
-                with open(path, 'r') as f:
-                    for line in f:
-                        m = re.search(r"(system|user)\s+(\d+)", line)
-                        if m:
-                            cpu_user_system[m.group(1)] = \
-                                float(m.group(2))
+                for key, feature in self._crawl_cpu_outcontainer(per_cpu):
+                    yield (key, feature)
             except Exception as e:
                 logger.error('Error crawling cpu information',
                              exc_info=True)
                 raise CrawlError(e)
+        else:
+            raise NotImplementedError('Unsupported crawl mode')
 
-            for (index, cpu_usage_ns) in enumerate(cpu_usage_t1):
-                usage_secs = (float(cpu_usage_t2[index]) -
-                              float(cpu_usage_ns)) / float(1e9)
+    def _crawl_cpu_outcontainer(self, per_cpu=False):
+        host_cpu_feature = {}
+        for (idx, cpu) in enumerate(psutil.cpu_times_percent(percpu=True)):
+            host_cpu_feature[idx] = CpuFeature(
+                cpu.idle,
+                cpu.nice,
+                cpu.user,
+                cpu.iowait,
+                cpu.system,
+                cpu.irq,
+                cpu.steal,
+                100 - int(cpu.idle),
+            )
 
-                # Interval is never 0 because of step 0 (forcing a sleep)
+        if per_cpu:
+            stat_file_name = 'cpuacct.usage_percpu'
+        else:
+            stat_file_name = 'cpuacct.usage'
 
-                usage_percent = usage_secs / interval * 100.0
-                if usage_percent > 100.0:
-                    usage_percent = 100.0
-                idle = 100.0 - usage_percent
+        container = self.container
 
-                # Approximation 1
+        (cpu_usage_t1, prev_time) = (
+            self._get_prev_container_cpu_times(container.long_id))
 
-                user_plus_sys_hz = cpu_user_system['user'] \
-                    + cpu_user_system['system']
-                if user_plus_sys_hz == 0:
-                    # Fake value to avoid divide by zero.
-                    user_plus_sys_hz = 0.1
-                user = usage_percent * (cpu_user_system['user'] /
-                                        user_plus_sys_hz)
-                system = usage_percent * (cpu_user_system['system'] /
-                                          user_plus_sys_hz)
+        if cpu_usage_t1:
+            logger.debug('Using previous cpu times for container %s'
+                         % container.long_id)
+            interval = time.time() - prev_time
+        else:
+            logger.debug(
+                'There are no previous cpu times for container %s '
+                'so we will be sleeping for 100 milliseconds' %
+                container.long_id)
 
-                # Approximation 2
+            with open(container.get_cpu_cgroup_path(stat_file_name),
+                      'r') as f:
+                cpu_usage_t1 = f.readline().strip().split(' ')
+            interval = 0.1  # sleep for 100ms
+            time.sleep(interval)
 
-                nice = host_cpu_feature[index][1]
-                wait = host_cpu_feature[index][3]
-                interrupt = host_cpu_feature[index][5]
-                steal = host_cpu_feature[index][6]
-                feature_key = '{0}-{1}'.format('cpu', index)
-                feature_attributes = CpuFeature(
-                    idle,
-                    nice,
-                    user,
-                    wait,
-                    system,
-                    interrupt,
-                    steal,
-                    usage_percent,
-                )
-                yield (feature_key, feature_attributes)
+        with open(container.get_cpu_cgroup_path(stat_file_name),
+                  'r') as f:
+            cpu_usage_t2 = f.readline().strip().split(' ')
+
+        # Store the cpu times for the next crawl
+
+        self._save_container_cpu_times(container.long_id,
+                                       cpu_usage_t2)
+
+        cpu_user_system = {}
+        path = container.get_cpu_cgroup_path('cpuacct.stat')
+        with open(path, 'r') as f:
+            for line in f:
+                m = re.search(r"(system|user)\s+(\d+)", line)
+                if m:
+                    cpu_user_system[m.group(1)] = \
+                        float(m.group(2))
+
+        for (index, cpu_usage_ns) in enumerate(cpu_usage_t1):
+            usage_secs = (float(cpu_usage_t2[index]) -
+                          float(cpu_usage_ns)) / float(1e9)
+
+            # Interval is never 0 because of step 0 (forcing a sleep)
+
+            usage_percent = usage_secs / interval * 100.0
+            if usage_percent > 100.0:
+                usage_percent = 100.0
+            idle = 100.0 - usage_percent
+
+            # Approximation 1
+
+            user_plus_sys_hz = cpu_user_system['user'] \
+                + cpu_user_system['system']
+            if user_plus_sys_hz == 0:
+                # Fake value to avoid divide by zero.
+                user_plus_sys_hz = 0.1
+            user = usage_percent * (cpu_user_system['user'] /
+                                    user_plus_sys_hz)
+            system = usage_percent * (cpu_user_system['system'] /
+                                      user_plus_sys_hz)
+
+            # Approximation 2
+
+            nice = host_cpu_feature[index][1]
+            wait = host_cpu_feature[index][3]
+            interrupt = host_cpu_feature[index][5]
+            steal = host_cpu_feature[index][6]
+            feature_key = '{0}-{1}'.format('cpu', index)
+            feature_attributes = CpuFeature(
+                idle,
+                nice,
+                user,
+                wait,
+                system,
+                interrupt,
+                steal,
+                usage_percent,
+            )
+            yield (feature_key, feature_attributes)
+
+    def _crawl_cpu_invm(self):
+        for (idx, cpu) in enumerate(psutil.cpu_times_percent(percpu=True)):
+            feature_attributes = CpuFeature(
+                cpu.idle,
+                cpu.nice,
+                cpu.user,
+                cpu.iowait,
+                cpu.system,
+                cpu.irq,
+                cpu.steal,
+                100 - int(cpu.idle),
+            )
+            feature_key = '{0}-{1}'.format('cpu', idx)
+            yield (feature_key, feature_attributes)
 
     def crawl_interface(self):
         _mode = self.crawl_mode
