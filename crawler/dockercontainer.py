@@ -56,6 +56,9 @@ class LogFileLink():
         if host_log_dir:
             self.dest = misc.join_abs_paths(host_log_dir, name)
 
+    def __str__(self):
+        return "%s: %s --> %s" % (self.name, self.source, self.dest)
+
 
 class DockerContainer(Container):
 
@@ -339,10 +342,9 @@ class DockerContainer(Container):
         if not self.mounts:
             source = misc.join_abs_paths(rootfs_path, log.name)
             if "*" in source:
-                _logs = [LogFileLink(name=log.name,
+                _logs = [LogFileLink(name=s.split(rootfs_path, 1)[1],
                                      source=s,
                                      type=log.type,
-                                     dest=s.split(rootfs_path, 1)[1],
                                      host_log_dir=host_log_dir)
                          for s in glob.glob(source)]
             else:
@@ -372,10 +374,9 @@ class DockerContainer(Container):
             else:
                 source = misc.join_abs_paths(rootfs_path, log.name)
                 if "*" in source:
-                    _logs = [LogFileLink(name=log.name,
+                    _logs = [LogFileLink(name=s.split(rootfs_path, 1)[1],
                                          source=s,
                                          type=log.type,
-                                         dest=s.split(rootfs_path, 1)[1],
                                          host_log_dir=host_log_dir)
                              for s in glob.glob(source)]
                 else:
