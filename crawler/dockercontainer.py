@@ -56,6 +56,9 @@ class LogFileLink():
         if host_log_dir:
             self.dest = misc.join_abs_paths(host_log_dir, name)
 
+    def __str__(self):
+        return "%s: %s --> %s" % (self.name, self.source, self.dest)
+
 
 class DockerContainer(Container):
 
@@ -339,10 +342,9 @@ class DockerContainer(Container):
         if not self.mounts:
             source = misc.join_abs_paths(rootfs_path, log.name)
             if "*" in source:
-                _logs = [LogFileLink(name=log.name,
+                _logs = [LogFileLink(name=s.split(rootfs_path, 1)[1],
                                      source=s,
                                      type=log.type,
-                                     dest=s.split(rootfs_path, 1)[1],
                                      host_log_dir=host_log_dir)
                          for s in glob.glob(source)]
             else:
@@ -372,10 +374,9 @@ class DockerContainer(Container):
             else:
                 source = misc.join_abs_paths(rootfs_path, log.name)
                 if "*" in source:
-                    _logs = [LogFileLink(name=log.name,
+                    _logs = [LogFileLink(name=s.split(rootfs_path, 1)[1],
                                          source=s,
                                          type=log.type,
-                                         dest=s.split(rootfs_path, 1)[1],
                                          host_log_dir=host_log_dir)
                              for s in glob.glob(source)]
                 else:
@@ -403,11 +404,14 @@ class DockerContainer(Container):
                 self.short_id)
             return
 
-        # remove relative paths
-        self.logs_list_input[:] = [log for log in self.logs_list_input
-                                   if os.path.isabs(log.name)]
-
         for log in self.logs_list_input:
+
+            # remove relative paths
+            if (not os.path.isabs(log.name)) or ('../' in log.name):
+                logger.warning('User provided a log file path that is not '
+                               'absolute: %s' % log.name)
+                continue
+
             _logs = self._expand_and_map_log_link(log,
                                                   host_log_dir,
                                                   rootfs_path)
