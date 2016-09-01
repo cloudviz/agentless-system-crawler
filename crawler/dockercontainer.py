@@ -404,11 +404,14 @@ class DockerContainer(Container):
                 self.short_id)
             return
 
-        # remove relative paths
-        self.logs_list_input[:] = [log for log in self.logs_list_input
-                                   if os.path.isabs(log.name)]
-
         for log in self.logs_list_input:
+
+            # remove relative paths
+            if (not os.path.isabs(log.name)) or ('../' in log.name):
+                logger.warning('User provided a log file path that is not '
+                               'absolute: %s' % log.name)
+                continue
+
             _logs = self._expand_and_map_log_link(log,
                                                   host_log_dir,
                                                   rootfs_path)
