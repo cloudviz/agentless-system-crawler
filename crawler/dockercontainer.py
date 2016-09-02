@@ -53,11 +53,15 @@ class LogFileLink():
         self.type = type
         self.source = source
         self.dest = dest
-        if host_log_dir:
-            self.dest = misc.join_abs_paths(host_log_dir, name)
+        self.host_log_dir = host_log_dir
 
     def __str__(self):
-        return "%s: %s --> %s" % (self.name, self.source, self.dest)
+            return "%s: %s --> %s" % (self.name, self.source, self.dest)
+
+    def get_dest(self):
+        if self.host_log_dir:
+            return misc.join_abs_paths(self.host_log_dir, self.dest)
+        return self.dest
 
 
 class DockerContainer(Container):
@@ -253,22 +257,23 @@ class DockerContainer(Container):
         # Create a symlink from src to dst
 
         for log in self.logs_list:
+            dest = log.get_dest()
             try:
                 if not os.path.exists(log.source):
                     logger.debug(
                         'Log file %s does not exist, but linking it anyway'
                         % log.source)
-                dest_dir = os.path.dirname(log.dest)
+                dest_dir = os.path.dirname(dest)
                 if not os.path.exists(dest_dir):
                     os.makedirs(dest_dir)
-                os.symlink(log.source, log.dest)
+                os.symlink(log.source, dest)
                 logger.info(
                     'Linking container %s %s logfile %s -> %s' %
-                    (self.short_id, log.name, log.source, log.dest))
+                    (self.short_id, log.name, log.source, dest))
             except (OSError, IOError) as e:
                 logger.debug(e)
                 logger.debug('Link already exists: %s -> %s'
-                             % (log.source, log.dest))
+                             % (log.source, dest))
             except Exception as e:
                 logger.warning(e)
 
@@ -342,15 +347,17 @@ class DockerContainer(Container):
         if not self.mounts:
             source = misc.join_abs_paths(rootfs_path, log.name)
             if "*" in source:
-                _logs = [LogFileLink(name=s.split(rootfs_path, 1)[1],
+                _logs = [LogFileLink(name=log.name,
                                      source=s,
                                      type=log.type,
+                                     dest=s.split(rootfs_path, 1)[1],
                                      host_log_dir=host_log_dir)
                          for s in glob.glob(source)]
             else:
                 _logs = [LogFileLink(name=log.name,
                                      type=log.type,
                                      source=source,
+                                     dest=log.name,
                                      host_log_dir=host_log_dir)]
 
         for mount in self.mounts:
@@ -369,19 +376,22 @@ class DockerContainer(Container):
                 else:
                     _logs = [LogFileLink(name=log.name,
                                          source=source,
+                                         dest=log.name,
                                          type=log.type,
                                          host_log_dir=host_log_dir)]
             else:
                 source = misc.join_abs_paths(rootfs_path, log.name)
                 if "*" in source:
-                    _logs = [LogFileLink(name=s.split(rootfs_path, 1)[1],
+                    _logs = [LogFileLink(name=log.name,
                                          source=s,
                                          type=log.type,
+                                         dest=s.split(rootfs_path, 1)[1],
                                          host_log_dir=host_log_dir)
                              for s in glob.glob(source)]
                 else:
                     _logs = [LogFileLink(name=log.name,
                                          source=source,
+                                         dest=log.name,
                                          type=log.type,
                                          host_log_dir=host_log_dir)]
         return _logs
@@ -404,8 +414,8 @@ class DockerContainer(Container):
                 self.short_id)
             return
 
+        # remove relative paths
         for log in self.logs_list_input:
-
             # remove relative paths
             if (not os.path.isabs(log.name)) or ('../' in log.name):
                 logger.warning('User provided a log file path that is not '
