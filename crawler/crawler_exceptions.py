@@ -16,6 +16,13 @@ class CrawlTimeoutError(CrawlError):
     pass
 
 
+class CrawlUnsupportedPackageManager(CrawlError):
+
+    """Could not detect what is the package manager."""
+
+    pass
+
+
 class ContainerInvalidEnvironment(Exception):
 
     """Indicates that the environment can not be applied to the operation."""
