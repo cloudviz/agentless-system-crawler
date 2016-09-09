@@ -43,6 +43,7 @@ class ContainerWithoutCgroups(Exception):
 
     pass
 
+
 class DockerutilsException(Exception):
 
     """Exception from the dockerutils module."""
