@@ -4,14 +4,10 @@ import logging
 
 # External dependencies that must be pip install'ed separately
 
-import psutil
-
 import defaults
-from container import Container
+import container
 import misc
-import namespace
 from dockercontainer import list_docker_containers
-from crawler_exceptions import ContainerInvalidEnvironment
 
 logger = logging.getLogger('crawlutils')
 
@@ -25,59 +21,19 @@ def list_all_containers(user_list='ALL',
     A running container is defined as a process subtree with the `pid`
     namespace different to the `init` process `pid` namespace.
     """
-    all_docker_containers = list_docker_containers(container_opts)
+    visited_ns = set()  # visited PID namespaces
 
-    if user_list in ['ALL', 'all', 'All']:
-        init_ns = namespace.get_pid_namespace(1)
+    for _container in list_docker_containers(container_opts, user_list):
+        curr_ns = _container.process_namespace
+        if curr_ns not in visited_ns:
+            visited_ns.add(curr_ns)
+            yield _container
 
-        visited_ns = set()  # visited PID namespaces
-
-        # Start with all docker containers
-
-        for container in all_docker_containers:
-            curr_ns = namespace.get_pid_namespace(container.pid)
-            if not curr_ns:
-                continue
-            if curr_ns not in visited_ns and curr_ns != init_ns:
-                visited_ns.add(curr_ns)
-                try:
-                    yield container
-                except ContainerInvalidEnvironment as e:
-                    logger.exception(e)
-
-        # Continue with all other containers not known to docker
-
-        for p in psutil.process_iter():
-            pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
-            if pid == 1 or pid == '1':
-
-                # don't confuse the init process as a container
-
-                continue
-            if misc.process_is_crawler(pid):
-
-                # don't confuse the crawler process with a container
-
-                continue
-            curr_ns = namespace.get_pid_namespace(pid)
-            if not curr_ns:
-
-                # invalid container
-
-                continue
-            if curr_ns not in visited_ns and curr_ns != init_ns:
-                visited_ns.add(curr_ns)
-                yield Container(pid)
-    else:
-
-        # User provided a list of containers
-
-        user_containers = user_list.split(',')
-        for container in all_docker_containers:
-            short_id_match = container.short_id in user_containers
-            long_id_match = container.long_id in user_containers
-            if short_id_match or long_id_match:
-                yield container
+    for _container in container.list_raw_containers(user_list):
+        curr_ns = _container.process_namespace
+        if curr_ns not in visited_ns:
+            visited_ns.add(curr_ns)
+            yield _container
 
 
 def get_filtered_list_of_containers(
@@ -108,7 +64,7 @@ def get_filtered_list_of_containers(
 
     filtered_list = []
     containers_list = list_all_containers(user_list, container_opts)
-    for container in containers_list:
+    for _container in containers_list:
 
         """
         There are docker and non-docker containers in this list. An example of
@@ -118,7 +74,7 @@ def get_filtered_list_of_containers(
         """
 
         if (environment != defaults.DEFAULT_ENVIRONMENT and
-                not container.is_docker_container()):
+                not _container.is_docker_container()):
             continue
 
         """
@@ -126,9 +82,9 @@ def get_filtered_list_of_containers(
         process pid. We do it by hashing the long_id of the container.
         """
 
-        _hash = container.long_id
+        _hash = _container.long_id
         num = int(_hash, 16) % int(num_processes)
         if num == process_id:
-            filtered_list.append(container)
+            filtered_list.append(_container)
 
     return filtered_list

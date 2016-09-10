@@ -20,11 +20,12 @@ from crawler_exceptions import (ContainerInvalidEnvironment,
                                 DockerutilsException,
                                 ContainerWithoutCgroups)
 from requests.exceptions import HTTPError
+import namespace
 
 logger = logging.getLogger('crawlutils')
 
 
-def list_docker_containers(container_opts={}):
+def list_docker_containers(container_opts={}, user_list='ALL'):
     """
     Get the list of running Docker containers, as `DockerContainer` objects.
 
@@ -34,6 +35,13 @@ def list_docker_containers(container_opts={}):
     """
     for inspect in exec_dockerps():
         long_id = inspect['Id']
+
+        if user_list not in ['ALL', 'all', 'All']:
+            user_ctrs = [cid[:12] for cid in user_list.split(',')]
+            short_id = long_id[:12]
+            if short_id not in user_ctrs:
+                continue
+
         try:
             c = DockerContainer(long_id, inspect, container_opts)
             if c.namespace:
@@ -73,6 +81,7 @@ class DockerContainer(Container):
         long_id,
         inspect=None,
         container_opts={},
+        process_namespace=None,
     ):
 
         # Some quick sanity checks
@@ -104,6 +113,9 @@ class DockerContainer(Container):
         self.mounts = inspect.get('Mounts')
         self.volumes = inspect.get('Volumes')
         self.inspect = inspect
+
+        self.process_namespace = (process_namespace or
+                                  namespace.get_pid_namespace(self.pid))
 
         # This short ID is mainly used for logging purposes
         self.short_id = long_id[:12]

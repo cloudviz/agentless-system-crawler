@@ -29,6 +29,7 @@ logger = logging.getLogger('crawlutils')
 # Kafka logs too much
 logging.getLogger('kafka').addHandler(NullHandler())
 
+
 def kafka_send(kurl, temp_fpath, format, topic, queue=None):
     try:
         kafka_python_client = kafka_python.KafkaClient(kurl)
@@ -58,6 +59,7 @@ def kafka_send(kurl, temp_fpath, format, topic, queue=None):
             raise
     finally:
         queue and queue.close()
+
 
 class Emitter:
 
@@ -321,7 +323,6 @@ class Emitter:
                         kurl, self.temp_fpath, self.format, topic, queue))
                 child_process.start()
             except OSError:
-                #queue.close() # closing queue in finally clause
                 raise
 
             try:
@@ -335,7 +336,6 @@ class Emitter:
             if child_process.is_alive():
                 errmsg = ('Timed out waiting for process %d to exit.' %
                           child_process.pid)
-                #queue.close() # closing queue in finally clause
                 os.kill(child_process.pid, 9)
                 logger.error(errmsg)
                 raise EmitterEmitTimeout(errmsg)
@@ -427,7 +427,8 @@ class Emitter:
                 try:
                     self._publish(url)
                 except EmitterEmitTimeout as exc:
-                    logger.warning("Failed to emit due to timout, continuing anyway...")
+                    logger.warning('Failed to emit due to timeout, '
+                                   'continuing anyway...')
         finally:
             if os.path.exists(self.temp_fpath):
                 os.remove(self.temp_fpath)
