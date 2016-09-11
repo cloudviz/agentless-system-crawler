@@ -3,15 +3,18 @@ import unittest
 
 from crawler.crawlutils import (snapshot_generic,
                                 snapshot_container,
-                                snapshot_mesos)
+                                snapshot_mesos,
+                                snapshot)
 from crawler.crawlmodes import Modes
+import crawler.defaults
 
 
 class MockedDockerContainer:
 
-    def __init__(self):
+    def __init__(self, short_id='short_id', pid=777):
         self.namespace = 'namespace'
-        self.short_id = 'short_id'
+        self.pid = pid
+        self.short_id = short_id
         self.long_id = 'long_id'
         self.name = 'name'
         self.image = 'image'
@@ -24,17 +27,31 @@ class MockedDockerContainer:
     def is_docker_container(self):
         return True
 
+    def link_logfiles(self, options):
+        pass
+
+    def unlink_logfiles(self, options):
+        pass
+
+    def __eq__(self, other):
+        return self.pid == other.pid
+
 
 class MockedEmitter:
 
     def __init__(self, urls=None, emitter_args=None, format='csv'):
         self.emitter_args = emitter_args
         if emitter_args['system_type'] == 'container':
-            assert urls == ['stdout://', 'file:///tmp/frame.short_id.123',
-                            'kafka://ip:123/topic']
+            assert (urls == ['stdout://', 'file:///tmp/frame.short_id.123',
+                             'kafka://ip:123/topic'] or
+
+                    urls == ['stdout://', 'file:///tmp/frame.short_id.124',
+                             'kafka://ip:123/topic'])
         else:
-            assert urls == ['stdout://', 'file:///tmp/frame.123',
-                            'kafka://ip:123/topic']
+            assert (urls == ['stdout://', 'file:///tmp/frame.123',
+                             'kafka://ip:123/topic'] or
+                    urls == ['stdout://', 'file:///tmp/frame.124',
+                             'kafka://ip:123/topic'])
         self.args = None
 
     def emit(self, *args):
@@ -96,6 +113,8 @@ class ContainerTests(unittest.TestCase):
                                'kafka://ip:123/topic'],
                          ignore_exceptions=False)
         # MockedEmitter is doing all the checks
+        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawlerFailure, autospec=True)
@@ -109,6 +128,8 @@ class ContainerTests(unittest.TestCase):
                              urls=['stdout://', 'file:///tmp/frame',
                                    'kafka://ip:123/topic'],
                              ignore_exceptions=False)
+        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawler, autospec=True)
@@ -122,6 +143,8 @@ class ContainerTests(unittest.TestCase):
                                  'kafka://ip:123/topic'],
                            ignore_exceptions=False)
         # MockedEmitter is doing all the checks
+        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawlerFailure, autospec=True)
@@ -135,6 +158,8 @@ class ContainerTests(unittest.TestCase):
                                urls=['stdout://', 'file:///tmp/frame',
                                      'kafka://ip:123/topic'],
                                ignore_exceptions=False)
+        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.crawlutils.snapshot_crawler_mesos_frame',
                 side_effect=lambda options: {'mesos'})
@@ -147,6 +172,8 @@ class ContainerTests(unittest.TestCase):
                              'kafka://ip:123/topic'],
                        ignore_exceptions=False)
         # MockedEmitter is doing all the checks
+        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.crawlutils.snapshot_crawler_mesos_frame',
                 side_effect=throw_os_error)
@@ -159,3 +186,117 @@ class ContainerTests(unittest.TestCase):
                            urls=['stdout://', 'file:///tmp/frame',
                                  'kafka://ip:123/topic'],
                            ignore_exceptions=False)
+        assert args[0].call_count == 1
+        assert args[1].call_count == 1
+
+    @mock.patch('crawler.crawlutils.time.sleep')
+    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
+                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.Emitter',
+                side_effect=MockedEmitter, autospec=True)
+    def test_snapshot_invm_two_iters(self, *args):
+        snapshot(crawlmode=Modes.INVM,
+                 first_snapshot_num=123,
+                 features='os',
+                 frequency=1,
+                 max_snapshots=124,
+                 urls=['stdout://', 'file:///tmp/frame',
+                       'kafka://ip:123/topic'])
+        # MockedEmitter is doing all the checks
+        assert args[0].call_count == 2
+        assert args[1].call_count == 2
+
+    @mock.patch('crawler.crawlutils.time.sleep')
+    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
+                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.Emitter',
+                side_effect=MockedEmitter, autospec=True)
+    def test_snapshot_invm_two_iters_freq_zero(self, *args):
+        snapshot(crawlmode=Modes.INVM,
+                 first_snapshot_num=123,
+                 features='os',
+                 frequency=0,
+                 max_snapshots=124,
+                 urls=['stdout://', 'file:///tmp/frame',
+                       'kafka://ip:123/topic'])
+        # MockedEmitter is doing all the checks
+        assert args[0].call_count == 2
+        assert args[1].call_count == 2
+
+    @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
+                side_effect=lambda options, namespace:
+                [MockedDockerContainer(short_id='short_id', pid=101),
+                 MockedDockerContainer(short_id='short_id', pid=102),
+                 MockedDockerContainer(short_id='short_id', pid=103)])
+    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
+                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.Emitter',
+                side_effect=MockedEmitter, autospec=True)
+    def test_snapshot_outcontainer(self, *args):
+        snapshot(crawlmode=Modes.OUTCONTAINER,
+                 first_snapshot_num=123,
+                 features='os',
+                 urls=['stdout://', 'file:///tmp/frame',
+                       'kafka://ip:123/topic'])
+        # MockedEmitter is doing all the checks
+        assert args[0].call_count == 3
+        assert args[1].call_count == 3
+
+    @mock.patch('crawler.crawlutils.time.sleep')
+    @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
+                side_effect=lambda options, namespace:
+                [MockedDockerContainer(short_id='short_id', pid=101),
+                 MockedDockerContainer(short_id='short_id', pid=102),
+                 MockedDockerContainer(short_id='short_id', pid=103)])
+    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
+                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.Emitter',
+                side_effect=MockedEmitter, autospec=True)
+    def test_snapshot_outcontainer_two_iters(self, *args):
+        snapshot(crawlmode=Modes.OUTCONTAINER,
+                 first_snapshot_num=123,
+                 features='os',
+                 frequency=1,
+                 max_snapshots=124,
+                 urls=['stdout://', 'file:///tmp/frame',
+                       'kafka://ip:123/topic'])
+        # MockedEmitter is doing all the checks
+        assert args[0].call_count == 6
+        assert args[1].call_count == 6
+
+    @mock.patch.object(MockedDockerContainer, 'link_logfiles')
+    @mock.patch.object(MockedDockerContainer, 'unlink_logfiles')
+    @mock.patch('crawler.crawlutils.time.sleep')
+    @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
+                side_effect=lambda options, namespace:
+                [MockedDockerContainer(short_id='short_id', pid=101),
+                 MockedDockerContainer(short_id='short_id', pid=102),
+                 MockedDockerContainer(short_id='short_id', pid=103)])
+    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
+                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.Emitter',
+                side_effect=MockedEmitter, autospec=True)
+    def test_snapshot_outcontainer_two_iters_with_linking(
+            self,
+            mock_emitter,
+            mock_crawler,
+            mock_get_list,
+            mock_sleep,
+            mock_unlink,
+            mock_link):
+        options = {'link_container_log_files': True}
+        snapshot(crawlmode=Modes.OUTCONTAINER,
+                 first_snapshot_num=123,
+                 features='os',
+                 frequency=1,
+                 max_snapshots=124,
+                 urls=['stdout://', 'file:///tmp/frame',
+                       'kafka://ip:123/topic'],
+                 options=options)
+        # MockedEmitter is doing all the checks
+        assert mock_emitter.call_count == 6
+        assert mock_crawler.call_count == 6
+        assert mock_link.call_count == 6
+        # the returned containers are always the same, so no container
+        # is deleted
+        assert mock_unlink.call_count == 0

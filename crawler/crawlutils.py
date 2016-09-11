@@ -19,6 +19,7 @@ try:
 except Exception as e:
     libc = None
 
+
 # External dependencies that must be pip install'ed separately
 
 from emitter import Emitter
@@ -89,7 +90,7 @@ def snapshot_generic(
         'features': features,
         'timestamp': int(time.time()),
         'system_type': 'vm',
-        'compress': options['compress'],
+        'compress': options.get('compress', defaults.DEFAULT_COMPRESS),
         'overwrite': overwrite,
     }
 
@@ -119,7 +120,7 @@ def snapshot_mesos(
     namespace='',
     ignore_exceptions=True,
 ):
-    compress = options['compress']
+    compress = options.get('compress', defaults.DEFAULT_COMPRESS)
     metadata = {
         'namespace': namespace,
         'timestamp': int(time.time()),
@@ -157,9 +158,10 @@ def snapshot_container(
     crawler = features_crawler.FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                                                container=container)
 
-    compress = options['compress']
-    extra_metadata = options['metadata']['extra_metadata']
-    extra_metadata_for_all = options['metadata']['extra_metadata_for_all']
+    compress = options.get('compress', defaults.DEFAULT_COMPRESS)
+    metadata = options.get('metadata', defaults.DEFAULT_METADATA)
+    extra_metadata = metadata['extra_metadata']
+    extra_metadata_for_all = metadata['extra_metadata_for_all']
 
     metadata = {
         'namespace': container.namespace,
@@ -208,6 +210,77 @@ def snapshot_container(
                                ignore_exceptions=ignore_exceptions)
 
 
+def snapshot_containers(
+    containers,
+    urls=['stdout://'],
+    snapshot_num=0,
+    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
+    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    format='csv',
+    overwrite=False,
+    ignore_exceptions=True,
+    host_namespace='',
+):
+
+    curr_containers = get_filtered_list_of_containers(options,
+                                                      host_namespace)
+    deleted = [c for c in containers if c not in curr_containers]
+    containers = curr_containers
+
+    for container in deleted:
+        if options.get('link_container_log_files', False):
+            try:
+                container.unlink_logfiles(options)
+            except NotImplementedError:
+                pass
+
+    logger.debug('Crawling %d containers' % (len(containers)))
+
+    for container in containers:
+
+        logger.info(
+            'Crawling container %s %s %s' %
+            (container.pid, container.short_id, container.namespace))
+
+        if options.get('link_container_log_files', False):
+            # This is a NOP if files are already linked (which is
+            # pretty much always).
+            try:
+                container.link_logfiles(options=options)
+            except NotImplementedError:
+                pass
+
+        # no feature crawling
+        if 'nofeatures' in features:
+            continue
+        snapshot_container(
+            urls=urls,
+            snapshot_num=snapshot_num,
+            features=features,
+            options=options,
+            format=format,
+            container=container,
+            overwrite=overwrite
+        )
+    return containers
+
+
+def _get_next_iteration_time(next_iteration_time, frequency, snapshot_time):
+    if frequency == 0:
+        return (0, 0)
+
+    if next_iteration_time is None:
+        next_iteration_time = snapshot_time + frequency
+    else:
+        next_iteration_time = next_iteration_time + frequency
+
+    while next_iteration_time + frequency < time.time():
+        next_iteration_time = next_iteration_time + frequency
+
+    time_to_sleep = next_iteration_time - time.time()
+    return (time_to_sleep, next_iteration_time)
+
+
 def snapshot(
     urls=['stdout://'],
     namespace=misc.get_host_ipaddr(),
@@ -217,6 +290,8 @@ def snapshot(
     crawlmode=Modes.INVM,
     format='csv',
     overwrite=False,
+    first_snapshot_num=0,
+    max_snapshots=-1
 ):
     """Entrypoint for crawler functionality.
 
@@ -238,7 +313,6 @@ def snapshot(
     saved_args = locals()
     logger.debug('snapshot args: %s' % (saved_args))
 
-    assert('metadata' in options)
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
     plugin_places = options.get('plugin_places',
                                 defaults.DEFAULT_PLUGIN_PLACES).split(',')
@@ -247,12 +321,15 @@ def snapshot(
 
     next_iteration_time = None
 
-    snapshot_num = 0
+    snapshot_num = first_snapshot_num
 
     # Die if the parent dies
     PR_SET_PDEATHSIG = 1
-    libc.prctl(PR_SET_PDEATHSIG, signal.SIGHUP)
-    signal.signal(signal.SIGHUP, signal_handler_exit)
+    try:
+        libc.prctl(PR_SET_PDEATHSIG, signal.SIGHUP)
+        signal.signal(signal.SIGHUP, signal_handler_exit)
+    except AttributeError:
+        logger.warning('prctl is not available. MacOS is not supported.')
 
     if crawlmode == Modes.OUTCONTAINER:
         containers = get_filtered_list_of_containers(options, namespace)
@@ -265,60 +342,15 @@ def snapshot(
         snapshot_time = int(time.time())
 
         if crawlmode == Modes.OUTCONTAINER:
-
-            curr_containers = get_filtered_list_of_containers(options,
-                                                              namespace)
-            deleted = [c for c in containers if c not in curr_containers]
-            containers = curr_containers
-
-            for container in deleted:
-                if options.get('link_container_log_files', False):
-                    try:
-                        container.unlink_logfiles(options)
-                    except NotImplementedError:
-                        pass
-
-            logger.debug('Crawling %d containers' % (len(containers)))
-
-            for container in containers:
-
-                logger.info(
-                    'Crawling container %s %s %s' %
-                    (container.pid, container.short_id, container.namespace))
-
-                if options.get('link_container_log_files', False):
-                    # This is a NOP if files are already linked (which is
-                    # pretty much always).
-                    try:
-                        container.link_logfiles(options=options)
-                    except NotImplementedError:
-                        pass
-
-                # no feature crawling
-                if 'nofeatures' in features:
-                    continue
-                snapshot_container(
-                    urls=urls,
-                    snapshot_num=snapshot_num,
-                    features=features,
-                    options=options,
-                    format=format,
-                    container=container,
-                    overwrite=overwrite
-                )
-
-        elif crawlmode in (Modes.INVM,
-                           Modes.MOUNTPOINT):
-
-            snapshot_generic(
-                crawlmode=crawlmode,
+            containers = snapshot_containers(
+                containers=containers,
                 urls=urls,
                 snapshot_num=snapshot_num,
                 features=features,
                 options=options,
                 format=format,
-                namespace=namespace,
-                overwrite=overwrite
+                overwrite=overwrite,
+                host_namespace=namespace,
             )
         elif crawlmode in (Modes.MESOS):
             snapshot_mesos(
@@ -331,24 +363,24 @@ def snapshot(
                 namespace=namespace,
             )
         else:
-            raise RuntimeError('Unknown Mode')
+            snapshot_generic(
+                crawlmode=crawlmode,
+                urls=urls,
+                snapshot_num=snapshot_num,
+                features=features,
+                options=options,
+                format=format,
+                namespace=namespace,
+                overwrite=overwrite
+            )
 
-        # Frequency <= 0 means only one run.
-        if frequency < 0 or should_exit:
+        # Frequency < 0 means only one run.
+        if (frequency < 0 or should_exit or snapshot_num == max_snapshots):
             logger.info('Bye')
             break
-        elif frequency == 0:
-            continue
 
-        if next_iteration_time is None:
-            next_iteration_time = snapshot_time + frequency
-        else:
-            next_iteration_time = next_iteration_time + frequency
-
-        while next_iteration_time + frequency < time.time():
-            next_iteration_time = next_iteration_time + frequency
-
-        time_to_sleep = next_iteration_time - time.time()
+        time_to_sleep, next_iteration_time = _get_next_iteration_time(
+            next_iteration_time, frequency, snapshot_time)
         if time_to_sleep > 0:
             time.sleep(time_to_sleep)
 
