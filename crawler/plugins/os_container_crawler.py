@@ -1,20 +1,18 @@
 import platform
-import dockerutils
-
-# Additional modules
-
+import misc
+import time
 import osinfo
+import dockerutils
+from icrawl_plugin import IContainerCrawler
+from features import OSFeature
+from namespace import run_as_another_namespace, ALL_NAMESPACES
+import logging
 
 # External dependencies that must be pip install'ed separately
 
 import psutil
-import misc
-import time
 
-
-from icrawl_plugin import IContainerCrawler
-from features import OSFeature
-from namespace import run_as_another_namespace, ALL_NAMESPACES
+logger = logging.getLogger('crawlutils')
 
 
 class OSContainerCrawler(IContainerCrawler):
@@ -26,6 +24,7 @@ class OSContainerCrawler(IContainerCrawler):
         inspect = dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])
+        logger.debug('Crawling OS for container %s' % container_id)
         return run_as_another_namespace(pid,
                                         ALL_NAMESPACES,
                                         self._crawl_in_system)
