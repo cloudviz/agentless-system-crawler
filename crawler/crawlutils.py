@@ -151,6 +151,8 @@ def snapshot_container(
     container=None,
     ignore_exceptions=True,
 ):
+    global should_exit
+
     if not container:
         raise ValueError('snapshot_container can only be called with a '
                          'container object already initialized.')
@@ -197,12 +199,26 @@ def snapshot_container(
         else:
             output_urls.append(url)
 
+    container_crawl_plugins = plugins_manager.get_container_crawl_plugins()
+
     with Emitter(
         urls=output_urls,
         emitter_args=metadata,
         format=format,
     ) as emitter:
+        for plugin in container_crawl_plugins:
+            try:
+                if should_exit:
+                    break
+                for (key, val, typ) in plugin.crawl(
+                        container_id=container.long_id):
+                    emitter.emit(key, val, typ)
+            except Exception as exc:
+                logger.exception(exc)
+                if not ignore_exceptions:
+                    raise exc
 
+        # TODO remove this call after we move all features to plugins
         _snapshot_single_frame(emitter=emitter,
                                features=features,
                                options=options,
@@ -318,6 +334,9 @@ def snapshot(
                                 defaults.DEFAULT_PLUGIN_PLACES).split(',')
     plugins_manager.reload_env_plugin(plugin_places=plugin_places,
                                       environment=environment)
+
+    plugins_manager.reload_container_crawl_plugins(plugin_places=plugin_places,
+                                                   features=features)
 
     next_iteration_time = None
 
