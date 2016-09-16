@@ -39,7 +39,7 @@ To run the test cases, run:
 ------------------------
 To run the crawler natively on the Docker host system, use:
 ```
-sudo python crawler/crawlyer.py ...
+sudo python crawler/crawler.py ...
 ```
 
 To run the crawler in a container use:
