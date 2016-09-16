@@ -224,29 +224,29 @@ class DockerContainer(Container):
 
     # Find the mount point of the specified cgroup
 
-    def _get_cgroup_dir(self, dev=''):
-        paths = [os.path.join('/cgroup/', dev),
-                 os.path.join('/sys/fs/cgroup/', dev)]
-        for path in paths:
-            if os.path.ismount(path):
-                return path
+    def _get_cgroup_dir(self, devlist=[]):
+        for dev in devlist:
+            paths = [os.path.join('/cgroup/', dev),
+                     os.path.join('/sys/fs/cgroup/', dev)]
+            for path in paths:
+                if os.path.ismount(path):
+                    return path
 
-        # Try getting the mount point from /proc/mounts
-        for l in open('/proc/mounts', 'r'):
-            _type, mnt, _, _, _, _ = l.split(' ')
-            if _type == 'cgroup' and mnt.endswith('cgroup/' + dev):
-                return mnt
+            # Try getting the mount point from /proc/mounts
+            for l in open('/proc/mounts', 'r'):
+                _type, mnt, _, _, _, _ = l.split(' ')
+                if _type == 'cgroup' and mnt.endswith('cgroup/' + dev):
+                    return mnt
 
         raise ContainerWithoutCgroups('Can not find the cgroup dir')
 
     def get_memory_cgroup_path(self, node='memory.stat'):
-        return os.path.join(self._get_cgroup_dir('memory'), 'docker',
+        return os.path.join(self._get_cgroup_dir(['memory']), 'docker',
                             self.long_id, node)
 
     def get_cpu_cgroup_path(self, node='cpuacct.usage'):
         # In kernels 4.x, the node is actually called 'cpu,cpuacct'
-        cgroup_dir = (self._get_cgroup_dir('cpuacct') or
-                      self._get_cgroup_dir('cpu,cpuacct'))
+        cgroup_dir = self._get_cgroup_dir(['cpuacct','cpu,cpuacct'])
         return os.path.join(cgroup_dir, 'docker', self.long_id, node)
 
     def __str__(self):

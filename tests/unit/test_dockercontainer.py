@@ -232,7 +232,6 @@ class DockerDockerContainerTests(unittest.TestCase):
             mock_inspect,
             mocked_get_runtime_env,
             mocked_dockerps):
-        n = 0
         ids = [c.short_id for c in list_docker_containers(user_list='1,2,8')]
         assert set(ids) == set(['1', '2', '8'])
         assert mocked_get_runtime_env.call_count == 3
@@ -496,7 +495,8 @@ class DockerDockerContainerTests(unittest.TestCase):
                 side_effect=mocked_get_rootfs)
     @mock.patch(
         'crawler.dockercontainer.os.path.ismount',
-        side_effect=lambda x: True if x == '/cgroup/cpuacct' else False)
+        side_effect=lambda x:
+            True if x == '/cgroup/cpuacct' or '/cgroup/cpu,cpuacct' else False)
     def test_cpu_cgroup(
             self,
             mocked_ismount,
@@ -506,7 +506,8 @@ class DockerDockerContainerTests(unittest.TestCase):
             mocked_dockerps):
         c = DockerContainer("good_id")
         assert c.get_cpu_cgroup_path(
-            'abc') == '/cgroup/cpuacct/docker/good_id/abc'
+            'abc') == ("/cgroup/cpuacct/docker/good_id/"
+                       "abc") or ("cgroup/cpu,cpuacct/docker/good_id/abc")
 
     @mock.patch('crawler.dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
