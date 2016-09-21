@@ -222,7 +222,7 @@ def _get_container_rootfs_path_dm(long_id, inspect=None):
         with open('/proc/mounts', 'r') as f:
             for line in f:
                 _device, _mountpoint, _, _, _, _ = line.split()
-                if device in line:
+                if device in line and _mountpoint != '/':
                     rootfs_path = _mountpoint
                     break
     except IOError as e:
