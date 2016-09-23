@@ -13,6 +13,7 @@ DEFAULT_METADATA = {'container_long_id_to_namespace_map': {},
 DEFAULT_LINK_CONTAINER_LOG_FILES = False
 DEFAULT_MOUNTPOINT = 'Undefined'
 DEFAULT_DOCKER_CONTAINERS_LIST = 'ALL'
+#DEFAULT_VM_LIST = 'ALL'
 DEFAULT_AVOID_SETNS = False
 
 DEFAULT_CRAWL_OPTIONS = {
@@ -66,6 +67,8 @@ DEFAULT_CRAWL_OPTIONS = {
     'interface': {},
     'cpu': {},
     'load': {},
+    'modules' : {},
+    'cpuHw' : {},
     'dockerps': {},
     'dockerhistory': {},
     'dockerinspect': {},
@@ -86,7 +89,8 @@ DEFAULT_CRAWL_OPTIONS = {
     'compress': DEFAULT_COMPRESS,
     'link_container_log_files': DEFAULT_LINK_CONTAINER_LOG_FILES,
     'mountpoint': DEFAULT_MOUNTPOINT,
-    'docker_containers_list': DEFAULT_DOCKER_CONTAINERS_LIST
+    'docker_containers_list': DEFAULT_DOCKER_CONTAINERS_LIST,
+    'VM_list' : None
 }
 
 DEFAULT_FEATURES_TO_CRAWL = 'os,cpu'

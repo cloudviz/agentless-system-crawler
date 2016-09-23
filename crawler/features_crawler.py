@@ -91,6 +91,8 @@ class FeaturesCrawler:
             'cpu': self.crawl_cpu,
             'interface': self.crawl_interface,
             'load': self.crawl_load,
+            'modules' : self.crawl_modules,
+            'cpuHw' : self.crawl_cpuHw,
             'dockerps': self.crawl_dockerps,
             'dockerhistory': self.crawl_dockerhistory,
             'dockerinspect': self.crawl_dockerinspect,
