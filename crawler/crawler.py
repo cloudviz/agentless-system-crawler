@@ -252,6 +252,21 @@ def main():
              '--crawlContainers 5f3380d2319e,681be3e32661',
     )
     parser.add_argument(
+        '--crawlVMs',
+        dest='crawlVMs',
+        nargs='+',
+        default=None,
+        help='List of VMs to crawl'
+             'Default is \'ALL\' VMs'
+             'Currently need following as input for each VM'
+             '\'vm_name, kernel_version_long, linux_flavour, arch\''
+             'Auto kernel version detection in future, when only vm names'
+             '(\'ALL\' by default) would need to be passed'
+             'Example --crawlVM'
+             'vm1,3.13.0-24-generic_3.13.0-24.x86_64,ubuntu,x86_64'
+             'vm2,4.0.3.x86_64,vanilla,x86_64',
+    )
+    parser.add_argument(
         '--environment',
         dest='environment',
         type=str,
@@ -394,6 +409,11 @@ def main():
                 options['config']['avoid_setns'] = args.avoid_setns
                 options['file']['avoid_setns'] = args.avoid_setns
                 options['package']['avoid_setns'] = args.avoid_setns
+
+        if args.crawlmode == 'OUTVM':
+            if args.crawlVMs:
+                options['VM_list'] = args.crawlVMs
+
     if args.format:
         params['format'] = args.format
     if args.environment:
