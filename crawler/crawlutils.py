@@ -12,6 +12,7 @@ import time
 import signal
 from ctypes import CDLL
 import uuid
+import psutil
 from mesos import snapshot_crawler_mesos_frame
 
 try:
@@ -139,6 +140,92 @@ def snapshot_mesos(
     ) as emitter:
         frame = snapshot_crawler_mesos_frame(options['mesos_url'])
         emitter.emit('mesos', frame)
+
+
+def sanitize_vm_list(vm_list):
+
+    _vm_list = []
+    for vm_desc in vm_list:
+        vm_name, vm_kernel, vm_distro, vm_arch = vm_desc.split(',')
+
+        for proc in psutil.process_iter():
+            if 'qemu' in proc.name():
+                line = proc.cmdline()
+                if vm_name == line[line.index('-name') + 1]:
+                    vm = (
+                        vm_name, str(proc.pid), vm_kernel, vm_distro, vm_arch)
+                    _vm_list.append(vm)
+                    found_qemu_pid = True
+
+        if found_qemu_pid is False:
+            raise ValueError('no VM with vm_name: %s' % vm_name)
+
+    return _vm_list
+
+
+def snapshot_vms(
+    urls=['stdout://'],
+    snapshot_num=0,
+    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
+    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    format='csv',
+    overwrite=False,
+    namespace='',
+    ignore_exceptions=True
+):
+
+    # Default will become ALL from None, when auto kernel detection
+    # gets merged
+    vm_list = options.get('vm_list', None)
+
+    if vm_list is None:
+        raise ValueError('need list of VMs (with descriptors) to crawl!')
+        # When None gets changed to ALL, this will not be raised
+
+    # convert VM descriptor for each VM to
+    # (vm_name, qemu_pid, kernel_version_long, distro, arch)
+    # from input type: 'vm_name, kernel_version_long, distro, arch'
+    vm_list = sanitize_vm_list(vm_list)
+
+    for vm in vm_list:
+        vm_name = vm[0]
+        vm = vm[1:]
+
+        crawler = features_crawler.FeaturesCrawler(
+            crawl_mode=Modes.OUTVM, vm=vm)
+
+        metadata = {
+            'namespace': namespace,
+            'features': features,
+            'timestamp': int(time.time()),
+            'system_type': 'vm',
+            'compress': options.get('compress', defaults.DEFAULT_COMPRESS),
+            'overwrite': overwrite,
+        }
+
+        output_urls = []
+        for url in urls:
+            if url.startswith('file:'):
+                file_suffix = ''
+                if overwrite is True:
+                    file_suffix = '{0}'.format(vm_name)
+                else:
+                    file_suffix = '{0}.{1}'.format(
+                        vm_name, snapshot_num)
+                output_urls.append('{0}.{1}'.format(url, file_suffix))
+            else:
+                output_urls.append(url)
+
+        with Emitter(
+            urls=output_urls,
+            emitter_args=metadata,
+            format=format,
+        ) as emitter:
+            _snapshot_single_frame(emitter=emitter,
+                                   features=features,
+                                   options=options,
+                                   crawler=crawler,
+                                   ignore_exceptions=ignore_exceptions)
 
 
 def snapshot_container(
@@ -376,6 +463,16 @@ def snapshot(
                 crawlmode=crawlmode,
                 urls=urls,
                 snapshot_num=snapshot_num,
+                options=options,
+                format=format,
+                overwrite=overwrite,
+                namespace=namespace,
+            )
+        elif crawlmode in (Modes.OUTVM):
+            snapshot_vms(
+                urls=urls,
+                snapshot_num=snapshot_num,
+                features=features,
                 options=options,
                 format=format,
                 overwrite=overwrite,
