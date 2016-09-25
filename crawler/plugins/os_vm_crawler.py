@@ -1,17 +1,11 @@
-import platform
-import misc
-import time
-import osinfo
-import dockerutils
 from icrawl_plugin import IVMCrawler
-# XXX: This should change; either read from plugin file, 
+# XXX: This should change; either read from plugin file,
 # or make crawler agnostic to this
 from features import OSFeature
 import logging
 
 # External dependencies that must be pip install'ed separately
 
-import psutil
 import psvmi
 
 logger = logging.getLogger('crawlutils')
@@ -42,5 +36,4 @@ class os_vm_crawler(IVMCrawler):
                 sys.osplatform
             )
             feature_key = sys.ostype
-        return [(feature_key, feature_attributes, 'os')] 
-
+        return [(feature_key, feature_attributes, 'os')]

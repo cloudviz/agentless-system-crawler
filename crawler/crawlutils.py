@@ -217,7 +217,7 @@ def snapshot_vms(
                 output_urls.append(url)
 
         vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins()
-        
+
         with Emitter(
             urls=output_urls,
             emitter_args=metadata,
@@ -234,7 +234,7 @@ def snapshot_vms(
                     logger.exception(exc)
                     if not ignore_exceptions:
                         raise exc
-        
+
             # TODO remove this call after we move all features to plugins
             _snapshot_single_frame(emitter=emitter,
                                    features=features,
@@ -439,7 +439,7 @@ def snapshot(
 
     plugins_manager.reload_container_crawl_plugins(plugin_places=plugin_places,
                                                    features=features)
-    
+
     plugins_manager.reload_vm_crawl_plugins(plugin_places=plugin_places,
                                             features=features)
 

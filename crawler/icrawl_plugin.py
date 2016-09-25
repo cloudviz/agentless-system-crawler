@@ -9,6 +9,7 @@ class IContainerCrawler(IPlugin):
     Subclasses of this class can be used to implement crawling functions
     for different systems.
     """
+
     def crawl(self, container_id):
         """
         Crawling function that should return a list of features for
@@ -20,7 +21,7 @@ class IContainerCrawler(IPlugin):
     def get_feature(self):
         """
         Returns the feature type as a string.
-        """        
+        """
         raise NotImplementedError()
 
 
@@ -32,6 +33,7 @@ class IVMCrawler(IPlugin):
     Subclasses of this class can be used to implement crawling functions
     for different systems.
     """
+
     def crawl(self, vm_desc):
         """
         Crawling function that should return a list of features for
@@ -44,5 +46,5 @@ class IVMCrawler(IPlugin):
     def get_feature(self):
         """
         Returns the feature type as a string.
-        """        
+        """
         raise NotImplementedError()
