@@ -204,11 +204,10 @@ class CrawlutilsVMTest(unittest.TestCase):
             [
                 '/usr/bin/python', mypath + '/../../crawler/crawler.py',
                 '--url', 'file://' + self.tempd + '/out/crawler',
-                '--features', 'memory,interface',
+                '--features', 'os,memory,interface',
                 '--crawlVMs', 'vm2,4.0.3.x86_64,vanilla,x86_64',
                 'vm3,3.2.0-101-generic_3.2.0-101.x86_64,ubuntu,x86_64',
                 'vm4,3.13.0-24-generic_3.13.0-24.x86_64,ubuntu,x86_64',
-                '--format', 'graphite',
                 '--crawlmode', 'OUTVM',
                 '--numprocesses', '1'
             ],
@@ -227,8 +226,9 @@ class CrawlutilsVMTest(unittest.TestCase):
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
         print output  # only printed if the test fails
-        assert 'memory.memory-used' in output
-        assert 'interface-lo.if_octets.tx' in output
+        assert 'Linux' in output
+        assert 'memory_used' in output
+        assert 'interface-lo' in output
         f.close()
 
     if __name__ == '__main__':
