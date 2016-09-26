@@ -79,10 +79,10 @@ class FeaturesCrawler:
         self.vm_context = vm_context
 
         self.funcdict = {
-            #'os': self.crawl_os,
+            # 'os': self.crawl_os,
             'disk': self.crawl_disk_partitions,
             'metric': self.crawl_metrics,
-            'process': self.crawl_processes,
+            # 'process': self.crawl_processes,
             'connection': self.crawl_connections,
             'package': self.crawl_packages,
             'file': self.crawl_files,

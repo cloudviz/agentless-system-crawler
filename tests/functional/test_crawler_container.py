@@ -185,6 +185,40 @@ class SingleContainerTests(unittest.TestCase):
         assert 'memory.memory-used' in output
         assert 'apt.pkgsize' in output
         f.close()
+    
+    def testCrawlContainer3(self):
+        env = os.environ.copy()
+        mypath = os.path.dirname(os.path.realpath(__file__))
+        os.makedirs(self.tempd + '/out')
+
+        # crawler itself needs to be root
+        process = subprocess.Popen(
+            [
+                '/usr/bin/python', mypath + '/../../crawler/crawler.py',
+                '--url', 'file://' + self.tempd + '/out/crawler',
+                '--features', 'os,process',
+                '--crawlContainers', 'ALL',
+                '--crawlmode', 'OUTCONTAINER',
+                '--numprocesses', '1'
+            ],
+            env=env)
+        stdout, stderr = process.communicate()
+        assert process.returncode == 0
+
+        print stderr
+        print stdout
+
+        subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
+
+        files = os.listdir(self.tempd + '/out')
+        assert len(files) == 1
+
+        f = open(self.tempd + '/out/' + files[0], 'r')
+        output = f.read()
+        print output  # only printed if the test fails
+        assert 'sleep' in output
+        assert 'linux' or 'Linux' in output
+        f.close()
 
     def testCrawlContainerAvoidSetns(self):
         os.makedirs(self.tempd + '/out')
