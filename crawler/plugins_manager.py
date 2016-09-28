@@ -1,7 +1,7 @@
 from yapsy.PluginManager import PluginManager
 from crawler_exceptions import RuntimeEnvironmentPluginNotFound
 from runtime_environment import IRuntimeEnvironment
-from icrawl_plugin import IContainerCrawler, IVMCrawler
+from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
 import misc
 
 # default runtime environment: cloudsigth and plugins in 'plugins/'
@@ -9,6 +9,7 @@ runtime_env = None
 
 container_crawl_plugins = []
 vm_crawl_plugins = []
+host_crawl_plugins = []
 
 
 def _load_plugins(plugin_places=[misc.execution_path('plugins')],
@@ -60,7 +61,7 @@ def reload_container_crawl_plugins(
     global container_crawl_plugins
     container_crawl_plugins = list(
         _load_plugins(
-            plugin_places,
+            plugin_places + ['plugins'],
             category_filter={
                 "crawler": IContainerCrawler},
             filter_func=lambda plugin:
@@ -76,9 +77,25 @@ def reload_vm_crawl_plugins(
     global vm_crawl_plugins
     vm_crawl_plugins = list(
         _load_plugins(
-            plugin_places,
+            plugin_places + ['plugins'],
             category_filter={
                 "crawler": IVMCrawler},
+            filter_func=lambda plugin:
+            plugin.get_feature() in features.split(',')))
+    # Filtering of features is a temp fix.
+    # TODO remove the filtering of features after we move all
+    # features to be plugins.
+
+
+def reload_host_crawl_plugins(
+        plugin_places=[misc.execution_path('plugins')],
+        features='os'):
+    global host_crawl_plugins
+    host_crawl_plugins = list(
+        _load_plugins(
+            plugin_places + ['plugins'],
+            category_filter={
+                "crawler": IHostCrawler},
             filter_func=lambda plugin:
             plugin.get_feature() in features.split(',')))
     # Filtering of features is a temp fix.
@@ -94,3 +111,8 @@ def get_container_crawl_plugins():
 def get_vm_crawl_plugins():
     global vm_crawl_plugins
     return vm_crawl_plugins
+
+
+def get_host_crawl_plugins():
+    global host_crawl_plugins
+    return host_crawl_plugins

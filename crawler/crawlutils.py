@@ -98,11 +98,25 @@ def snapshot_generic(
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
                     if u.startswith('file:') else u) for u in urls]
 
+    host_crawl_plugins = plugins_manager.get_host_crawl_plugins()
+
     with Emitter(
         urls=output_urls,
         emitter_args=metadata,
         format=format,
     ) as emitter:
+        for plugin in host_crawl_plugins:
+            try:
+                if should_exit:
+                    break
+                for (key, val, typ) in plugin.crawl():
+                    emitter.emit(key, val, typ)
+            except Exception as exc:
+                logger.exception(exc)
+                if not ignore_exceptions:
+                    raise exc
+
+        # TODO remove this call after we move all features to plugins
         _snapshot_single_frame(emitter=emitter,
                                features=features,
                                options=options,
@@ -163,6 +177,25 @@ def sanitize_vm_list(vm_list):
     return _vm_list
 
 
+def reformat_output_urls(urls, name, snapshot_num, overwrite):
+    """
+    Reformat output URLs to include the snapshot_num and the system name
+    """
+    output_urls = []
+    for url in urls:
+        if url.startswith('file:'):
+            file_suffix = ''
+            if overwrite is True:
+                file_suffix = '{0}'.format(name)
+            else:
+                file_suffix = '{0}.{1}'.format(
+                    name, snapshot_num)
+            output_urls.append('{0}.{1}'.format(url, file_suffix))
+        else:
+            output_urls.append(url)
+    return output_urls
+
+
 def snapshot_vms(
     urls=['stdout://'],
     snapshot_num=0,
@@ -203,18 +236,8 @@ def snapshot_vms(
             'overwrite': overwrite,
         }
 
-        output_urls = []
-        for url in urls:
-            if url.startswith('file:'):
-                file_suffix = ''
-                if overwrite is True:
-                    file_suffix = '{0}'.format(vm_name)
-                else:
-                    file_suffix = '{0}.{1}'.format(
-                        vm_name, snapshot_num)
-                output_urls.append('{0}.{1}'.format(url, file_suffix))
-            else:
-                output_urls.append(url)
+        output_urls = reformat_output_urls(urls, vm_name,
+                                           snapshot_num, overwrite)
 
         vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins()
 
@@ -288,18 +311,8 @@ def snapshot_container(
         metadata['docker_image_tag'] = container.docker_image_tag
         metadata['docker_image_registry'] = container.docker_image_registry
 
-    output_urls = []
-    for url in urls:
-        if url.startswith('file:'):
-            file_suffix = ''
-            if overwrite is True:
-                file_suffix = '{0}'.format(container.name)
-            else:
-                file_suffix = '{0}.{1}'.format(
-                    container.short_id, snapshot_num)
-            output_urls.append('{0}.{1}'.format(url, file_suffix))
-        else:
-            output_urls.append(url)
+    output_urls = reformat_output_urls(urls, container.short_id,
+                                       snapshot_num, overwrite)
 
     container_crawl_plugins = plugins_manager.get_container_crawl_plugins()
 
@@ -443,6 +456,9 @@ def snapshot(
     plugins_manager.reload_vm_crawl_plugins(plugin_places=plugin_places,
                                             features=features)
 
+    plugins_manager.reload_host_crawl_plugins(plugin_places=plugin_places,
+                                              features=features)
+
     next_iteration_time = None
 
     snapshot_num = first_snapshot_num
@@ -455,8 +471,7 @@ def snapshot(
     except AttributeError:
         logger.warning('prctl is not available. MacOS is not supported.')
 
-    if crawlmode == Modes.OUTCONTAINER:
-        containers = get_filtered_list_of_containers(options, namespace)
+    containers = []
 
     # This is the main loop of the system, taking a snapshot and sleeping at
     # every iteration.
@@ -476,7 +491,7 @@ def snapshot(
                 overwrite=overwrite,
                 host_namespace=namespace,
             )
-        elif crawlmode in (Modes.MESOS):
+        elif crawlmode == Modes.MESOS:
             snapshot_mesos(
                 crawlmode=crawlmode,
                 urls=urls,
@@ -486,7 +501,7 @@ def snapshot(
                 overwrite=overwrite,
                 namespace=namespace,
             )
-        elif crawlmode in (Modes.OUTVM):
+        elif crawlmode == Modes.OUTVM:
             snapshot_vms(
                 urls=urls,
                 snapshot_num=snapshot_num,
@@ -496,7 +511,7 @@ def snapshot(
                 overwrite=overwrite,
                 namespace=namespace,
             )
-        else:
+        elif crawlmode in [Modes.INVM, Modes.MOUNTPOINT]:
             snapshot_generic(
                 crawlmode=crawlmode,
                 urls=urls,
@@ -507,6 +522,9 @@ def snapshot(
                 namespace=namespace,
                 overwrite=overwrite
             )
+        else:
+            raise NotImplementedError('Crawl mode %s is not implemented' %
+                                      crawlmode)
 
         # Frequency < 0 means only one run.
         if (frequency < 0 or should_exit or snapshot_num == max_snapshots):
