@@ -246,7 +246,7 @@ class DockerContainer(Container):
 
     def get_cpu_cgroup_path(self, node='cpuacct.usage'):
         # In kernels 4.x, the node is actually called 'cpu,cpuacct'
-        cgroup_dir = self._get_cgroup_dir(['cpuacct','cpu,cpuacct'])
+        cgroup_dir = self._get_cgroup_dir(['cpuacct', 'cpu,cpuacct'])
         return os.path.join(cgroup_dir, 'docker', self.long_id, node)
 
     def __str__(self):
