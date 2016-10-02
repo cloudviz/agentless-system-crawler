@@ -1,8 +1,10 @@
 [Core]
-Name = OS crawling function for containers
+Name = os_container
 Module = os_container_crawler
 
 [Documentation]
 Author = IBM
 Version = 0.1
-Description = OS crawling function for containers
+Description = "OS crawling function for containers. Takes following optional arguments:
+                crawl_mode = {MOUNPOINT, OUTCONTAINER}. Former uses docker rootfs, latter setns()"
+

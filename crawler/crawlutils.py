@@ -105,12 +105,13 @@ def snapshot_generic(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-        for plugin in host_crawl_plugins:
+        for (plugin_obj, plugin_args) in host_crawl_plugins:
             try:
                 if should_exit:
                     break
-                for (key, val, typ) in plugin.crawl():
-                    emitter.emit(key, val, typ)
+                for (key, val, feature_type) in plugin_obj.crawl(
+                        **plugin_args):
+                    emitter.emit(key, val, feature_type)
             except Exception as exc:
                 logger.exception(exc)
                 if not ignore_exceptions:
@@ -240,18 +241,19 @@ def snapshot_vms(
                                            snapshot_num, overwrite)
 
         vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins()
+        plugin_mode = options.get('pluginmode', defaults.DEFAULT_PLUGIN_MODE)
 
         with Emitter(
             urls=output_urls,
             emitter_args=metadata,
             format=format,
         ) as emitter:
-            for plugin in vm_crawl_plugins:
+            for (plugin_obj, plugin_args) in vm_crawl_plugins:
                 try:
                     if should_exit:
                         break
-                    for (key, val, feature_type) in plugin.crawl(
-                            vm_desc=vm):
+                    for (key, val, feature_type) in plugin_obj.crawl(
+                            vm_desc=vm, **plugin_args):
                         emitter.emit(key, val, feature_type)
                 except Exception as exc:
                     logger.exception(exc)
@@ -259,11 +261,12 @@ def snapshot_vms(
                         raise exc
 
             # TODO remove this call after we move all features to plugins
-            _snapshot_single_frame(emitter=emitter,
-                                   features=features,
-                                   options=options,
-                                   crawler=crawler,
-                                   ignore_exceptions=ignore_exceptions)
+            if plugin_mode is False:
+                _snapshot_single_frame(emitter=emitter,
+                                       features=features,
+                                       options=options,
+                                       crawler=crawler,
+                                       ignore_exceptions=ignore_exceptions)
 
 
 def snapshot_container(
@@ -315,18 +318,19 @@ def snapshot_container(
                                        snapshot_num, overwrite)
 
     container_crawl_plugins = plugins_manager.get_container_crawl_plugins()
+    plugin_mode = options.get('pluginmode', defaults.DEFAULT_PLUGIN_MODE)
 
     with Emitter(
         urls=output_urls,
         emitter_args=metadata,
         format=format,
     ) as emitter:
-        for plugin in container_crawl_plugins:
+        for (plugin_obj, plugin_args) in container_crawl_plugins:
             try:
                 if should_exit:
                     break
-                for (key, val, typ) in plugin.crawl(
-                        container_id=container.long_id):
+                for (key, val, typ) in plugin_obj.crawl(
+                        container_id=container.long_id, **plugin_args):
                     emitter.emit(key, val, typ)
             except Exception as exc:
                 logger.exception(exc)
@@ -334,11 +338,12 @@ def snapshot_container(
                     raise exc
 
         # TODO remove this call after we move all features to plugins
-        _snapshot_single_frame(emitter=emitter,
-                               features=features,
-                               options=options,
-                               crawler=crawler,
-                               ignore_exceptions=ignore_exceptions)
+        if plugin_mode is False:
+            _snapshot_single_frame(emitter=emitter,
+                                   features=features,
+                                   options=options,
+                                   crawler=crawler,
+                                   ignore_exceptions=ignore_exceptions)
 
 
 def snapshot_containers(
@@ -445,19 +450,36 @@ def snapshot(
     logger.debug('snapshot args: %s' % (saved_args))
 
     environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
+
     plugin_places = options.get('plugin_places',
                                 defaults.DEFAULT_PLUGIN_PLACES).split(',')
+
+    crawler_config_place = options.get('crawler_config_place',
+                                       defaults.DEFAULT_CRAWLER_CONFIG_PLACE)
+
+    plugin_mode = options.get('pluginmode',
+                              defaults.DEFAULT_PLUGIN_MODE)
+
     plugins_manager.reload_env_plugin(plugin_places=plugin_places,
                                       environment=environment)
 
-    plugins_manager.reload_container_crawl_plugins(plugin_places=plugin_places,
-                                                   features=features)
+    plugins_manager.reload_container_crawl_plugins(
+        plugin_places=plugin_places,
+        crawler_config_place=crawler_config_place,
+        features=features,
+        plugin_mode=plugin_mode)
 
-    plugins_manager.reload_vm_crawl_plugins(plugin_places=plugin_places,
-                                            features=features)
+    plugins_manager.reload_vm_crawl_plugins(
+        plugin_places=plugin_places,
+        crawler_config_place=crawler_config_place,
+        features=features,
+        plugin_mode=plugin_mode)
 
-    plugins_manager.reload_host_crawl_plugins(plugin_places=plugin_places,
-                                              features=features)
+    plugins_manager.reload_host_crawl_plugins(
+        plugin_places=plugin_places,
+        crawler_config_place=crawler_config_place,
+        features=features,
+        plugin_mode=plugin_mode)
 
     next_iteration_time = None
 

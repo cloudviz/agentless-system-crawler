@@ -16,7 +16,7 @@ class os_vm_crawler(IVMCrawler):
     def get_feature(self):
         return 'os'
 
-    def crawl(self, vm_desc):
+    def crawl(self, vm_desc, **kwargs):
         if psvmi is None:
             raise NotImplementedError()
         else:

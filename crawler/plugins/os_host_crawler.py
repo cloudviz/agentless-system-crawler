@@ -18,7 +18,7 @@ class OSHostCrawler(IHostCrawler):
     def get_feature(self):
         return 'os'
 
-    def crawl(self):
+    def crawl(self, **kwargs):
         return self._crawl_in_system()
 
     def _crawl_in_system(self):

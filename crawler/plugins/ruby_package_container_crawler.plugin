@@ -1,0 +1,9 @@
+[Core]
+Name = ruby_pkg
+Module = ruby_package_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Crawler for Ruby GEM packages for containers
+Format = [(pkg_name, pkg_version)]

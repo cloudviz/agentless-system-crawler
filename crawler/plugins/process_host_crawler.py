@@ -15,7 +15,7 @@ class ProcessContainerCrawler(IHostCrawler):
     def get_feature(self):
         return 'process'
 
-    def crawl(self):
+    def crawl(self, **kwargs):
         return self._crawl_in_system()
 
     def _crawl_in_system(self):

@@ -17,7 +17,7 @@ class ProcessContainerCrawler(IContainerCrawler):
     def get_feature(self):
         return 'process'
 
-    def crawl(self, container_id):
+    def crawl(self, container_id, **kwargs):
         inspect = dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])

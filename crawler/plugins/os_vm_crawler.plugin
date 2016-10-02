@@ -1,5 +1,5 @@
 [Core]
-Name = OS crawling function for VMs
+Name = os_vm
 Module = os_vm_crawler
 
 [Documentation]

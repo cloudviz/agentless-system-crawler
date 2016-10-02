@@ -1,5 +1,5 @@
 [Core]
-Name = Process crawling function for containers
+Name = process_container
 Module = process_container_crawler
 
 [Documentation]
