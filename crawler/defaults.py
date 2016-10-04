@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 DEFAULT_ENVIRONMENT = 'cloudsight'
+DEFAULT_PLUGIN_MODE = False
 DEFAULT_PLUGIN_PLACES = 'plugins'
+DEFAULT_CRAWLER_CONFIG_PLACE = 'config'
 DEFAULT_COMPRESS = False
 DEFAULT_PARTITION_STRATEGY = {'name': 'equally_by_pid',
                               'args': {'process_id': 0,
@@ -93,3 +95,4 @@ DEFAULT_CRAWL_OPTIONS = {
 }
 
 DEFAULT_FEATURES_TO_CRAWL = 'os,cpu'
+# DEFAULT_FEATURES_TO_CRAWL = ''

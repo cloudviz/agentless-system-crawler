@@ -1,5 +1,5 @@
 [Core]
-Name = Process crawling function for the local host
+Name = process_host
 Module = process_host_crawler
 
 [Documentation]

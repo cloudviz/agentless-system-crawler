@@ -277,12 +277,31 @@ def main():
              'as an example. Defaults to "cloudsight".',
     )
     parser.add_argument(
+        '--pluginmode',
+        dest='pluginmode',
+        action='store_true',
+        default=defaults.DEFAULT_PLUGIN_MODE,
+        help='If --pluginmode is given, then only enabled plugins in'
+             'config/*.conf are loaded,'
+             'else legacy mode is run via CLI'
+    )
+    parser.add_argument(
         '--plugins',
         dest='plugin_places',
         type=str,
         default=defaults.DEFAULT_PLUGIN_PLACES,
         help='This is a comma separated list of directories where to find '
              'plugins. Each path can be an absolute, or a relative to the '
+             'location of the crawler.py.',
+    )
+    parser.add_argument(
+        '--crawler_config',
+        dest='crawler_config_place',
+        type=str,
+        default=defaults.DEFAULT_CRAWLER_CONFIG_PLACE,
+        help='This is a directory where to find crawler cofiguration files-'
+             '{global.conf, crawl_plugins.conf, emit_plugins.conf}'
+             'The path can be an absolute, or a relative to the '
              'location of the crawler.py.',
     )
     parser.add_argument(
@@ -418,8 +437,11 @@ def main():
         params['format'] = args.format
     if args.environment:
         options['environment'] = args.environment
+    options['pluginmode'] = args.pluginmode
     if args.plugin_places:
         options['plugin_places'] = args.plugin_places
+    if args.crawler_config_place:
+        options['crawler_config_place'] = args.crawler_config_place
     if args.extraMetadataFile:
         metadata = options['metadata']
         metadata['extra_metadata_for_all'] = args.extraMetadataForAll

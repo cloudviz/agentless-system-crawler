@@ -1,5 +1,5 @@
 [Core]
-Name = Process crawling function for VMs
+Name = process_vm
 Module = process_vm_crawler
 
 [Documentation]

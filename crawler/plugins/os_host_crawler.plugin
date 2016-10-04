@@ -1,5 +1,5 @@
 [Core]
-Name = OS crawling function for the local host
+Name = os_host
 Module = os_host_crawler
 
 [Documentation]
