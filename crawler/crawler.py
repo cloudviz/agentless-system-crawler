@@ -16,6 +16,7 @@ import multiprocessing
 import argparse
 import json
 import copy
+import config_parser
 
 
 # External dependencies that must be pip install'ed separately
@@ -429,6 +430,8 @@ def main():
                 options['file']['avoid_setns'] = args.avoid_setns
                 options['package']['avoid_setns'] = args.avoid_setns
 
+        options['avoid_setns'] = args.avoid_setns
+
         if args.crawlmode == 'OUTVM':
             if args.crawl_vm:
                 options['vm_list'] = args.crawl_vm
@@ -453,6 +456,8 @@ def main():
                 % e
             sys.exit(1)
     options['link_container_log_files'] = args.linkContainerLogFiles
+
+    config_parser.parse_crawler_config(options=options)
 
     start_autonomous_crawler(args.numprocesses, args.logfile, params, options)
 
