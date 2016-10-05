@@ -1,34 +1,18 @@
-from ConfigParser import SafeConfigParser
 from yapsy.PluginManager import PluginManager
 from crawler_exceptions import RuntimeEnvironmentPluginNotFound
 from runtime_environment import IRuntimeEnvironment
 from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
 import misc
 import defaults
-
+import config_parser
 
 # default runtime environment: cloudsigth and plugins in 'plugins/'
 runtime_env = None
 
+
 container_crawl_plugins = []
 vm_crawl_plugins = []
 host_crawl_plugins = []
-
-
-def parse_crawler_config(crawler_config_place):
-    config_parser = SafeConfigParser()
-    crawler_config_place = misc.execution_path(crawler_config_place)
-    crawler_config_files = {'global': 'global.conf',
-                            'crawl_plugins': 'crawl_plugins.conf',
-                            'emit_plugins': 'emit_plugins.conf'}
-    crawl_plugins_file = crawler_config_place + \
-        "/" + crawler_config_files.get('crawl_plugins')
-
-    # reading only read plugins file for now
-    config_parser.read(crawl_plugins_file)
-    crawl_plugins = config_parser.sections()
-
-    return (crawl_plugins, config_parser)
 
 
 def _load_plugins(plugin_places=[misc.execution_path('plugins')],
@@ -46,14 +30,14 @@ def _load_plugins(plugin_places=[misc.execution_path('plugins')],
     pm.setCategoriesFilter(category_filter)
     pm.collectPlugins()
 
-    (enabled_plugins, plugins_options) = parse_crawler_config(
-        crawler_config_place)
+    config = config_parser.get_config()
+    enabled_plugins = [p for p in config]
 
     for plugin in pm.getAllPlugins():
         if filter_func(plugin.plugin_object, plugin.name, enabled_plugins):
             plugin_args = {}
-            if plugins_options.has_section(plugin.name):
-                plugin_args = dict(plugins_options.items(plugin.name))
+            if plugin.name in config['crawlers']:
+                plugin_args = config['crawlers'][plugin.name]
             yield (plugin.plugin_object, plugin_args)
 
 
@@ -105,7 +89,6 @@ def reload_container_crawl_plugins(
     container_crawl_plugins = list(
         _load_plugins(
             plugin_places + ['plugins'],
-            crawler_config_place=crawler_config_place,
             category_filter={
                 "crawler": IContainerCrawler},
             filter_func=filter_func))
@@ -113,8 +96,6 @@ def reload_container_crawl_plugins(
 
 def reload_vm_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
-        crawler_config_place=misc.execution_path(
-            defaults.DEFAULT_CRAWLER_CONFIG_PLACE),
         features=defaults.DEFAULT_FEATURES_TO_CRAWL,
         plugin_mode=defaults.DEFAULT_PLUGIN_MODE):
     global vm_crawl_plugins
@@ -129,7 +110,6 @@ def reload_vm_crawl_plugins(
     vm_crawl_plugins = list(
         _load_plugins(
             plugin_places + ['plugins'],
-            crawler_config_place=crawler_config_place,
             category_filter={
                 "crawler": IVMCrawler},
             filter_func=filter_func))
@@ -141,8 +121,6 @@ def reload_vm_crawl_plugins(
 
 def reload_host_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
-        crawler_config_place=misc.execution_path(
-            defaults.DEFAULT_CRAWLER_CONFIG_PLACE),
         features=defaults.DEFAULT_FEATURES_TO_CRAWL,
         plugin_mode=defaults.DEFAULT_PLUGIN_MODE):
     global host_crawl_plugins
@@ -157,7 +135,6 @@ def reload_host_crawl_plugins(
     host_crawl_plugins = list(
         _load_plugins(
             plugin_places + ['plugins'],
-            crawler_config_place=crawler_config_place,
             category_filter={
                 "crawler": IHostCrawler},
             filter_func=filter_func))

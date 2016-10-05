@@ -17,11 +17,15 @@ class ProcessContainerCrawler(IContainerCrawler):
     def get_feature(self):
         return 'process'
 
-    def crawl(self, container_id, **kwargs):
+    def crawl(self, container_id, avoid_setns=False, **kwargs):
         inspect = dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])
         logger.debug('Crawling Processes for container %s' % container_id)
+
+        if avoid_setns:
+            raise NotImplementedError()
+
         return run_as_another_namespace(pid,
                                         ALL_NAMESPACES,
                                         self._crawl_in_system)

@@ -34,7 +34,8 @@ import plugins_manager
 logger = logging.getLogger('crawlutils')
 
 
-"""This flag is check at each iteration of the main crawling loop, and while
+"""
+This flag is checked at each iteration of the main crawling loop, and while
 crawling all features for a specific system (container or local system).
 """
 should_exit = False
@@ -454,9 +455,6 @@ def snapshot(
     plugin_places = options.get('plugin_places',
                                 defaults.DEFAULT_PLUGIN_PLACES).split(',')
 
-    crawler_config_place = options.get('crawler_config_place',
-                                       defaults.DEFAULT_CRAWLER_CONFIG_PLACE)
-
     plugin_mode = options.get('pluginmode',
                               defaults.DEFAULT_PLUGIN_MODE)
 
@@ -465,19 +463,16 @@ def snapshot(
 
     plugins_manager.reload_container_crawl_plugins(
         plugin_places=plugin_places,
-        crawler_config_place=crawler_config_place,
         features=features,
         plugin_mode=plugin_mode)
 
     plugins_manager.reload_vm_crawl_plugins(
         plugin_places=plugin_places,
-        crawler_config_place=crawler_config_place,
         features=features,
         plugin_mode=plugin_mode)
 
     plugins_manager.reload_host_crawl_plugins(
         plugin_places=plugin_places,
-        crawler_config_place=crawler_config_place,
         features=features,
         plugin_mode=plugin_mode)
 

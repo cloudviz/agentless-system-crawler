@@ -20,18 +20,13 @@ class OSContainerCrawler(IContainerCrawler):
     def get_feature(self):
         return 'os'
 
-    def crawl(self, container_id, **kwargs):
+    def crawl(self, container_id, avoid_setns=False, **kwargs):
         inspect = dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])
         logger.debug('Crawling OS for container %s' % container_id)
 
-        crawl_mode = ''
-
-        if 'crawl_mode' in kwargs:
-            crawl_mode = kwargs.get('crawl_mode')
-
-        if crawl_mode == "MOUNTPOINT":
+        if avoid_setns:
             return self._crawl_without_setns(container_id)
         else:  # in all other cases, including wrong mode set
             return run_as_another_namespace(pid,
