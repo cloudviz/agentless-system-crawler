@@ -14,6 +14,7 @@ from ctypes import CDLL
 import uuid
 import psutil
 from mesos import snapshot_crawler_mesos_frame
+import config_parser
 
 try:
     libc = CDLL('libc.so.6')
@@ -26,7 +27,6 @@ except Exception as e:
 from emitter import Emitter
 import features_crawler
 from containers import get_filtered_list_of_containers
-import defaults
 import misc
 from crawlmodes import Modes
 import plugins_manager
@@ -49,17 +49,16 @@ def signal_handler_exit(signum, stack):
 
 def _snapshot_single_frame(
     emitter,
-    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={},
     crawler=None,
     ignore_exceptions=True,
 ):
 
     global should_exit
 
-    for feature in features.split(','):
-        feature_options = options.get(
-            feature, defaults.DEFAULT_CRAWL_OPTIONS[feature])
+    for feature in features:
+        feature_options = options.get(feature, {})
         if should_exit:
             break
         if feature_options is None:
@@ -77,8 +76,8 @@ def snapshot_generic(
     crawlmode=Modes.INVM,
     urls=['stdout://'],
     snapshot_num=0,
-    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={},
     format='csv',
     overwrite=False,
     namespace='',
@@ -89,10 +88,10 @@ def snapshot_generic(
 
     metadata = {
         'namespace': namespace,
-        'features': features,
+        'features': ','.join(map(str, features)),
         'timestamp': int(time.time()),
         'system_type': 'vm',
-        'compress': options.get('compress', defaults.DEFAULT_COMPRESS),
+        'compress': config_parser.get_config()['general']['compress'],
         'overwrite': overwrite,
     }
 
@@ -131,13 +130,13 @@ def snapshot_mesos(
     urls=['stdout://'],
     snapshot_num=0,
     features=None,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    options={},
     format='csv',
     overwrite=False,
     namespace='',
     ignore_exceptions=True,
 ):
-    compress = options.get('compress', defaults.DEFAULT_COMPRESS)
+    compress = config_parser.get_config()['general']['compress']
     metadata = {
         'namespace': namespace,
         'timestamp': int(time.time()),
@@ -154,7 +153,7 @@ def snapshot_mesos(
         emitter_args=metadata,
         format=format,
     ) as emitter:
-        frame = snapshot_crawler_mesos_frame(options['mesos_url'])
+        frame = snapshot_crawler_mesos_frame()
         emitter.emit('mesos', frame)
 
 
@@ -201,8 +200,8 @@ def reformat_output_urls(urls, name, snapshot_num, overwrite):
 def snapshot_vms(
     urls=['stdout://'],
     snapshot_num=0,
-    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={},
     format='csv',
     overwrite=False,
     namespace='',
@@ -231,10 +230,10 @@ def snapshot_vms(
 
         metadata = {
             'namespace': namespace,
-            'features': features,
+            'features': ','.join(map(str, features)),
             'timestamp': int(time.time()),
             'system_type': 'vm',
-            'compress': options.get('compress', defaults.DEFAULT_COMPRESS),
+            'compress': config_parser.get_config()['general']['compress'],
             'overwrite': overwrite,
         }
 
@@ -242,7 +241,7 @@ def snapshot_vms(
                                            snapshot_num, overwrite)
 
         vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins()
-        plugin_mode = options.get('pluginmode', defaults.DEFAULT_PLUGIN_MODE)
+        plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
         with Emitter(
             urls=output_urls,
@@ -273,8 +272,8 @@ def snapshot_vms(
 def snapshot_container(
     urls=['stdout://'],
     snapshot_num=0,
-    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={},
     format='csv',
     overwrite=False,
     container=None,
@@ -289,15 +288,15 @@ def snapshot_container(
     crawler = features_crawler.FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                                                container=container)
 
-    compress = options.get('compress', defaults.DEFAULT_COMPRESS)
-    metadata = options.get('metadata', defaults.DEFAULT_METADATA)
-    extra_metadata = metadata['extra_metadata']
-    extra_metadata_for_all = metadata['extra_metadata_for_all']
+    compress = config_parser.get_config()['general']['compress']
+    metadata = options.get('metadata', {})
+    extra_metadata = metadata.get('extra_metadata', {})
+    extra_metadata_for_all = metadata.get('extra_metadata_for_all', False)
 
     metadata = {
         'namespace': container.namespace,
         'system_type': 'container',
-        'features': features,
+        'features': ','.join(map(str, features)),
         'timestamp': int(time.time()),
         'compress': compress,
         'container_long_id': container.long_id,
@@ -319,7 +318,7 @@ def snapshot_container(
                                        snapshot_num, overwrite)
 
     container_crawl_plugins = plugins_manager.get_container_crawl_plugins()
-    plugin_mode = options.get('pluginmode', defaults.DEFAULT_PLUGIN_MODE)
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     with Emitter(
         urls=output_urls,
@@ -351,8 +350,8 @@ def snapshot_containers(
     containers,
     urls=['stdout://'],
     snapshot_num=0,
-    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={},
     format='csv',
     overwrite=False,
     ignore_exceptions=True,
@@ -421,8 +420,8 @@ def _get_next_iteration_time(next_iteration_time, frequency, snapshot_time):
 def snapshot(
     urls=['stdout://'],
     namespace=misc.get_host_ipaddr(),
-    features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={},
     frequency=-1,
     crawlmode=Modes.INVM,
     format='csv',
@@ -450,13 +449,14 @@ def snapshot(
     saved_args = locals()
     logger.debug('snapshot args: %s' % (saved_args))
 
-    environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
+    environment = options.get(
+        'environment',
+        config_parser.get_config()['general']['environment'])
+    plugin_places = options.get(
+        'plugin_places',
+        config_parser.get_config()['general']['plugin_places'])
 
-    plugin_places = options.get('plugin_places',
-                                defaults.DEFAULT_PLUGIN_PLACES).split(',')
-
-    plugin_mode = options.get('pluginmode',
-                              defaults.DEFAULT_PLUGIN_MODE)
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     plugins_manager.reload_env_plugin(plugin_places=plugin_places,
                                       environment=environment)

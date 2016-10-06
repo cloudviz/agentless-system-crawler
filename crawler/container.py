@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
-import defaults
 import psutil
 import misc
 import namespace
@@ -96,10 +95,8 @@ class Container(object):
     def is_running(self):
         return os.path.exists('/proc/' + self.pid)
 
-    def link_logfiles(self,
-                      options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def link_logfiles(self, options={}):
         raise NotImplementedError()
 
-    def unlink_logfiles(self,
-                        options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def unlink_logfiles(self, options={}):
         raise NotImplementedError()

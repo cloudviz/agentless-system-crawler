@@ -39,6 +39,43 @@ from package_utils import get_rpm_packages, get_dpkg_packages
 logger = logging.getLogger('crawlutils')
 
 
+DEFAULT_FILE_EXCLUDE_DIRS = [
+    '/boot',
+    '/dev',
+    '/proc',
+    '/sys',
+    '/mnt',
+    '/tmp',
+    '/var/cache',
+    '/usr/share/man',
+    '/usr/share/doc',
+    '/usr/share/mime']
+
+
+DEFAULT_CONFIG_EXCLUDE_DIRS = [
+    'dev',
+    'proc',
+    'mnt',
+    'tmp',
+    'var/cache',
+    'usr/share/man',
+    'usr/share/doc',
+    'usr/share/mime']
+
+
+DEFAULT_CONFIG_KNOWN_CONFIG_FILES = [
+    'etc/passwd',
+    'etc/group',
+    'etc/hosts',
+    'etc/hostname',
+    'etc/mtab',
+    'etc/fstab',
+    'etc/aliases',
+    'etc/ssh/ssh_config',
+    'etc/ssh/sshd_config',
+    'etc/sudoers']
+
+
 class FeaturesCrawler:
 
     """This class abstracts the actual crawling functionality like getting the
@@ -219,7 +256,7 @@ class FeaturesCrawler:
     def crawl_files(
         self,
         root_dir='/',
-        exclude_dirs=['/proc', '/mnt', '/dev', '/tmp'],
+        exclude_dirs=DEFAULT_FILE_EXCLUDE_DIRS,
         root_dir_alias=None,
         avoid_setns=False,
     ):
@@ -430,9 +467,9 @@ class FeaturesCrawler:
     def crawl_config_files(
         self,
         root_dir='/',
-        exclude_dirs=['proc', 'mnt', 'dev', 'tmp'],
+        exclude_dirs=DEFAULT_CONFIG_EXCLUDE_DIRS,
         root_dir_alias=None,
-        known_config_files=[],
+        known_config_files=DEFAULT_CONFIG_KNOWN_CONFIG_FILES,
         discover_config_files=False,
         avoid_setns=False
     ):

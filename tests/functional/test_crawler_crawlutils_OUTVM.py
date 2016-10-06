@@ -90,7 +90,7 @@ class CrawlutilsVMTest(unittest.TestCase):
         os.makedirs(self.tempd + '/out')
 
         fxn_args = {
-            'features': 'memory,interface',
+            'features': ['memory', 'interface'],
             'format': 'graphite',
             'urls': [
                 'file://' + self.tempd + '/out/crawler'],

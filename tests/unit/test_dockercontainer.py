@@ -252,14 +252,10 @@ class DockerDockerContainerTests(unittest.TestCase):
                                               mocked_get_runtime_env,
                                               mocked_dockerps):
         n = 0
-        for c in list_docker_containers({'long_id_to_namespace_map':
-                                         {'good_id': 'good_id_namespace'}}):
+        for c in list_docker_containers():
             assert c.long_id == 'good_id'
-            assert c.namespace == 'good_id_namespace'
             n += 1
-        # get_namespace from the runtime_env is called only once because of the
-        # map
-        assert mocked_get_runtime_env.call_count == 1
+        assert mocked_get_runtime_env.call_count == 3
         assert n == 2
 
     @mock.patch('crawler.dockercontainer.exec_dockerps',

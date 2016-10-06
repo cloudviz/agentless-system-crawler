@@ -7,8 +7,7 @@ CONFIG_SPEC_PATH = 'config_spec_and_defaults.conf'
 _config = None
 
 
-def parse_crawler_config(config_path='crawler.conf',
-                         options={}):
+def parse_crawler_config(config_path='crawler.conf'):
     global _config
 
     # 1. get configs
@@ -19,7 +18,15 @@ def parse_crawler_config(config_path='crawler.conf',
     vdt = Validator()
     _config.validate(vdt)
 
-    # 3. overwrite with command line arguments if any
+
+def apply_user_args(options={}):
+    global _config
+
+    # apply global configs
+    if 'compress' in options:
+        _config['general']['compress'] = options['compress']
+
+    # apply per plugin configs
     crawlers = _config['crawlers']
     for plugin in crawlers:
         if 'avoid_setns' in options:

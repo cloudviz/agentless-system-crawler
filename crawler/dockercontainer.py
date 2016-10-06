@@ -6,7 +6,6 @@ import shutil
 
 from container import Container
 import misc
-import defaults
 import json
 import glob
 from dockerutils import (exec_dockerps,
@@ -23,6 +22,13 @@ from requests.exceptions import HTTPError
 import namespace
 
 logger = logging.getLogger('crawlutils')
+
+HOST_LOG_BASEDIR = '/var/log/crawler_container_logs/'
+LOG_TYPES_FILE = 'd464347c-3b99-11e5-b0e9-062dcffc249f.type-mapping'
+DEFAULT_LOG_FILES = [{'name': '/var/log/messages',
+                      'type': None},
+                     {'name': '/etc/csf_env.properties',
+                      'type': None}, ]
 
 
 def list_docker_containers(container_opts={}, user_list='ALL'):
@@ -55,6 +61,7 @@ class LogFileLink():
     If `host_log_dir is not None`, then we should prefix `dest` with
     `host_log_dir`.
     """
+
     def __init__(self, name=None, type=None, source=None,
                  dest=None, host_log_dir=None):
         self.name = name
@@ -64,7 +71,7 @@ class LogFileLink():
         self.host_log_dir = host_log_dir
 
     def __str__(self):
-            return "%s: %s --> %s" % (self.name, self.source, self.dest)
+        return "%s: %s --> %s" % (self.name, self.source, self.dest)
 
     def get_dest(self):
         if self.host_log_dir:
@@ -172,21 +179,12 @@ class DockerContainer(Container):
         logger.info('setup_namespace_and_metadata: long_id=' +
                     self.long_id)
 
-        _map = container_opts.get('long_id_to_namespace_map', {})
-        if self.long_id in _map:
-            self.namespace = _map[self.long_id]
-            self.log_prefix = ''
-            self.logs_list_input = []
-            return
-
         host_namespace = container_opts.get('host_namespace', 'undefined')
-        options = defaults.DEFAULT_CRAWL_OPTIONS
-        default_logs = options['logcrawler']['default_log_files']
 
         try:
             _options = {'root_fs': self.root_fs, 'type': 'docker',
                         'name': self.name, 'host_namespace': host_namespace,
-                        'container_logs': default_logs}
+                        'container_logs': DEFAULT_LOG_FILES}
             env = plugins_manager.get_runtime_env_plugin()
             namespace = env.get_container_namespace(
                 self.long_id, _options)
@@ -252,12 +250,9 @@ class DockerContainer(Container):
     def __str__(self):
         return str(self.__dict__)
 
-    def link_logfiles(self,
-                      options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def link_logfiles(self, options={}):
 
-        host_log_dir = self._get_logfiles_links_dest(
-            options['logcrawler']['host_log_basedir']
-        )
+        host_log_dir = self._get_logfiles_links_dest(HOST_LOG_BASEDIR)
 
         logger.debug('Linking log files for container %s' % self.short_id)
 
@@ -292,9 +287,8 @@ class DockerContainer(Container):
         # Keep record of what is linked in a file.
 
         try:
-            log_types_file = options['logcrawler']['log_types_file']
             types_host_log_path = os.path.join(host_log_dir,
-                                               log_types_file)
+                                               LOG_TYPES_FILE)
             with open(types_host_log_path, 'w') as outfile:
                 logs_dict = [{'name': log.name, 'type': log.type}
                              for log in self.logs_list]
@@ -303,12 +297,9 @@ class DockerContainer(Container):
             # Not a critical error: move on
             logger.exception(e)
 
-    def unlink_logfiles(self,
-                        options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def unlink_logfiles(self, options={}):
 
-        host_log_dir = self._get_logfiles_links_dest(
-            options['logcrawler']['host_log_basedir']
-        )
+        host_log_dir = self._get_logfiles_links_dest(HOST_LOG_BASEDIR)
 
         logger.info('Un-linking log files for container %s.'
                     % self.short_id)
@@ -408,14 +399,12 @@ class DockerContainer(Container):
                                          host_log_dir=host_log_dir)]
         return _logs
 
-    def _set_logs_list(self, options=defaults.DEFAULT_CRAWL_OPTIONS):
+    def _set_logs_list(self, options={}):
         """
         Initializes the LogFileLinks list in `self.logs_list`
         """
 
-        host_log_dir = self._get_logfiles_links_dest(
-            options['logcrawler']['host_log_basedir']
-        )
+        host_log_dir = self._get_logfiles_links_dest(HOST_LOG_BASEDIR)
 
         self.logs_list = []
 

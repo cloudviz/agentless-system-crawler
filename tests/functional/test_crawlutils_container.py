@@ -45,7 +45,7 @@ class CrawlutilsContainerTests(unittest.TestCase):
         crawler.crawlutils.snapshot_container(
             urls=[
                 'file://' + self.tempd + '/out/crawler'],
-            features='cpu,memory,interface,package',
+            features=['cpu', 'memory', 'interface', 'package'],
             format='graphite',
             container=crawler.dockercontainer.DockerContainer(
                 self.container['Id']))
@@ -70,7 +70,7 @@ class CrawlutilsContainerTests(unittest.TestCase):
         crawler.crawlutils.snapshot_generic(
             namespace='random_namespace',
             urls=['file://' + self.tempd + '/out/crawler'],
-            features='cpu,memory,interface,package',
+            features=['cpu', 'memory', 'interface', 'package'],
             format='graphite',
         )
 
