@@ -45,7 +45,7 @@ class SingleContainerTests(unittest.TestCase):
         # Adding every single option (even if not used in this test), to make
         # writing other tests easier
         options = {
-            'features': 'cpu,memory,interface,package',
+            'features': ['cpu', 'memory', 'interface', 'package'],
             'format': 'graphite',
             'crawlmode': 'OUTCONTAINER',
             'urls': [
@@ -226,7 +226,7 @@ class SingleContainerTests(unittest.TestCase):
         # Adding every single option (even if not used in this test), to make
         # writing other tests easier
         options = {
-            'features': 'cpu,memory,interface,package',
+            'features': ['cpu', 'memory', 'interface', 'package'],
             'format': 'graphite',
             'crawlmode': 'OUTCONTAINER',
             'urls': [

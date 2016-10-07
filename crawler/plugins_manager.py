@@ -3,7 +3,6 @@ from crawler_exceptions import RuntimeEnvironmentPluginNotFound
 from runtime_environment import IRuntimeEnvironment
 from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
 import misc
-import defaults
 import config_parser
 
 # default runtime environment: cloudsigth and plugins in 'plugins/'
@@ -16,8 +15,6 @@ host_crawl_plugins = []
 
 
 def _load_plugins(plugin_places=[misc.execution_path('plugins')],
-                  crawler_config_place=misc.execution_path(
-                      defaults.DEFAULT_CRAWLER_CONFIG_PLACE),
                   category_filter={},
                   filter_func=lambda *arg: True):
     pm = PluginManager(plugin_info_ext='plugin')
@@ -53,8 +50,7 @@ def reload_env_plugin(plugin_places=[misc.execution_path('plugins')],
 
     try:
         (runtime_env, unused_args) = _plugins[0]
-
-    except TypeError:
+    except (TypeError, IndexError):
         raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
                                                'environment plugin at %s' %
                                                (environment, plugin_places))
@@ -71,17 +67,15 @@ def get_runtime_env_plugin():
 
 def reload_container_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
-        crawler_config_place=misc.execution_path(
-            defaults.DEFAULT_CRAWLER_CONFIG_PLACE),
-        features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-        plugin_mode=defaults.DEFAULT_PLUGIN_MODE):
+        features=config_parser.get_config()['general']['features_to_crawl'],
+        plugin_mode=config_parser.get_config()['general']['plugin_mode']):
     global container_crawl_plugins
 
     # using --plugin_mode  to override plugins for legacy CLI based invocation
 
     if plugin_mode is False:  # aka override via --features CLI
         filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_obj.get_feature() in features.split(','))
+            plugin_obj.get_feature() in features)
     else:
         filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
             plugin_name in enabled_plugins)
@@ -96,13 +90,13 @@ def reload_container_crawl_plugins(
 
 def reload_vm_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
-        features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-        plugin_mode=defaults.DEFAULT_PLUGIN_MODE):
+        features=config_parser.get_config()['general']['features_to_crawl'],
+        plugin_mode=config_parser.get_config()['general']['plugin_mode']):
     global vm_crawl_plugins
 
     if plugin_mode is False:  # aka override via --features CLI
         filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_obj.get_feature() in features.split(','))
+            plugin_obj.get_feature() in features)
     else:
         filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
             plugin_name in enabled_plugins)
@@ -121,13 +115,13 @@ def reload_vm_crawl_plugins(
 
 def reload_host_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
-        features=defaults.DEFAULT_FEATURES_TO_CRAWL,
-        plugin_mode=defaults.DEFAULT_PLUGIN_MODE):
+        features=config_parser.get_config()['general']['features_to_crawl'],
+        plugin_mode=config_parser.get_config()['general']['plugin_mode']):
     global host_crawl_plugins
 
     if plugin_mode is False:  # aka override via --features CLI
         filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_obj.get_feature() in features.split(','))
+            plugin_obj.get_feature() in features)
     else:
         filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
             plugin_name in enabled_plugins)

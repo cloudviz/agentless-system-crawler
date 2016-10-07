@@ -6,7 +6,6 @@ from crawler.crawlutils import (snapshot_generic,
                                 snapshot_mesos,
                                 snapshot)
 from crawler.crawlmodes import Modes
-import crawler.defaults
 
 
 class MockedDockerContainer:
@@ -108,7 +107,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_generic_invm(self, *args):
         snapshot_generic(crawlmode=Modes.INVM,
                          snapshot_num=123,
-                         features='os',
+                         features=['os'],
                          urls=['stdout://', 'file:///tmp/frame',
                                'kafka://ip:123/topic'],
                          ignore_exceptions=False)
@@ -124,7 +123,7 @@ class ContainerTests(unittest.TestCase):
         with self.assertRaises(OSError):
             snapshot_generic(crawlmode=Modes.INVM,
                              snapshot_num=123,
-                             features='os',
+                             features=['os'],
                              urls=['stdout://', 'file:///tmp/frame',
                                    'kafka://ip:123/topic'],
                              ignore_exceptions=False)
@@ -138,7 +137,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_generic_outcontainer(self, *args):
         snapshot_container(snapshot_num=123,
                            container=MockedDockerContainer(),
-                           features='os',
+                           features=['os'],
                            urls=['stdout://', 'file:///tmp/frame',
                                  'kafka://ip:123/topic'],
                            ignore_exceptions=False)
@@ -154,7 +153,7 @@ class ContainerTests(unittest.TestCase):
         with self.assertRaises(OSError):
             snapshot_container(snapshot_num=123,
                                container=MockedDockerContainer(),
-                               features='os',
+                               features=['os'],
                                urls=['stdout://', 'file:///tmp/frame',
                                      'kafka://ip:123/topic'],
                                ignore_exceptions=False)
@@ -167,7 +166,7 @@ class ContainerTests(unittest.TestCase):
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_mesos(self, *args):
         snapshot_mesos(snapshot_num=123,
-                       features='frame',
+                       features=['frame'],
                        urls=['stdout://', 'file:///tmp/frame',
                              'kafka://ip:123/topic'],
                        ignore_exceptions=False)
@@ -182,7 +181,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_mesos(self, *args):
         with self.assertRaises(OSError):
             snapshot_mesos(snapshot_num=123,
-                           features='frame',
+                           features=['frame'],
                            urls=['stdout://', 'file:///tmp/frame',
                                  'kafka://ip:123/topic'],
                            ignore_exceptions=False)
@@ -197,7 +196,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_invm_two_iters(self, *args):
         snapshot(crawlmode=Modes.INVM,
                  first_snapshot_num=123,
-                 features='os',
+                 features=['os'],
                  frequency=1,
                  max_snapshots=124,
                  urls=['stdout://', 'file:///tmp/frame',
@@ -214,7 +213,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_invm_two_iters_freq_zero(self, *args):
         snapshot(crawlmode=Modes.INVM,
                  first_snapshot_num=123,
-                 features='os',
+                 features=['os'],
                  frequency=0,
                  max_snapshots=124,
                  urls=['stdout://', 'file:///tmp/frame',
@@ -235,7 +234,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_outcontainer(self, *args):
         snapshot(crawlmode=Modes.OUTCONTAINER,
                  first_snapshot_num=123,
-                 features='os',
+                 features=['os'],
                  urls=['stdout://', 'file:///tmp/frame',
                        'kafka://ip:123/topic'])
         # MockedEmitter is doing all the checks
@@ -255,7 +254,7 @@ class ContainerTests(unittest.TestCase):
     def test_snapshot_outcontainer_two_iters(self, *args):
         snapshot(crawlmode=Modes.OUTCONTAINER,
                  first_snapshot_num=123,
-                 features='os',
+                 features=['os'],
                  frequency=1,
                  max_snapshots=124,
                  urls=['stdout://', 'file:///tmp/frame',
@@ -287,7 +286,7 @@ class ContainerTests(unittest.TestCase):
         options = {'link_container_log_files': True}
         snapshot(crawlmode=Modes.OUTCONTAINER,
                  first_snapshot_num=123,
-                 features='os',
+                 features=['os'],
                  frequency=1,
                  max_snapshots=124,
                  urls=['stdout://', 'file:///tmp/frame',

@@ -4,10 +4,10 @@ import logging
 
 # External dependencies that must be pip install'ed separately
 
-import defaults
 import container
 import misc
 from dockercontainer import list_docker_containers
+from config_parser import get_config
 
 logger = logging.getLogger('crawlutils')
 
@@ -37,7 +37,7 @@ def list_all_containers(user_list='ALL',
 
 
 def get_filtered_list_of_containers(
-    options=defaults.DEFAULT_CRAWL_OPTIONS,
+    options={},
     host_namespace=misc.get_host_ipaddr()
 ):
     """
@@ -47,16 +47,15 @@ def get_filtered_list_of_containers(
     The partitioning is given by `partition_strategy`.
     """
 
-    environment = options.get('environment', defaults.DEFAULT_ENVIRONMENT)
+    environment = options.get('environment',
+                              get_config()['general']['environment'])
     metadata = options.get('metadata', {})
-    _map = metadata.get('container_long_id_to_namespace_map', {})
     container_opts = {'host_namespace': host_namespace,
                       'environment': environment,
-                      'long_id_to_namespace_map': _map,
                       }
 
     user_list = options.get('docker_containers_list', 'ALL')
-    partition_strategy = options.get('partition_strategy', None)
+    partition_strategy = options.get('partition_strategy', {})
 
     assert(partition_strategy['name'] == 'equally_by_pid')
     process_id = partition_strategy['args']['process_id']
@@ -73,7 +72,8 @@ def get_filtered_list_of_containers(
         to a plugin or not should be in the plugin itself.
         """
 
-        if (environment != defaults.DEFAULT_ENVIRONMENT and
+        default_environment = get_config()['general']['environment']
+        if (environment != default_environment and
                 not _container.is_docker_container()):
             continue
 

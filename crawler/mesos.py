@@ -82,7 +82,7 @@ def log_verbose(enabled, msg):
     logger.debug('mesos-master plugin [verbose]: %s' % msg)
 
 
-def snapshot_crawler_mesos_frame(inurl):
+def snapshot_crawler_mesos_frame(inurl='http://localhost:9092'):
     setup_logger('crawler-mesos', 'crawler-mesos.log')
     mesos_version = MESOS_VERSION
     configure_crawler_mesos(inurl)

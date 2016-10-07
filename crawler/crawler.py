@@ -16,12 +16,13 @@ import multiprocessing
 import argparse
 import json
 import copy
-import config_parser
+from config_parser import (get_config,
+                           apply_user_args,
+                           parse_crawler_config)
 
 
 # External dependencies that must be pip install'ed separately
 
-import defaults
 import misc
 import crawlutils
 from crawlmodes import Modes
@@ -29,6 +30,10 @@ from crawlmodes import Modes
 CRAWLER_HOST = misc.get_host_ipaddr()
 
 logger = None
+
+
+def csv_list(string):
+    return string.split(',')
 
 
 def setup_logger(logger_name, logfile='crawler.log', process_id=None):
@@ -73,6 +78,7 @@ def start_autonomous_crawler(num_processes, logfile, params, options):
 
         for index in xrange(num_processes):
             # XXX use options.get() instead
+            options['partition_strategy'] = {'args': {}}
             options['partition_strategy']['name'] = 'equally_by_pid'
             partition_args = options['partition_strategy']['args']
             partition_args['process_id'] = index
@@ -138,6 +144,8 @@ def main():
         print 'Need to run this as root.'
         exit(1)
 
+    parse_crawler_config()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--options',
@@ -165,10 +173,10 @@ def main():
     parser.add_argument(
         '--features',
         dest='features',
-        type=str,
-        default=defaults.DEFAULT_FEATURES_TO_CRAWL,
+        type=csv_list,
+        default=get_config()['general']['features_to_crawl'],
         help='Comma-separated list of feature-types to crawl. Defaults to '
-             '{0}'.format(defaults.DEFAULT_FEATURES_TO_CRAWL))
+             '{0}'.format(get_config()['general']['features_to_crawl']))
     parser.add_argument(
         '--since',
         dest='since',
@@ -195,7 +203,7 @@ def main():
         choices=[
             'true',
             'false'],
-        default='true' if defaults.DEFAULT_COMPRESS else 'false',
+        default='true' if get_config()['general']['compress'] else 'false',
         help='Whether to GZIP-compress the output frame data, must be one of '
              '{true,false}. Defaults to true',
     )
@@ -222,7 +230,7 @@ def main():
         '--mountpoint',
         dest='mountpoint',
         type=str,
-        default=defaults.DEFAULT_MOUNTPOINT,
+        default=get_config()['general']['default_mountpoint'],
         help='Mountpoint location (required for --crawlmode MOUNTPOINT)')
     parser.add_argument(
         '--inputfile',
@@ -244,7 +252,7 @@ def main():
         dest='crawlContainers',
         type=str,
         nargs='?',
-        default=defaults.DEFAULT_DOCKER_CONTAINERS_LIST,
+        default='ALL',
         help='List of containers to crawl as a list of Docker container IDs. '
              'If this is not passed, then just the host is crawled. '
              'Alternatively the word "ALL" can be used to crawl every '
@@ -271,7 +279,7 @@ def main():
         '--environment',
         dest='environment',
         type=str,
-        default=defaults.DEFAULT_ENVIRONMENT,
+        default=get_config()['general']['environment'],
         help='This speficies some environment specific behavior, like how '
              'to name a container. The way to add a new behavior is by '
              'implementing a plugin (see plugins/cloudsight_environment.py '
@@ -281,7 +289,7 @@ def main():
         '--pluginmode',
         dest='pluginmode',
         action='store_true',
-        default=defaults.DEFAULT_PLUGIN_MODE,
+        default=get_config()['general']['plugin_mode'],
         help='If --pluginmode is given, then only enabled plugins in'
              'config/*.conf are loaded,'
              'else legacy mode is run via CLI'
@@ -289,20 +297,10 @@ def main():
     parser.add_argument(
         '--plugins',
         dest='plugin_places',
-        type=str,
-        default=defaults.DEFAULT_PLUGIN_PLACES,
+        type=csv_list,
+        default=get_config()['general']['plugin_places'],
         help='This is a comma separated list of directories where to find '
              'plugins. Each path can be an absolute, or a relative to the '
-             'location of the crawler.py.',
-    )
-    parser.add_argument(
-        '--crawler_config',
-        dest='crawler_config_place',
-        type=str,
-        default=defaults.DEFAULT_CRAWLER_CONFIG_PLACE,
-        help='This is a directory where to find crawler cofiguration files-'
-             '{global.conf, crawl_plugins.conf, emit_plugins.conf}'
-             'The path can be an absolute, or a relative to the '
              'location of the crawler.py.',
     )
     parser.add_argument(
@@ -331,7 +329,7 @@ def main():
         '--linkContainerLogFiles',
         dest='linkContainerLogFiles',
         action='store_true',
-        default=defaults.DEFAULT_LINK_CONTAINER_LOG_FILES,
+        default=get_config()['general']['link_container_log_files'],
         help='Experimental feature. If specified and if running in '
              'OUTCONTAINER mode, then the crawler maintains links to '
              'container log files.')
@@ -355,30 +353,16 @@ def main():
     args = parser.parse_args()
     params = {}
 
-    params['options'] = copy.deepcopy(defaults.DEFAULT_CRAWL_OPTIONS)
+    params['options'] = {}
     if args.options:
         try:
             _options = json.loads(args.options)
         except (KeyError, ValueError):
             sys.stderr.write('Can not parse the user options json.\n')
             sys.exit(1)
-
-        # The default options are replaced at the root level of each option.
-        # For example: the 'file' option, which has many details (it's really a
-        # tree of options),is completely replaced by the the 'file' option in
-        # the user json.
-
         for (option, value) in _options.iteritems():
-            if option in defaults.DEFAULT_CRAWL_OPTIONS:
-                # Check the data passed!
-                params['options'][option] = value
-            if option not in defaults.DEFAULT_CRAWL_OPTIONS:
-                sys.stderr.write('There is a problem with the options json.\n')
-                sys.exit(1)
+            params['options'][option] = value
 
-    # Arguments to the crawl snapshot function are passed as a big options
-    # tree,which defaults to DEFAULT_CRAWL_OPTIONS. Most of the following
-    # arguments just update that tree of options.
     options = params['options']
 
     if args.url:
@@ -391,8 +375,7 @@ def main():
         params['since'] = args.since
     if args.frequency is not None:
         params['frequency'] = args.frequency
-    if args.compress:
-        options['compress'] = (args.compress == 'true')
+    options['compress'] = (args.compress in ['true', 'True'])
     params['overwrite'] = args.overwrite
     if args.crawlmode:
         params['crawlmode'] = args.crawlmode
@@ -443,9 +426,8 @@ def main():
     options['pluginmode'] = args.pluginmode
     if args.plugin_places:
         options['plugin_places'] = args.plugin_places
-    if args.crawler_config_place:
-        options['crawler_config_place'] = args.crawler_config_place
     if args.extraMetadataFile:
+        options['metadata'] = {}
         metadata = options['metadata']
         metadata['extra_metadata_for_all'] = args.extraMetadataForAll
         try:
@@ -457,7 +439,7 @@ def main():
             sys.exit(1)
     options['link_container_log_files'] = args.linkContainerLogFiles
 
-    config_parser.parse_crawler_config(options=options)
+    apply_user_args(options=options)
 
     start_autonomous_crawler(args.numprocesses, args.logfile, params, options)
 

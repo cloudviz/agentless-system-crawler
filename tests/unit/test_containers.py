@@ -109,7 +109,10 @@ class ContainersTests(unittest.TestCase):
     @mock.patch('crawler.containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list(self, *args):
-        pids = [c.pid for c in get_filtered_list_of_containers()]
+        opts = {'partition_strategy': {'name': 'equally_by_pid',
+                                       'args': {'process_id': 0,
+                                                'num_processes': 1}}}
+        pids = [c.pid for c in get_filtered_list_of_containers(opts)]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(DOCKER_IDS + ['4'])
