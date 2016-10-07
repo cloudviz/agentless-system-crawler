@@ -5,5 +5,8 @@ Module = ruby_package_container_crawler
 [Documentation]
 Author = IBM
 Version = 0.1
-Description = Crawler for Ruby GEM packages for containers
+Description = Crawler for Ruby GEM packages for containers and images
 Format = [(pkg_name, pkg_version)]
+
+[Options]
+avoid_setns = True|False. Default is True.
