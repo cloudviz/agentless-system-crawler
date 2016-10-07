@@ -2,7 +2,6 @@ import dockerutils
 from icrawl_plugin import IContainerCrawler
 from namespace import run_as_another_namespace, ALL_NAMESPACES
 import logging
-from misc import subprocess_run
 import re
 import subprocess
 import os
@@ -30,10 +29,12 @@ class RubyPackageCrawler(IContainerCrawler):
                                             self._crawl_in_system)
 
     def _crawl_in_system(self):
-        proc = subprocess.Popen(['sh','-c','gem list'], stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            ['sh', '-c', 'gem list'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         output, err = proc.communicate()
-        
+
         if output:
             pkg_list = output.strip('\n')
             if pkg_list:
@@ -46,34 +47,31 @@ class RubyPackageCrawler(IContainerCrawler):
                             {"pkgname": pkg_name, "pkgversion": pkg_version},
                             'ruby-package')
 
-   
-    def _crawl_files(self,path,extension):
-        output=[]
+    def _crawl_files(self, path, extension):
+        output = []
         if os.path.isdir(path):
             for (root_dirpath, dirs, files) in os.walk(path):
                 output += [f for f in files if f.endswith(extension)]
         return output
 
-        
-        
     def _crawl_without_setns(self, container_id):
         mountpoint = dockerutils.get_docker_container_rootfs_path(container_id)
-        candidate_paths=[
+        candidate_paths = [
             "usr/lib/",
             "usr/share/",
             "usr/local/lib/",
             "usr/local/share/",
             "usr/local/bundle/",
             "var/lib/"]
-        
-        packages=[]
+
+        packages = []
 
         for path in candidate_paths:
-            path = os.path.join(mountpoint,path)
-            packages += self._crawl_files(path,".gemspec")
+            path = os.path.join(mountpoint, path)
+            packages += self._crawl_files(path, ".gemspec")
 
         for pkg in packages:
-            name_parts = re.match(r'(.*)-([\d\.]*)(\.gemspec)',pkg)
+            name_parts = re.match(r'(.*)-([\d\.]*)(\.gemspec)', pkg)
             if name_parts is not None:
                 pkg_name = name_parts.group(1)
                 pkg_version = name_parts.group(2)
@@ -81,5 +79,3 @@ class RubyPackageCrawler(IContainerCrawler):
                     pkg_name,
                     {"pkgname": pkg_name, "pkgversion": pkg_version},
                     'ruby-package')
-            
-        
