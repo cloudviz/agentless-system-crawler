@@ -49,7 +49,6 @@ def get_filtered_list_of_containers(
 
     environment = options.get('environment',
                               get_config()['general']['environment'])
-    metadata = options.get('metadata', {})
     container_opts = {'host_namespace': host_namespace,
                       'environment': environment,
                       }

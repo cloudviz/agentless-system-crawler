@@ -122,7 +122,7 @@ class FeaturesCrawler:
             # 'process': self.crawl_processes,
             'connection': self.crawl_connections,
             'package': self.crawl_packages,
-            'file': self.crawl_files,
+            #'file': self.crawl_files,
             'config': self.crawl_config_files,
             'memory': self.crawl_memory,
             'cpu': self.crawl_cpu,

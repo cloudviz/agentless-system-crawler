@@ -32,6 +32,10 @@ def apply_user_args(options={}):
         if 'avoid_setns' in options:
             crawlers[plugin]['avoid_setns'] = options['avoid_setns']
 
+        feature = plugin.replace('_host', '').replace('_container', '')
+        if feature in options:
+            crawlers[plugin] = options[feature]
+
 
 def get_config():
     global _config
