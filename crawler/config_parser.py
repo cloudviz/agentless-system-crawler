@@ -34,7 +34,8 @@ def apply_user_args(options={}):
 
         feature = plugin.replace('_host', '').replace('_container', '')
         if feature in options:
-            crawlers[plugin] = options[feature]
+            for arg in options[feature]:
+                crawlers[plugin][arg] = options[feature][arg]
 
 
 def get_config():
