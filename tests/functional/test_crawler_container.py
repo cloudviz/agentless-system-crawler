@@ -5,10 +5,13 @@ import tempfile
 import os
 import shutil
 import subprocess
+import sys
 
 # Tests for crawlers in kraken crawlers configuration.
 
 import crawler.crawlutils
+
+import logging
 
 # Tests conducted with a single container running.
 
@@ -16,6 +19,16 @@ import crawler.crawlutils
 class SingleContainerTests(unittest.TestCase):
 
     def setUp(self):
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        root.addHandler(ch)
+
+
         self.docker = docker.Client(
             base_url='unix://var/run/docker.sock', version='auto')
         try:

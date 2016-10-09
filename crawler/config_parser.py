@@ -32,6 +32,11 @@ def apply_user_args(options={}):
         if 'avoid_setns' in options:
             crawlers[plugin]['avoid_setns'] = options['avoid_setns']
 
+        # The user can pass options, we need to update the configuration state
+        # with it. It gets a bit dirty though because these user passed options
+        # are keyed using feature names (e.g. "package"), and we need to
+        # transform these to plugin names (e.g. "package_host" or
+        # "package_container").
         feature = plugin.replace('_host', '').replace('_container', '')
         if feature in options:
             for arg in options[feature]:

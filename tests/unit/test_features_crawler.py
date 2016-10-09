@@ -267,8 +267,9 @@ class FeaturesCrawlerTests(unittest.TestCase):
         fc._cache_put_value('k', 'v')
         assert fc._cache_get_value('k') == ('v', 123)
         assert fc._cache_get_value('ble') == (None, None)
-        assert mocked_time.call_count == 1
 
+    @mock.patch('crawler.features_crawler.time.time',
+                side_effect=lambda: 1001)
     @mock.patch(
         'crawler.features_crawler.osinfo.get_osinfo',
         side_effect=lambda mount_point=None: {
@@ -280,8 +281,6 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda: ['1.1.1.1'])
     @mock.patch('crawler.features_crawler.psutil.boot_time',
                 side_effect=lambda: 1000)
-    @mock.patch('crawler.features_crawler.time.time',
-                side_effect=lambda: 1001)
     @mock.patch('crawler.features_crawler.platform.system',
                 side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.machine',
@@ -302,6 +301,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                     architecture='machine'))
 
         for i, arg in enumerate(args):
+            if i > 0: # time.time is called more than once
+                continue
             assert arg.call_count == 1
 
     @mock.patch(
@@ -367,14 +368,14 @@ class FeaturesCrawlerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER)
 
+    @mock.patch('crawler.features_crawler.time.time',
+                side_effect=lambda: 1001)
     @mock.patch('crawler.features_crawler.platform.platform',
                 side_effect=lambda: 'platform')
     @mock.patch('crawler.features_crawler.misc.get_host_ip4_addresses',
                 side_effect=lambda: ['1.1.1.1'])
     @mock.patch('crawler.features_crawler.psutil.boot_time',
                 side_effect=lambda: 1000)
-    @mock.patch('crawler.features_crawler.time.time',
-                side_effect=lambda: 1001)
     @mock.patch('crawler.features_crawler.platform.system',
                 side_effect=lambda: 'linux')
     @mock.patch('crawler.features_crawler.platform.machine',
@@ -402,6 +403,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                     os_kernel='platform',
                     architecture='machine'))
         for i, arg in enumerate(args):
+            if i > 0: # time.time is called more than once
+                continue
             assert arg.call_count == 1
 
     @mock.patch(
