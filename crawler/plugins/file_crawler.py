@@ -8,7 +8,11 @@ import logging
 logger = logging.getLogger('crawlutils')
 
 
-def crawl_files(root_dir='/', exclude_dirs=[], root_dir_alias=None, accessed_since=0):
+def crawl_files(
+        root_dir='/',
+        exclude_dirs=[],
+        root_dir_alias=None,
+        accessed_since=0):
 
     root_dir = str(root_dir)
 
@@ -27,7 +31,7 @@ def crawl_files(root_dir='/', exclude_dirs=[], root_dir_alias=None, accessed_sin
     # order
 
     feature = _crawl_file(root_dir, root_dir,
-                           root_dir_alias)
+                          root_dir_alias)
     if feature and (feature.ctime > accessed_since or
                     feature.atime > accessed_since):
         yield (feature.path, feature, 'file')
@@ -48,10 +52,11 @@ def crawl_files(root_dir='/', exclude_dirs=[], root_dir_alias=None, accessed_sin
                 yield (feature.path, feature, 'file')
         for fpath in dirs:
             feature = _crawl_file(root_dir, fpath,
-                                       root_dir_alias)
+                                  root_dir_alias)
             if feature and (feature.ctime > accessed_since or
                             feature.atime > accessed_since):
                 yield (feature.path, feature, 'file')
+
 
 def _filetype(fpath, fperm):
     modebit = fperm[0]
@@ -88,6 +93,7 @@ _filemode_table = (
      (stat.S_IXOTH, 'x')),
 )
 
+
 def _fileperm(mode):
 
     # Convert a file's mode to a string of the form '-rwxrwxrwx'
@@ -102,10 +108,12 @@ def _fileperm(mode):
             perm.append('-')
     return ''.join(perm)
 
+
 def _is_executable(fpath):
     return os.access(fpath, os.X_OK)
 
 # crawl a single file
+
 
 def _crawl_file(
     root_dir,

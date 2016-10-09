@@ -1,6 +1,7 @@
 from icrawl_plugin import IHostCrawler
 from plugins.file_crawler import crawl_files
 
+
 class FileHostCrawler(IHostCrawler):
 
     def get_feature(self):

@@ -1,6 +1,7 @@
 from icrawl_plugin import IHostCrawler
 from plugins.os_crawler import crawl_os, crawl_os_mountpoint
 
+
 class OSHostCrawler(IHostCrawler):
 
     def get_feature(self):

@@ -385,28 +385,28 @@ def main():
                        'for MOUNTPOINT mode')
                 sys.exit(1)
             if os.path.exists(args.mountpoint):
-		options['root_dir'] = args.mountpoint
-		options['os'] = {}
-		options['os']['root_dir'] = args.mountpoint
-		options['package'] = {}
-		options['package']['root_dir'] = args.mountpoint
-		options['file'] = {}
-		options['file']['root_dir'] = args.mountpoint
-		# To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
-		# reported file path.
-		options['file']['root_dir_alias'] = '/'
-		options['config'] = {}
-		options['config']['root_dir'] = args.mountpoint
-		# To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
-		# reported file path.
-		options['config']['root_dir_alias'] = '/'
+                options['root_dir'] = args.mountpoint
+                options['os'] = {}
+                options['os']['root_dir'] = args.mountpoint
+                options['package'] = {}
+                options['package']['root_dir'] = args.mountpoint
+                options['file'] = {}
+                options['file']['root_dir'] = args.mountpoint
+                # To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
+                # reported file path.
+                options['file']['root_dir_alias'] = '/'
+                options['config'] = {}
+                options['config']['root_dir'] = args.mountpoint
+                # To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
+                # reported file path.
+                options['config']['root_dir_alias'] = '/'
 
         if args.crawlmode == 'OUTCONTAINER':
             if args.crawlContainers:
                 options['docker_containers_list'] = args.crawlContainers
             if not args.numprocesses:
                 args.numprocesses = multiprocessing.cpu_count()
-            #if args.avoid_setns:
+            # if args.avoid_setns:
             #    options['os']['avoid_setns'] = args.avoid_setns
             #    options['config']['avoid_setns'] = args.avoid_setns
             #    options['file']['avoid_setns'] = args.avoid_setns
