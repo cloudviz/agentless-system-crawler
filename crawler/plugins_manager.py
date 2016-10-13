@@ -137,16 +137,43 @@ def reload_host_crawl_plugins(
     # features to be plugins.
 
 
-def get_container_crawl_plugins():
+def get_container_crawl_plugins(
+    features=[
+        'package',
+        'os',
+        'process',
+        'file',
+        'config']):
     global container_crawl_plugins
+    if not container_crawl_plugins:
+        reload_container_crawl_plugins(features=features,
+                                       plugin_mode=False)
     return container_crawl_plugins
 
 
-def get_vm_crawl_plugins():
+def get_vm_crawl_plugins(
+    features=[
+        'package',
+        'os',
+        'process',
+        'file',
+        'config']):
     global vm_crawl_plugins
+    if not vm_crawl_plugins:
+        reload_vm_crawl_plugins(features=features,
+                                plugin_mode=False)
     return vm_crawl_plugins
 
 
-def get_host_crawl_plugins():
+def get_host_crawl_plugins(
+    features=[
+        'package',
+        'os',
+        'process',
+        'file',
+        'config']):
     global host_crawl_plugins
+    if not host_crawl_plugins:
+        reload_host_crawl_plugins(features=features,
+                                  plugin_mode=False)
     return host_crawl_plugins

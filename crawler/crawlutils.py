@@ -98,7 +98,7 @@ def snapshot_generic(
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
                     if u.startswith('file:') else u) for u in urls]
 
-    host_crawl_plugins = plugins_manager.get_host_crawl_plugins()
+    host_crawl_plugins = plugins_manager.get_host_crawl_plugins(features)
 
     with Emitter(
         urls=output_urls,
@@ -240,7 +240,7 @@ def snapshot_vms(
         output_urls = reformat_output_urls(urls, vm_name,
                                            snapshot_num, overwrite)
 
-        vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins()
+        vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins(features)
         plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
         with Emitter(
@@ -317,7 +317,8 @@ def snapshot_container(
     output_urls = reformat_output_urls(urls, container.short_id,
                                        snapshot_num, overwrite)
 
-    container_crawl_plugins = plugins_manager.get_container_crawl_plugins()
+    container_crawl_plugins = plugins_manager.get_container_crawl_plugins(
+        features=features)
     plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     with Emitter(

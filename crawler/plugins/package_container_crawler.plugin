@@ -1,0 +1,8 @@
+[Core]
+Name = package_container
+Module = package_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Package crawling function for containers

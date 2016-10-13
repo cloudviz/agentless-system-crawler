@@ -1,11 +1,13 @@
 from configobj import ConfigObj
 from validate import Validator
+import logging
 import misc
 
 CONFIG_SPEC_PATH = 'config_spec_and_defaults.conf'
 
 _config = None
 
+logger = logging.getLogger('crawlutils')
 
 def parse_crawler_config(config_path='crawler.conf'):
     global _config
@@ -22,16 +24,25 @@ def parse_crawler_config(config_path='crawler.conf'):
 def apply_user_args(options={}):
     global _config
 
-    # apply global configs
-    if 'compress' in options:
-        _config['general']['compress'] = options['compress']
+    try:
+        # apply global configs
+        if 'compress' in options:
+            _config['general']['compress'] = options['compress']
 
-    # apply per plugin configs
-    crawlers = _config['crawlers']
-    for plugin in crawlers:
-        if 'avoid_setns' in options:
-            crawlers[plugin]['avoid_setns'] = options['avoid_setns']
+        # apply per plugin configs
+        crawlers = _config['crawlers']
+        for plugin in crawlers:
+            if 'avoid_setns' in options:
+                crawlers[plugin]['avoid_setns'] = options['avoid_setns']
 
+            # The user can pass options, we need to update the configuration state
+            # with it.
+            feature = crawlers[plugin]['feature']
+            if feature in options:
+                for arg in options[feature]:
+                    crawlers[plugin][arg] = options[feature][arg]
+    except KeyError as exc:
+        logger.warning('Can not apply users --options configuration: %s' % exc)
 
 def get_config():
     global _config

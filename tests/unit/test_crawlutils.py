@@ -134,6 +134,8 @@ class ContainerTests(unittest.TestCase):
                 side_effect=MockedFeaturesCrawler, autospec=True)
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [])
     def test_snapshot_generic_outcontainer(self, *args):
         snapshot_container(snapshot_num=123,
                            container=MockedDockerContainer(),
@@ -149,6 +151,8 @@ class ContainerTests(unittest.TestCase):
                 side_effect=MockedFeaturesCrawlerFailure, autospec=True)
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [])
     def test_snapshot_generic_outcontainer_failure(self, *args):
         with self.assertRaises(OSError):
             snapshot_container(snapshot_num=123,

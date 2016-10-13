@@ -20,7 +20,7 @@ class CloudsightEnvironment(IRuntimeEnvironment):
         return self.name
 
     def get_container_namespace(self, long_id, options):
-        assert type(long_id) is str or unicode, "long_id is not a string"
+        assert isinstance(long_id, str) or unicode, "long_id is not a string"
         assert 'name' in options and 'host_namespace' in options
         name = options['name']
         name = (name if len(name) > 0 else long_id[:12])
@@ -28,7 +28,7 @@ class CloudsightEnvironment(IRuntimeEnvironment):
         return options['host_namespace'] + '/' + name
 
     def get_container_log_file_list(self, long_id, options):
-        assert type(long_id) is str or unicode, "long_id is not a string"
+        assert isinstance(long_id, str) or unicode, "long_id is not a string"
         assert 'container_logs' in options
         container_logs = copy.deepcopy(options['container_logs'])
         for log in container_logs:
@@ -41,5 +41,5 @@ class CloudsightEnvironment(IRuntimeEnvironment):
         return container_logs
 
     def get_container_log_prefix(self, long_id, options):
-        assert type(long_id) is str or unicode, "long_id is not a string"
+        assert isinstance(long_id, str) or unicode, "long_id is not a string"
         return self.get_container_namespace(long_id, options)

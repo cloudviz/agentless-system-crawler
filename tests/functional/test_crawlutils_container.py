@@ -5,10 +5,13 @@ import tempfile
 import os
 import shutil
 import subprocess
+import sys
 
 # Tests for crawlers in kraken crawlers configuration.
 
 import crawler.crawlutils
+
+import logging
 
 # Tests conducted with a single container running.
 
@@ -16,6 +19,15 @@ import crawler.crawlutils
 class CrawlutilsContainerTests(unittest.TestCase):
 
     def setUp(self):
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        root.addHandler(ch)
+
         self.docker = docker.Client(
             base_url='unix://var/run/docker.sock', version='auto')
         try:
@@ -42,10 +54,12 @@ class CrawlutilsContainerTests(unittest.TestCase):
     def testCrawlContainer(self):
         os.makedirs(self.tempd + '/out')
 
+        features = ['cpu', 'memory', 'interface', 'package']
+        crawler.plugins_manager.reload_container_crawl_plugins(features=features)
         crawler.crawlutils.snapshot_container(
             urls=[
                 'file://' + self.tempd + '/out/crawler'],
-            features=['cpu', 'memory', 'interface', 'package'],
+            features=features,
             format='graphite',
             container=crawler.dockercontainer.DockerContainer(
                 self.container['Id']))
@@ -67,10 +81,12 @@ class CrawlutilsContainerTests(unittest.TestCase):
     def testCrawlInVm(self):
         os.makedirs(self.tempd + '/out')
 
+        features = ['cpu', 'memory', 'interface', 'package']
+        crawler.plugins_manager.reload_host_crawl_plugins(features=features)
         crawler.crawlutils.snapshot_generic(
             namespace='random_namespace',
             urls=['file://' + self.tempd + '/out/crawler'],
-            features=['cpu', 'memory', 'interface', 'package'],
+            features=features,
             format='graphite',
         )
 
