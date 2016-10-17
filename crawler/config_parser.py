@@ -20,6 +20,16 @@ def parse_crawler_config(config_path='crawler.conf'):
     vdt = Validator()
     _config.validate(vdt)
 
+    enabled_crawlers = _config['crawlers']
+    default_crawlers = _config['default_crawlers']
+
+    for plugin in enabled_crawlers:
+        if plugin in default_crawlers:
+            user_options = enabled_crawlers[plugin]
+            default_options = default_crawlers[plugin]
+            for option in default_options.keys():
+                if option not in user_options.keys():
+                    user_options[option] = default_options[option]
 
 def apply_user_args(options={}):
     global _config
