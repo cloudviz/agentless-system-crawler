@@ -143,7 +143,7 @@ def main():
         print 'Need to run this as root.'
         exit(1)
 
-    parse_crawler_config()
+    get_config()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

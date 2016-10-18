@@ -28,7 +28,7 @@ def _load_plugins(plugin_places=[misc.execution_path('plugins')],
     pm.collectPlugins()
 
     config = config_parser.get_config()
-    enabled_plugins = [p for p in config]
+    enabled_plugins = [p for p in config['crawlers']]
 
     for plugin in pm.getAllPlugins():
         if filter_func(plugin.plugin_object, plugin.name, enabled_plugins):
