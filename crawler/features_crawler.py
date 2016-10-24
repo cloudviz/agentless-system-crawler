@@ -1175,7 +1175,9 @@ class FeaturesCrawler:
                 cache_key = '{0}-{1}-{2}'.format(self.container.long_id,
                                                  self.container.pid,
                                                  feature_key)
-            else:
+            elif _mode == Modes.OUTVM:
+                cache_key = '{0}-{1}'.format('OUTVM', feature_key)
+            else:    
                 cache_key = '{0}-{1}'.format('INVM', feature_key)
 
             (prev_count, prev_time) = self._cache_get_value(cache_key)

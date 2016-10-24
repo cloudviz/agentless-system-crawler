@@ -1522,7 +1522,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
     @mock.patch('crawler.features_crawler.psvmi.interface_iter',
                 side_effect=lambda vmc: [psvmi_interface(
-                    'eth0', 10, 20, 30, 40, 50, 60)])
+                    'eth1', 10, 20, 30, 40, 50, 60)])
     def test_crawl_interface_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
