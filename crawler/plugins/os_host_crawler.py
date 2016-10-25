@@ -1,5 +1,9 @@
-from icrawl_plugin import IHostCrawler
-from plugins.os_crawler import crawl_os, crawl_os_mountpoint
+try:
+    from crawler.icrawl_plugin import IHostCrawler
+    from crawler.plugins.os_crawler import crawl_os, crawl_os_mountpoint
+except ImportError:
+    from icrawl_plugin import IHostCrawler
+    from plugins.os_crawler import crawl_os, crawl_os_mountpoint
 
 
 class OSHostCrawler(IHostCrawler):

@@ -1,7 +1,13 @@
-import dockerutils
-from icrawl_plugin import IContainerCrawler
-from namespace import run_as_another_namespace, ALL_NAMESPACES
-from plugins.os_crawler import crawl_os, crawl_os_mountpoint
+try:
+    import crawler.dockerutils as dockerutils
+    from crawler.icrawl_plugin import IContainerCrawler
+    from crawler.namespace import run_as_another_namespace, ALL_NAMESPACES
+    from crawler.plugins.os_crawler import crawl_os, crawl_os_mountpoint
+except ImportError:
+    import dockerutils
+    from icrawl_plugin import IContainerCrawler
+    from namespace import run_as_another_namespace, ALL_NAMESPACES
+    from plugins.os_crawler import crawl_os, crawl_os_mountpoint
 import logging
 
 logger = logging.getLogger('crawlutils')

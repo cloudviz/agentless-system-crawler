@@ -1,7 +1,11 @@
-from icrawl_plugin import IVMCrawler
-# XXX: This should change; either read from plugin file,
-# or make crawler agnostic to this
-from features import OSFeature
+try:
+    from crawler.icrawl_plugin import IVMCrawler
+    from crawler.features import OSFeature
+except ImportError:
+    from icrawl_plugin import IVMCrawler
+    # XXX: This should change; either read from plugin file,
+    # or make crawler agnostic to this
+    from features import OSFeature
 import logging
 
 # External dependencies that must be pip install'ed separately

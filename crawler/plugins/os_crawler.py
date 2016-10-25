@@ -1,8 +1,14 @@
 import platform
-import misc
+try:
+    import crawler.misc as misc
+    import crawler.osinfo as osinfo
+    from crawler.features import OSFeature
+except ImportError:
+    import misc
+    import osinfo
+    from features import OSFeature
+
 import time
-import osinfo
-from features import OSFeature
 import logging
 
 # External dependencies that must be pip install'ed separately
