@@ -28,7 +28,9 @@ from crawler.container import Container
 from crawler.crawler_exceptions import CrawlError
 # from crawler.icrawl_plugin import IContainerCrawler
 from crawler.plugins.os_container_crawler import OSContainerCrawler
+from crawler.plugins.file_container_crawler import FileContainerCrawler
 from crawler.plugins.os_host_crawler import OSHostCrawler
+from crawler.plugins.file_host_crawler import FileHostCrawler
 from crawler.plugins.os_vm_crawler import os_vm_crawler
 
 
@@ -495,3 +497,220 @@ class PluginTests(unittest.TestCase):
                 'os')
             pass
         assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=mocked_os_walk)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_host_crawler(self, *args):
+        fc = FileHostCrawler()
+        for (k, f, fname) in fc.crawl():
+            print f
+            assert fname == "file"
+            assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
+            assert f.atime == 4 and f.ctime == 5
+            assert f.mtime == 6 and f.size == 7
+            assert f.name in ['', 'dir', 'file1', 'file2', 'file3', 'file4']
+            assert f.path in ['/', '/file1', '/file2', '/file3',
+                              '/dir', '/dir/file4']
+            assert f.type in ['file', 'dir']
+            assert f.linksto is None
+        assert args[0].call_count == 6
+        assert args[1].call_count == 1  # oswalk
+        args[1].assert_called_with('/')
+        assert args[2].call_count == 1  # isdir
+        args[2].assert_called_with('/')
+
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=mocked_os_walk)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_host_crawler_with_exclude_dirs(self, *args):
+        fc = FileHostCrawler()
+        for (k, f, fname) in fc.crawl(exclude_dirs=['dir']):
+            print f
+            assert fname == "file"
+            assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
+            assert f.atime == 4 and f.ctime == 5
+            assert f.mtime == 6 and f.size == 7
+            assert f.name in ['', 'file1', 'file2', 'file3', 'file4']
+            assert f.path in ['/', '/file1', '/file2', '/file3']
+            assert f.path not in ['/dir', '/dir/file4']
+            assert f.type in ['file', 'dir']
+            assert f.linksto is None
+        assert args[0].call_count == 4
+        assert args[1].call_count == 1  # oswalk
+        args[1].assert_called_with('/')
+        assert args[2].call_count == 1  # isdir
+        args[2].assert_called_with('/')
+
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=throw_os_error)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_host_crawler_failure(self, *args):
+        fc = FileHostCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, fname) in fc.crawl(root_dir='/a/b/c'):
+                pass
+
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "run_as_another_namespace"),
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=mocked_os_walk)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_container_crawler(self, *args):
+        fc = FileContainerCrawler()
+        for (k, f, fname) in fc.crawl(root_dir='/'):
+            assert fname == "file"
+            assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
+            assert f.atime == 4 and f.ctime == 5
+            assert f.mtime == 6 and f.size == 7
+            assert f.name in ['', 'dir', 'file1', 'file2', 'file3', 'file4']
+            assert f.path in ['/', '/file1', '/file2', '/file3',
+                              '/dir', '/dir/file4']
+            assert f.type in ['file', 'dir']
+            assert f.linksto is None
+        assert args[0].call_count == 6
+        assert args[1].call_count == 1  # oswalk
+        args[1].assert_called_with('/')
+        assert args[2].call_count == 1  # isdir
+        args[2].assert_called_with('/')
+
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=throw_os_error)
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "run_as_another_namespace"),
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_container_crawler_failure(self, *args):
+        fc = FileContainerCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, fname) in fc.crawl(root_dir='/a/b/c'):
+                pass
+
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/1/2/3')
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=mocked_os_walk_for_avoidsetns)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_container_crawler_avoidsetns(self, *args):
+        fc = FileContainerCrawler()
+        for (k, f, fname) in fc.crawl(root_dir='/', avoid_setns=True):
+            print f
+            assert fname == "file"
+            assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
+            assert f.atime == 4 and f.ctime == 5
+            assert f.mtime == 6 and f.size == 7
+            assert f.name in ['', 'dir', 'file1', 'file2', 'file3', 'file4']
+            assert f.path in ['/', '/file1', '/file2', '/file3',
+                              '/dir', '/dir/file4']
+            assert f.type in ['file', 'dir']
+            assert f.linksto is None
+        assert args[0].call_count == 6
+        assert args[1].call_count == 1  # oswalk
+        args[1].assert_called_with('/1/2/3')
+        assert args[2].call_count == 1  # isdir
+        args[2].assert_called_with('/1/2/3')
+
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "run_as_another_namespace"),
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=mocked_os_walk)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_container_crawler_with_exclude_dirs(self, *args):
+        fc = FileContainerCrawler()
+        for (k, f, fname) in fc.crawl(root_dir='/',
+                                      exclude_dirs=['dir']):
+            assert fname == "file"
+            assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
+            assert f.atime == 4 and f.ctime == 5
+            assert f.mtime == 6 and f.size == 7
+            assert f.name in ['', 'file1', 'file2', 'file3', 'file4']
+            assert f.path in ['/', '/file1', '/file2', '/file3']
+            assert f.path not in ['/dir', '/dir/file4']
+            assert f.type in ['file', 'dir']
+            assert f.linksto is None
+        assert args[0].call_count == 4
+        assert args[1].call_count == 1  # oswalk
+        args[1].assert_called_with('/')
+        assert args[2].call_count == 1  # isdir
+        args[2].assert_called_with('/')
+
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.file_container_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/1/2/3')
+    @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.file_crawler.os.walk',
+                side_effect=mocked_os_walk_for_avoidsetns)
+    @mock.patch('crawler.plugins.file_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    def test_file_container_crawler_avoidsetns_with_exclude_dirs(
+            self,
+            *
+            args):
+        fc = FileContainerCrawler()
+        for (k, f, fname) in fc.crawl(root_dir='/',
+                                      avoid_setns=True,
+                                      exclude_dirs=['/dir']):
+            assert fname == "file"
+            assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
+            assert f.atime == 4 and f.ctime == 5
+            assert f.mtime == 6 and f.size == 7
+            assert f.name in ['', 'file1', 'file2', 'file3', 'file4']
+            assert f.path in ['/', '/file1', '/file2', '/file3']
+            assert f.path not in ['/dir', '/dir/file4']
+            assert f.type in ['file', 'dir']
+            assert f.linksto is None
+        assert args[0].call_count == 4
+        assert args[1].call_count == 1  # oswalk
+        args[1].assert_called_with('/1/2/3')
+        assert args[2].call_count == 1  # isdir
+        args[2].assert_called_with('/1/2/3')
