@@ -121,9 +121,9 @@ class FeaturesCrawler:
             'metric': self.crawl_metrics,
             # 'process': self.crawl_processes,
             'connection': self.crawl_connections,
-            #'package': self.crawl_packages,
-            #'file': self.crawl_files,
-            #'config': self.crawl_config_files,
+            # 'package': self.crawl_packages,
+            # 'file': self.crawl_files,
+            # 'config': self.crawl_config_files,
             'memory': self.crawl_memory,
             'cpu': self.crawl_cpu,
             'interface': self.crawl_interface,
@@ -476,6 +476,8 @@ class FeaturesCrawler:
         if avoid_setns and self.crawl_mode == Modes.OUTCONTAINER:
             # Handle this special case first (avoiding setns() for the
             # OUTCONTAINER mode).
+            # XXX: following overwrites root_dir sent as argument!
+            # XXX: should it donw as in crawl_files()?
             root_dir = dockerutils.get_docker_container_rootfs_path(
                 self.container.long_id)
             for (key, feature) in self._crawl_config_files(
@@ -1177,7 +1179,7 @@ class FeaturesCrawler:
                                                  feature_key)
             elif _mode == Modes.OUTVM:
                 cache_key = '{0}-{1}'.format('OUTVM', feature_key)
-            else:    
+            else:
                 cache_key = '{0}-{1}'.format('INVM', feature_key)
 
             (prev_count, prev_time) = self._cache_get_value(cache_key)

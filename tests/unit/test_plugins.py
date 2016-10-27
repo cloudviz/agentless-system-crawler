@@ -8,11 +8,6 @@ from mock import Mock
 import sys
 sys.modules['psvmi'] = Mock()
 
-# TODO: remove
-from crawler.features_crawler import FeaturesCrawler
-
-# TODO: remove
-from crawler.crawlmodes import Modes
 
 from crawler.features import (
     OSFeature,
@@ -29,8 +24,10 @@ from crawler.crawler_exceptions import CrawlError
 # from crawler.icrawl_plugin import IContainerCrawler
 from crawler.plugins.os_container_crawler import OSContainerCrawler
 from crawler.plugins.file_container_crawler import FileContainerCrawler
+from crawler.plugins.config_container_crawler import ConfigContainerCrawler
 from crawler.plugins.os_host_crawler import OSHostCrawler
 from crawler.plugins.file_host_crawler import FileHostCrawler
+from crawler.plugins.config_host_crawler import ConfigHostCrawler
 from crawler.plugins.os_vm_crawler import os_vm_crawler
 
 
@@ -277,15 +274,7 @@ class PluginTests(unittest.TestCase):
         pass
 
     def test_init(self, *args):
-        FeaturesCrawler()
-
-    @mock.patch('crawler.features_crawler.time.time',
-                side_effect=lambda: 123)
-    def test_cache(self, mocked_time, *args):
-        fc = FeaturesCrawler()
-        fc._cache_put_value('k', 'v')
-        assert fc._cache_get_value('k') == ('v', 123)
-        assert fc._cache_get_value('ble') == (None, None)
+        pass
 
     @mock.patch('crawler.plugins.os_crawler.time.time',
                 side_effect=lambda: 1001)
@@ -714,3 +703,169 @@ class PluginTests(unittest.TestCase):
         args[1].assert_called_with('/1/2/3')
         assert args[2].call_count == 1  # isdir
         args[2].assert_called_with('/1/2/3')
+
+    @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    def test_config_host_crawler(self, *args):
+        fc = ConfigHostCrawler()
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1']):
+            assert fname == "config"
+            assert f == ConfigFeature(name='file1', content='content',
+                                      path='/etc/file1')
+        assert args[0].call_count == 1  # lstat
+
+    @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.walk',
+                side_effect=lambda p: [
+                    ('/', [], ['file1', 'file2', 'file3.conf'])])
+    @mock.patch('crawler.plugins.config_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.isfile',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.getsize',
+                side_effect=lambda p: 1000)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    def test_config_host_crawler_with_discover(self, *args):
+        fc = ConfigHostCrawler()
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      discover_config_files=True):
+            assert fname == "config"
+            assert ((f == ConfigFeature(name='file1', content='content',
+                                        path='/etc/file1')) or
+                    (f == ConfigFeature(name='file3.conf', content='content',
+                                        path='/file3.conf')))
+        assert args[0].call_count == 2  # lstat
+
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        'crawler.plugins.config_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    def test_config_container_crawler(self, *args):
+        fc = ConfigContainerCrawler()
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1']):
+            assert fname == "config"
+            assert f == ConfigFeature(name='file1', content='content',
+                                      path='/etc/file1')
+        assert args[0].call_count == 1  # codecs open
+
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        'crawler.plugins.config_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.walk',
+                side_effect=lambda p: [
+                    ('/', [], ['file1', 'file2', 'file3.conf'])])
+    @mock.patch('crawler.plugins.config_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.isfile',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.getsize',
+                side_effect=lambda p: 1000)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    def test_config_container_crawler_discover(self, *args):
+        fc = ConfigContainerCrawler()
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      discover_config_files=True):
+            assert fname == "config"
+            assert ((f == ConfigFeature(name='file1', content='content',
+                                        path='/etc/file1')) or
+                    (f == ConfigFeature(name='file3.conf', content='content',
+                                        path='/file3.conf')))
+        assert args[0].call_count == 2  # codecs open
+
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler."
+            "run_as_another_namespace"),
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/1/2/3')
+    @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    def test_config_container_crawler_avoidsetns(self, *args):
+        fc = ConfigContainerCrawler()
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      avoid_setns=True):
+            assert fname == "config"
+            assert f == ConfigFeature(name='file1', content='content',
+                                      path='/etc/file1')
+        assert args[0].call_count == 1  # lstat
+
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler."
+            "run_as_another_namespace"),
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler."
+            "dockerutils.exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.config_container_crawler.dockerutils."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/1/2/3')
+    @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.walk',
+                side_effect=lambda p: [
+                    ('/', [], ['file1', 'file2', 'file3.conf'])])
+    @mock.patch('crawler.plugins.config_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.isfile',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.plugins.config_crawler.os.path.getsize',
+                side_effect=lambda p: 1000)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    def test_config_container_crawler_avoidsetns_discover(self, *args):
+        fc = ConfigContainerCrawler()
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      discover_config_files=True,
+                                      avoid_setns=True):
+            assert fname == "config"
+            assert ((f == ConfigFeature(name='file1', content='content',
+                                        path='/etc/file1')) or
+                    (f == ConfigFeature(name='file3.conf', content='content',
+                                        path='/file3.conf')))
+        assert args[0].call_count == 2  # lstat

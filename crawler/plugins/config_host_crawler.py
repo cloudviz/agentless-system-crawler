@@ -1,6 +1,9 @@
-from plugins.config_crawler import crawl_config_files
-from icrawl_plugin import IHostCrawler
-import misc
+try:
+    from crawler.plugins.config_crawler import crawl_config_files
+    from crawler.icrawl_plugin import IHostCrawler
+except ImportError:
+    from plugins.config_crawler import crawl_config_files
+    from icrawl_plugin import IHostCrawler
 import logging
 
 logger = logging.getLogger('crawlutils')
