@@ -16,4 +16,4 @@ class PackageHostCrawler(IHostCrawler):
         return 'package'
 
     def crawl(self, root_dir='/', **kwargs):
-        return crawl_packages(root_dir=root_dir)
+        return crawl_packages(root_dir=root_dir, reload_needed=False)

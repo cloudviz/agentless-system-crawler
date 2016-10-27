@@ -25,9 +25,11 @@ from crawler.crawler_exceptions import CrawlError
 from crawler.plugins.os_container_crawler import OSContainerCrawler
 from crawler.plugins.file_container_crawler import FileContainerCrawler
 from crawler.plugins.config_container_crawler import ConfigContainerCrawler
+from crawler.plugins.package_container_crawler import PackageContainerCrawler
 from crawler.plugins.os_host_crawler import OSHostCrawler
 from crawler.plugins.file_host_crawler import FileHostCrawler
 from crawler.plugins.config_host_crawler import ConfigHostCrawler
+from crawler.plugins.package_host_crawler import PackageHostCrawler
 from crawler.plugins.os_vm_crawler import os_vm_crawler
 
 
@@ -869,3 +871,198 @@ class PluginTests(unittest.TestCase):
                     (f == ConfigFeature(name='file3.conf', content='content',
                                         path='/file3.conf')))
         assert args[0].call_count == 2  # lstat
+
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.package_crawler.get_dpkg_packages',
+                side_effect=lambda a, b, c: [('pkg1',
+                                              PackageFeature(None, 'pkg1',
+                                                             123, 'v1',
+                                                             'x86'))])
+    def test_package_host_crawler_dpkg(self, *args):
+        fc = PackageHostCrawler()
+        for (k, f, fname) in fc.crawl():
+            assert fname == "package"
+            assert f == PackageFeature(
+                installed=None,
+                pkgname='pkg1',
+                pkgsize=123,
+                pkgversion='v1',
+                pkgarchitecture='x86')
+        assert args[0].call_count == 1
+        args[0].assert_called_with('/', 'var/lib/dpkg', 0)
+
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.package_crawler.get_dpkg_packages',
+                side_effect=throw_os_error)
+    def test_package_host_crawler_dpkg_failure(self, *args):
+        fc = PackageHostCrawler()
+        with self.assertRaises(CrawlError):
+            for (k, f, fname) in fc.crawl():
+                pass
+        assert args[0].call_count == 1
+        args[0].assert_called_with('/', 'var/lib/dpkg', 0)
+
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'redhat',
+            'version': '123'})
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.package_crawler.get_rpm_packages',
+                side_effect=lambda a, b, c, d: [('pkg1',
+                                                 PackageFeature(None, 'pkg1',
+                                                                123, 'v1',
+                                                                'x86'))])
+    def test_package_host_crawler_rpm(self, *args):
+        fc = PackageHostCrawler()
+        for (k, f, fname) in fc.crawl():
+            assert fname == "package"
+            assert f == PackageFeature(
+                installed=None,
+                pkgname='pkg1',
+                pkgsize=123,
+                pkgversion='v1',
+                pkgarchitecture='x86')
+        assert args[0].call_count == 1
+        args[0].assert_called_with('/', 'var/lib/rpm', 0, False)
+
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
+    @mock.patch(
+        'crawler.plugins.package_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.package_crawler.get_dpkg_packages',
+                side_effect=lambda a, b, c: [('pkg1',
+                                              PackageFeature(None, 'pkg1',
+                                                             123, 'v1',
+                                                             'x86'))])
+    def test_package_container_crawler_dpkg(self, *args):
+        fc = PackageContainerCrawler()
+        for (k, f, fname) in fc.crawl():
+            assert fname == "package"
+            assert f == PackageFeature(
+                installed=None,
+                pkgname='pkg1',
+                pkgsize=123,
+                pkgversion='v1',
+                pkgarchitecture='x86')
+        assert args[0].call_count == 1
+        args[0].assert_called_with('/', 'var/lib/dpkg', 0)
+
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        'crawler.plugins.package_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/a/b/c')
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True if 'dpkg' in p else False)
+    @mock.patch('crawler.package_crawler.get_dpkg_packages',
+                side_effect=throw_os_error)
+    def test_package_container_crawler_dpkg_failure(self, *args):
+        fc = PackageContainerCrawler()
+        with self.assertRaises(CrawlError):
+            for (k, f, fname) in fc.crawl():
+                pass
+        # get_dpkg_packages is called a second time after the first failure.
+        # first time is OUTCONTAINER mode with setns
+        # second time is OUTCONTAINER mode with avoid_setns
+        assert args[0].call_count == 2
+        args[0].assert_called_with('/a/b/c', 'var/lib/dpkg', 0)
+        args[2].assert_called_with(mount_point='/a/b/c')  # get_osinfo()
+
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        'crawler.plugins.package_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/a/b/c')
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'redhat',
+            'version': '123'})
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True if 'rpm' in p else False)
+    @mock.patch('crawler.package_crawler.get_rpm_packages',
+                side_effect=throw_os_error)
+    def test_package_container_crawler_rpm_failure(self, *args):
+        fc = PackageContainerCrawler()
+        with self.assertRaises(CrawlError):
+            for (k, f, fname) in fc.crawl():
+                pass
+        # get_dpkg_packages is called a second time after the first failure.
+        # first time is OUTCONTAINER mode with setns
+        # second time is OUTCONTAINER mode with avoid_setns
+        assert args[0].call_count == 2
+        args[0].assert_called_with('/a/b/c', 'var/lib/rpm', 0, True)
+        args[2].assert_called_with(mount_point='/a/b/c')  # get_osinfo()
+
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        ("crawler.plugins.package_container_crawler."
+            "get_docker_container_rootfs_path"),
+        side_effect=lambda long_id: '/a/b/c')
+    @mock.patch(
+        'crawler.package_crawler.osinfo.get_osinfo',
+        side_effect=lambda mount_point=None: {
+            'os': 'ubuntu',
+            'version': '123'})
+    @mock.patch('crawler.package_crawler.os.path.exists',
+                side_effect=lambda p: True)
+    @mock.patch('crawler.package_crawler.get_dpkg_packages',
+                side_effect=lambda a, b, c: [('pkg1',
+                                              PackageFeature(None, 'pkg1',
+                                                             123, 'v1',
+                                                             'x86'))])
+    def test_package_container_crawler_avoidsetns(self, *args):
+        fc = PackageContainerCrawler()
+        for (k, f, fname) in fc.crawl(avoid_setns=True):
+            assert fname == "package"
+            assert f == PackageFeature(
+                installed=None,
+                pkgname='pkg1',
+                pkgsize=123,
+                pkgversion='v1',
+                pkgarchitecture='x86')
+        assert args[0].call_count == 1
