@@ -26,11 +26,14 @@ from crawler.plugins.os_container_crawler import OSContainerCrawler
 from crawler.plugins.file_container_crawler import FileContainerCrawler
 from crawler.plugins.config_container_crawler import ConfigContainerCrawler
 from crawler.plugins.package_container_crawler import PackageContainerCrawler
+from crawler.plugins.process_container_crawler import ProcessContainerCrawler
 from crawler.plugins.os_host_crawler import OSHostCrawler
 from crawler.plugins.file_host_crawler import FileHostCrawler
 from crawler.plugins.config_host_crawler import ConfigHostCrawler
 from crawler.plugins.package_host_crawler import PackageHostCrawler
+from crawler.plugins.process_host_crawler import ProcessHostCrawler
 from crawler.plugins.os_vm_crawler import os_vm_crawler
+from crawler.plugins.process_vm_crawler import process_vm_crawler
 
 
 class DummyContainer(Container):
@@ -1065,4 +1068,50 @@ class PluginTests(unittest.TestCase):
                 pkgsize=123,
                 pkgversion='v1',
                 pkgarchitecture='x86')
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.process_host_crawler.psutil.process_iter',
+                side_effect=lambda: [Process('init')])
+    def test_process_host_crawler(self, *args):
+        fc = ProcessHostCrawler()
+        for (k, f, fname) in fc.crawl():
+            print f
+            assert fname == "process"
+            assert f.pname == 'init'
+            assert f.cmd == 'cmd'
+            assert f.pid == 123
+        assert args[0].call_count == 1
+
+    @mock.patch(
+        ("crawler.plugins.process_container_crawler.dockerutils."
+         "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    @mock.patch(
+        'crawler.plugins.process_container_crawler.psutil.process_iter',
+        side_effect=lambda: [Process('init')])
+    @mock.patch(
+        'crawler.plugins.process_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    def test_process_container_crawler(self, *args):
+        fc = ProcessContainerCrawler()
+        for (k, f, fname) in fc.crawl('123'):
+            print f
+            assert fname == "process"
+            assert f.pname == 'init'
+            assert f.cmd == 'cmd'
+            assert f.pid == 123
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.process_vm_crawler.psvmi.context_init',
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
+    @mock.patch('crawler.plugins.process_vm_crawler.psvmi.process_iter',
+                side_effect=lambda vmc: [Process('init')])
+    def test_process_vm_crawler(self, *args):
+        fc = process_vm_crawler()
+        for (k, f, fname) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
+            print f
+            assert fname == "process"
+            assert f.pname == 'init'
+            assert f.cmd == 'cmd'
+            assert f.pid == 123
         assert args[0].call_count == 1

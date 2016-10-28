@@ -1,6 +1,11 @@
-from icrawl_plugin import IHostCrawler
-# XXX: make crawler agnostic of this
-from features import ProcessFeature
+try:
+    from crawler.icrawl_plugin import IHostCrawler
+    # XXX: make crawler agnostic of this
+    from crawler.features import ProcessFeature
+except ImportError:
+    from icrawl_plugin import IHostCrawler
+    # XXX: make crawler agnostic of this
+    from features import ProcessFeature
 import logging
 
 # External dependencies that must be pip install'ed separately
@@ -10,7 +15,7 @@ import psutil
 logger = logging.getLogger('crawlutils')
 
 
-class ProcessContainerCrawler(IHostCrawler):
+class ProcessHostCrawler(IHostCrawler):
 
     def get_feature(self):
         return 'process'

@@ -1,6 +1,11 @@
-from icrawl_plugin import IVMCrawler
-# XXX: make crawler agnostic of this
-from features import ProcessFeature
+try:
+    from crawler.icrawl_plugin import IVMCrawler
+    # XXX: make crawler agnostic of this
+    from crawler.features import ProcessFeature
+except ImportError:
+    from icrawl_plugin import IVMCrawler
+    # XXX: make crawler agnostic of this
+    from features import ProcessFeature
 import logging
 
 # External dependencies that must be pip install'ed separately
