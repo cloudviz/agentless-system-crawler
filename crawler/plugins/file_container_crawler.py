@@ -1,8 +1,15 @@
-from plugins.file_crawler import crawl_files
-from icrawl_plugin import IContainerCrawler
-import dockerutils
-from namespace import run_as_another_namespace
-import misc
+try:
+    from crawler.plugins.file_crawler import crawl_files
+    from crawler.icrawl_plugin import IContainerCrawler
+    import crawler.dockerutils as dockerutils
+    from crawler.namespace import run_as_another_namespace
+    import crawler.misc as misc
+except ImportError:
+    from plugins.file_crawler import crawl_files
+    from icrawl_plugin import IContainerCrawler
+    import dockerutils
+    from namespace import run_as_another_namespace
+    import misc
 import logging
 
 logger = logging.getLogger('crawlutils')

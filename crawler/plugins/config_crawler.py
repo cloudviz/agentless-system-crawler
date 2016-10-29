@@ -3,8 +3,12 @@ import fnmatch
 import re
 import logging
 import os
-import misc
-from features import ConfigFeature
+try:
+    import crawler.misc as misc
+    from crawler.features import ConfigFeature
+except ImportError:
+    import misc
+    from features import ConfigFeature
 
 logger = logging.getLogger('crawlutils')
 

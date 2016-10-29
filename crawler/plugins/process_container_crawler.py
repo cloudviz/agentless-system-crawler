@@ -1,8 +1,15 @@
-import dockerutils
-from icrawl_plugin import IContainerCrawler
-# XXX: make crawler agnostic of this
-from features import ProcessFeature
-from namespace import run_as_another_namespace, ALL_NAMESPACES
+try:
+    import crawler.dockerutils as dockerutils
+    from crawler.icrawl_plugin import IContainerCrawler
+    # XXX: make crawler agnostic of this
+    from crawler.features import ProcessFeature
+    from crawler.namespace import run_as_another_namespace, ALL_NAMESPACES
+except ImportError:
+    import dockerutils
+    from icrawl_plugin import IContainerCrawler
+    # XXX: make crawler agnostic of this
+    from features import ProcessFeature
+    from namespace import run_as_another_namespace, ALL_NAMESPACES
 import logging
 
 # External dependencies that must be pip install'ed separately

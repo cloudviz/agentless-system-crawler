@@ -2,7 +2,10 @@ import fnmatch
 import re
 import os
 import stat
-from features import FileFeature
+try:
+    from crawler.features import FileFeature
+except ImportError:
+    from features import FileFeature
 import logging
 
 logger = logging.getLogger('crawlutils')

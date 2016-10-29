@@ -1,5 +1,9 @@
-from icrawl_plugin import IHostCrawler
-from plugins.file_crawler import crawl_files
+try:
+    from crawler.icrawl_plugin import IHostCrawler
+    from crawler.plugins.file_crawler import crawl_files
+except ImportError:
+    from icrawl_plugin import IHostCrawler
+    from plugins.file_crawler import crawl_files
 
 
 class FileHostCrawler(IHostCrawler):

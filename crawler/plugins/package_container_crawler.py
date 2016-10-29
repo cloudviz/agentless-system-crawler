@@ -41,7 +41,7 @@ class PackageContainerCrawler(IContainerCrawler):
                 container_id)
             return crawl_packages(
                 root_dir=join_abs_paths(rootfs_dir, root_dir),
-                reload_needed=False)
+                reload_needed=False)    # XXX: shouldn't this arg be 'True'?
         else:  # in all other cases, including wrong mode set
             try:
                 return run_as_another_namespace(pid,
