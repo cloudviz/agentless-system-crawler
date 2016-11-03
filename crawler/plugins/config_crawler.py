@@ -68,8 +68,8 @@ def crawl_config_files(
 
     for fpath in config_file_set:
         (_, fname) = os.path.split(fpath)
-        frelpath = fpath.replace(root_dir, root_dir_alias,
-                                 1)  # root_dir relative path
+        # realpath sanitizes the path a bit, for example: '//abc/' to '/abc/'
+        frelpath = os.path.realpath(fpath.replace(root_dir, root_dir_alias, 1))
         with codecs.open(filename=fpath, mode='r',
                          encoding='utf-8', errors='ignore') as \
                 config_file:
