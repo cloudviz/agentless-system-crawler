@@ -109,10 +109,7 @@ class ContainersTests(unittest.TestCase):
     @mock.patch('crawler.containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list(self, *args):
-        opts = {'partition_strategy': {'name': 'equally_by_pid',
-                                       'args': {'process_id': 0,
-                                                'num_processes': 1}}}
-        pids = [c.pid for c in get_filtered_list_of_containers(opts)]
+        pids = [c.pid for c in get_filtered_list_of_containers()]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(DOCKER_IDS + ['4'])
@@ -131,11 +128,7 @@ class ContainersTests(unittest.TestCase):
     @mock.patch('crawler.containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list_with_input_list(self, *args):
-        opts = {'docker_containers_list': '102',
-                'partition_strategy': {'name': 'equally_by_pid',
-                                       'args': {'process_id': 0,
-                                                'num_processes': 1}}}
-        pids = [c.pid for c in get_filtered_list_of_containers(opts)]
+        pids = [c.pid for c in get_filtered_list_of_containers(user_list='102')]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(['102'])
@@ -156,11 +149,7 @@ class ContainersTests(unittest.TestCase):
     @mock.patch('crawler.containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list_with_input_list_ALL(self, *args):
-        opts = {'docker_containers_list': 'ALL',
-                'partition_strategy': {'name': 'equally_by_pid',
-                                       'args': {'process_id': 0,
-                                                'num_processes': 1}}}
-        pids = [c.pid for c in get_filtered_list_of_containers(opts)]
+        pids = [c.pid for c in get_filtered_list_of_containers(user_list='ALL')]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(DOCKER_IDS + ['4'])
@@ -179,23 +168,19 @@ class ContainersTests(unittest.TestCase):
     def test_get_filtered_list_with_3_processes(self, *args):
 
         # Let's divide the lists for three procs: pids1, pids2, pids3
-        opts = {'docker_containers_list': 'ALL',
-                'partition_strategy': {'name': 'equally_by_pid',
-                                       'args': {'process_id': 0,  # <P0
-                                                'num_processes': 3}}}
-        pids1 = [c.pid for c in get_filtered_list_of_containers(opts)]
+        ps1 = {'name': 'equally_by_pid',
+               'args': {'process_id': 0,  # <P0
+                        'num_processes': 3}}
+        pids1 = [c.pid for c in get_filtered_list_of_containers(partition_strategy=ps1)]
 
-        opts = {'docker_containers_list': 'ALL',
-                'partition_strategy': {'name': 'equally_by_pid',
-                                       'args': {'process_id': 1,  # <P1
-                                                'num_processes': 3}}}
-        pids2 = [c.pid for c in get_filtered_list_of_containers(opts)]
-
-        opts = {'docker_containers_list': 'ALL',
-                'partition_strategy': {'name': 'equally_by_pid',
-                                       'args': {'process_id': 2,  # <P2
-                                                'num_processes': 3}}}
-        pids3 = [c.pid for c in get_filtered_list_of_containers(opts)]
+        ps2 = {'name': 'equally_by_pid',
+               'args': {'process_id': 1,  # <P1
+                        'num_processes': 3}}
+        pids2 = [c.pid for c in get_filtered_list_of_containers(partition_strategy=ps2)]
+        ps3 = {'name': 'equally_by_pid',
+               'args': {'process_id': 2,  # <P2
+                        'num_processes': 3}}
+        pids3 = [c.pid for c in get_filtered_list_of_containers(partition_strategy=ps3)]
 
         assert set(pids1 + pids2 + pids3) == set(DOCKER_IDS + ['4'])
 

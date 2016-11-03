@@ -405,11 +405,6 @@ def main():
                 options['docker_containers_list'] = args.crawlContainers
             if not args.numprocesses:
                 args.numprocesses = multiprocessing.cpu_count()
-            # if args.avoid_setns:
-            #    options['os']['avoid_setns'] = args.avoid_setns
-            #    options['config']['avoid_setns'] = args.avoid_setns
-            #    options['file']['avoid_setns'] = args.avoid_setns
-            #    options['package']['avoid_setns'] = args.avoid_setns
 
         options['avoid_setns'] = args.avoid_setns
 
@@ -437,7 +432,7 @@ def main():
             sys.exit(1)
     options['link_container_log_files'] = args.linkContainerLogFiles
 
-    apply_user_args(options=options)
+    apply_user_args(options=options, params=params)
 
     start_autonomous_crawler(args.numprocesses, args.logfile, params, options)
 

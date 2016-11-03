@@ -357,17 +357,29 @@ def snapshot_containers(
     overwrite=False,
     ignore_exceptions=True,
     host_namespace='',
+    link_log_files=False
 ):
 
-    curr_containers = get_filtered_list_of_containers(options,
-                                                      host_namespace)
+    environment = options.get('environment',
+                              config_parser.get_config()['general']['environment'])
+    container_opts = {'host_namespace': host_namespace,
+                      'environment': environment,
+                      }
+
+    user_list = options.get('docker_containers_list', 'ALL')
+    partition_strategy = options.get('partition_strategy', {})
+
+    curr_containers = get_filtered_list_of_containers(environment=environment,
+                                                      user_list=user_list,
+                                                      partition_strategy=partition_strategy,
+                                                      host_namespace=host_namespace)
     deleted = [c for c in containers if c not in curr_containers]
     containers = curr_containers
 
     for container in deleted:
-        if options.get('link_container_log_files', False):
+        if link_log_files:
             try:
-                container.unlink_logfiles(options)
+                container.unlink_logfiles()
             except NotImplementedError:
                 pass
 
@@ -379,11 +391,11 @@ def snapshot_containers(
             'Crawling container %s %s %s' %
             (container.pid, container.short_id, container.namespace))
 
-        if options.get('link_container_log_files', False):
+        if link_log_files:
             # This is a NOP if files are already linked (which is
             # pretty much always).
             try:
-                container.link_logfiles(options=options)
+                container.link_logfiles()
             except NotImplementedError:
                 pass
 
@@ -508,6 +520,7 @@ def snapshot(
                 format=format,
                 overwrite=overwrite,
                 host_namespace=namespace,
+                link_log_files=options.get('link_container_log_files', False)
             )
         elif crawlmode == Modes.MESOS:
             snapshot_mesos(

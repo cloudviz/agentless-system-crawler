@@ -235,7 +235,7 @@ class ContainerTests(unittest.TestCase):
         assert args[1].call_count == 2
 
     @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
-                side_effect=lambda options, namespace:
+                side_effect=lambda environment, host_namespace, user_list, partition_strategy:
                 [MockedDockerContainer(short_id='short_id', pid=101),
                  MockedDockerContainer(short_id='short_id', pid=102),
                  MockedDockerContainer(short_id='short_id', pid=103)])
@@ -255,7 +255,7 @@ class ContainerTests(unittest.TestCase):
 
     @mock.patch('crawler.crawlutils.time.sleep')
     @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
-                side_effect=lambda options, namespace:
+                side_effect=lambda environment, host_namespace, user_list, partition_strategy:
                 [MockedDockerContainer(short_id='short_id', pid=101),
                  MockedDockerContainer(short_id='short_id', pid=102),
                  MockedDockerContainer(short_id='short_id', pid=103)])
@@ -279,7 +279,7 @@ class ContainerTests(unittest.TestCase):
     @mock.patch.object(MockedDockerContainer, 'unlink_logfiles')
     @mock.patch('crawler.crawlutils.time.sleep')
     @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
-                side_effect=lambda options, namespace:
+                side_effect=lambda environment, host_namespace, user_list, partition_strategy:
                 [MockedDockerContainer(short_id='short_id', pid=101),
                  MockedDockerContainer(short_id='short_id', pid=102),
                  MockedDockerContainer(short_id='short_id', pid=103)])
