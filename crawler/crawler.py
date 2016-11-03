@@ -16,8 +16,7 @@ import multiprocessing
 import argparse
 import json
 from config_parser import (get_config,
-                           apply_user_args,
-                           parse_crawler_config)
+                           apply_user_args)
 
 
 # External dependencies that must be pip install'ed separately

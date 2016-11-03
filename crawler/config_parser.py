@@ -9,6 +9,7 @@ _config = None
 
 logger = logging.getLogger('crawlutils')
 
+
 def parse_crawler_config(config_path='crawler.conf'):
     global _config
 
@@ -20,16 +21,6 @@ def parse_crawler_config(config_path='crawler.conf'):
     vdt = Validator()
     _config.validate(vdt)
 
-    enabled_crawlers = _config['crawlers']
-    default_crawlers = _config['default_crawlers']
-
-    for plugin in enabled_crawlers:
-        if plugin in default_crawlers:
-            user_options = enabled_crawlers[plugin]
-            default_options = default_crawlers[plugin]
-            for option in default_options.keys():
-                if option not in user_options.keys():
-                    user_options[option] = default_options[option]
 
 def apply_user_args(options={}):
     global _config
@@ -38,21 +29,27 @@ def apply_user_args(options={}):
         # apply global configs
         if 'compress' in options:
             _config['general']['compress'] = options['compress']
+    except KeyError as exc:
+        logger.warning('Can not apply users --options configuration: %s' % exc)
 
-        # apply per plugin configs
-        crawlers = _config['crawlers']
-        for plugin in crawlers:
+    # apply per plugin configs
+    crawlers = _config['crawlers']
+    for plugin in crawlers:
+        try:
             if 'avoid_setns' in options:
                 crawlers[plugin]['avoid_setns'] = options['avoid_setns']
 
-            # The user can pass options, we need to update the configuration state
-            # with it.
+            # The user can pass options, we need to update the configuration
+            # state with it.
             feature = crawlers[plugin]['feature']
             if feature in options:
                 for arg in options[feature]:
                     crawlers[plugin][arg] = options[feature][arg]
-    except KeyError as exc:
-        logger.warning('Can not apply users --options configuration: %s' % exc)
+        except KeyError as exc:
+            logger.warning(
+                'Can not apply users --options configuration: %s' %
+                exc)
+
 
 def get_config():
     global _config
