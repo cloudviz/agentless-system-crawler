@@ -20,9 +20,33 @@ class ConfigContainerCrawler(IContainerCrawler):
     def get_feature(self):
         return 'config'
 
-    def crawl(self, container_id=None, avoid_setns=False,
-              root_dir='/', exclude_dirs=[], known_config_files=[],
-              discover_config_files=False, **kwargs):
+    def crawl(
+            self,
+            container_id=None,
+            avoid_setns=False,
+            root_dir='/',
+            exclude_dirs=[
+                '/dev',
+                '/proc',
+                '/mnt',
+                '/tmp',
+                '/var/cache',
+                '/usr/share/man',
+                '/usr/share/doc',
+                '/usr/share/mime'],
+            known_config_files=[
+                '/etc/passwd',
+                '/etc/group',
+                '/etc/hosts',
+                '/etc/hostname',
+                '/etc/mtab',
+                '/etc/fstab',
+                '/etc/aliases',
+                '/etc/ssh/ssh_config',
+                '/etc/ssh/sshd_config',
+                '/etc/sudoers'],
+            discover_config_files=False,
+            **kwargs):
         inspect = dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])

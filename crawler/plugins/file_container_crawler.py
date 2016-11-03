@@ -20,8 +20,23 @@ class FileContainerCrawler(IContainerCrawler):
     def get_feature(self):
         return 'file'
 
-    def crawl(self, container_id=None, avoid_setns=False,
-              root_dir='/', exclude_dirs=[], **kwargs):
+    def crawl(
+            self,
+            container_id=None,
+            avoid_setns=False,
+            root_dir='/',
+            exclude_dirs=[
+                '/boot',
+                '/dev',
+                '/proc',
+                '/sys',
+                '/mnt',
+                '/tmp',
+                '/var/cache',
+                '/usr/share/man',
+                '/usr/share/doc',
+                '/usr/share/mime'],
+            **kwargs):
         inspect = dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])
