@@ -49,10 +49,10 @@ def signal_handler_exit(signum, stack):
 
 def _snapshot_single_frame(
     emitter,
-    features=config_parser.get_config()['general']['features_to_crawl'],
-    options={},
-    crawler=None,
-    ignore_exceptions=True,
+    features,
+    options,
+    crawler,
+    ignore_exceptions,
 ):
 
     global should_exit
@@ -76,11 +76,13 @@ def snapshot_generic(
     crawlmode=Modes.INVM,
     urls=['stdout://'],
     snapshot_num=0,
-    features=config_parser.get_config()['general']['features_to_crawl'],
+    features=['os'],
+    compress=False,
     options={},
     format='csv',
     namespace='',
-    ignore_exceptions=True
+    ignore_exceptions=True,
+    plugin_mode=False
 ):
 
     crawler = features_crawler.FeaturesCrawler(crawl_mode=crawlmode)
@@ -90,7 +92,7 @@ def snapshot_generic(
         'features': ','.join(map(str, features)),
         'timestamp': int(time.time()),
         'system_type': 'vm',
-        'compress': config_parser.get_config()['general']['compress'],
+        'compress': compress,
     }
 
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
@@ -127,13 +129,13 @@ def snapshot_mesos(
     crawlmode=Modes.MESOS,
     urls=['stdout://'],
     snapshot_num=0,
-    features=None,
+    features=[],
+    compress=False,
     options={},
     format='csv',
     namespace='',
     ignore_exceptions=True,
 ):
-    compress = config_parser.get_config()['general']['compress']
     metadata = {
         'namespace': namespace,
         'timestamp': int(time.time()),
@@ -192,11 +194,13 @@ def reformat_output_urls(urls, name, snapshot_num):
 def snapshot_vms(
     urls=['stdout://'],
     snapshot_num=0,
-    features=config_parser.get_config()['general']['features_to_crawl'],
+    features=['os'],
+    compress=False,
     options={},
     format='csv',
     namespace='',
-    ignore_exceptions=True
+    ignore_exceptions=True,
+    plugin_mode=False,
 ):
 
     # Default will become ALL from None, when auto kernel detection
@@ -224,13 +228,12 @@ def snapshot_vms(
             'features': ','.join(map(str, features)),
             'timestamp': int(time.time()),
             'system_type': 'vm',
-            'compress': config_parser.get_config()['general']['compress'],
+            'compress': compress,
         }
 
         output_urls = reformat_output_urls(urls, vm_name, snapshot_num)
 
         vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins(features)
-        plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
         with Emitter(
             urls=output_urls,
@@ -261,11 +264,13 @@ def snapshot_vms(
 def snapshot_container(
     urls=['stdout://'],
     snapshot_num=0,
-    features=config_parser.get_config()['general']['features_to_crawl'],
+    features=['os'],
+    compress=False,
     options={},
     format='csv',
     container=None,
     ignore_exceptions=True,
+    plugin_mode=False,
 ):
     global should_exit
 
@@ -276,7 +281,6 @@ def snapshot_container(
     crawler = features_crawler.FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
                                                container=container)
 
-    compress = config_parser.get_config()['general']['compress']
     metadata = options.get('metadata', {})
     extra_metadata = metadata.get('extra_metadata', {})
     extra_metadata_for_all = metadata.get('extra_metadata_for_all', False)
@@ -306,7 +310,6 @@ def snapshot_container(
 
     container_crawl_plugins = plugins_manager.get_container_crawl_plugins(
         features=features)
-    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     with Emitter(
         urls=output_urls,
@@ -338,16 +341,17 @@ def snapshot_containers(
     containers,
     urls=['stdout://'],
     snapshot_num=0,
-    features=config_parser.get_config()['general']['features_to_crawl'],
+    features=['os'],
+    compress=False,
+    environment='cloudsight',
     options={},
     format='csv',
     ignore_exceptions=True,
     host_namespace='',
-    link_log_files=False
+    link_log_files=False,
+    plugin_mode=False,
 ):
 
-    environment = options.get('environment',
-                              config_parser.get_config()['general']['environment'])
     container_opts = {'host_namespace': host_namespace,
                       'environment': environment,
                       }
@@ -392,6 +396,7 @@ def snapshot_containers(
             urls=urls,
             snapshot_num=snapshot_num,
             features=features,
+            compress=compress,
             options=options,
             format=format,
             container=container,
@@ -453,10 +458,13 @@ def snapshot(
         'plugin_places',
         config_parser.get_config()['general']['plugin_places'])
 
-    plugin_mode = config_parser.get_config()['general']['plugin_mode']
+    compress = config_parser.get_config()['general']['compress']
 
     plugins_manager.reload_env_plugin(plugin_places=plugin_places,
                                       environment=environment)
+    environment = options.get('environment',
+                              config_parser.get_config()['general']['environment'])
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     plugins_manager.reload_container_crawl_plugins(
         plugin_places=plugin_places,
@@ -500,16 +508,20 @@ def snapshot(
                 urls=urls,
                 snapshot_num=snapshot_num,
                 features=features,
+                compress=compress,
+                environment=environment,
                 options=options,
                 format=format,
                 host_namespace=namespace,
-                link_log_files=options.get('link_container_log_files', False)
+                link_log_files=options.get('link_container_log_files', False),
+                plugin_mode=plugin_mode
             )
         elif crawlmode == Modes.MESOS:
             snapshot_mesos(
                 crawlmode=crawlmode,
                 urls=urls,
                 snapshot_num=snapshot_num,
+                compress=compress,
                 options=options,
                 format=format,
                 namespace=namespace,
@@ -519,9 +531,11 @@ def snapshot(
                 urls=urls,
                 snapshot_num=snapshot_num,
                 features=features,
+                compress=compress,
                 options=options,
                 format=format,
                 namespace=namespace,
+                plugin_mode=False,
             )
         elif crawlmode in [Modes.INVM, Modes.MOUNTPOINT]:
             snapshot_generic(
@@ -529,9 +543,11 @@ def snapshot(
                 urls=urls,
                 snapshot_num=snapshot_num,
                 features=features,
+                compress=compress,
                 options=options,
                 format=format,
                 namespace=namespace,
+                plugin_mode=False,
             )
         else:
             raise NotImplementedError('Crawl mode %s is not implemented' %
