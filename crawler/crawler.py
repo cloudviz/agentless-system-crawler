@@ -154,9 +154,8 @@ def main():
     parser.add_argument(
         '--url',
         dest='url',
-        type=str,
-        nargs='+',
-        default=None,
+        type=csv_list,
+        default=['stdout://'],
         help='Send the snapshot data to URL. Defaults to file://frame',
     )
     parser.add_argument(
@@ -175,18 +174,6 @@ def main():
         default=get_config()['general']['features_to_crawl'],
         help='Comma-separated list of feature-types to crawl. Defaults to '
              '{0}'.format(get_config()['general']['features_to_crawl']))
-    parser.add_argument(
-        '--since',
-        dest='since',
-        type=str,
-        choices=[
-            'EPOCH',
-            'BOOT',
-            'LASTSNAPSHOT'],
-        default=None,
-        help='Only crawl features touched since {EPOCH,BOOT,LASTSNAPSHOT}. '
-             'Defaults to BOOT',
-    )
     parser.add_argument(
         '--frequency',
         dest='frequency',
@@ -305,7 +292,7 @@ def main():
         '--numprocesses',
         dest='numprocesses',
         type=int,
-        default=None,
+        default=multiprocessing.cpu_count(),
         help='Number of processes used for container crawling. Defaults '
              'to the number of cores.')
     parser.add_argument(
@@ -356,19 +343,15 @@ def main():
 
     options = params['options']
 
-    if args.url:
-        params['urls'] = args.url
-    if args.namespace:
-        params['namespace'] = args.namespace
-    if args.features:
-        params['features'] = args.features
-    if args.since:
-        params['since'] = args.since
-    if args.frequency is not None:
-        params['frequency'] = args.frequency
+    params['urls'] = args.url
+    params['namespace'] = args.namespace
+    params['features'] = args.features
+    params['frequency'] = args.frequency
     options['compress'] = (args.compress in ['true', 'True'])
+    params['crawlmode'] = args.crawlmode
+    options['avoid_setns'] = args.avoid_setns
+
     if args.crawlmode:
-        params['crawlmode'] = args.crawlmode
 
         if args.crawlmode == 'MOUNTPOINT':
             if not args.mountpoint:
@@ -392,25 +375,13 @@ def main():
                 # reported file path.
                 options['config']['root_dir_alias'] = '/'
 
-        if args.crawlmode == 'OUTCONTAINER':
-            if args.crawlContainers:
-                options['docker_containers_list'] = args.crawlContainers
-            if not args.numprocesses:
-                args.numprocesses = multiprocessing.cpu_count()
-
-        options['avoid_setns'] = args.avoid_setns
-
-        if args.crawlmode == 'OUTVM':
-            if args.crawl_vm:
-                options['vm_list'] = args.crawl_vm
-
-    if args.format:
-        params['format'] = args.format
-    if args.environment:
-        options['environment'] = args.environment
+    options['vm_list'] = args.crawl_vm
+    options['docker_containers_list'] = args.crawlContainers
+    params['format'] = args.format
+    options['environment'] = args.environment
     options['pluginmode'] = args.pluginmode
-    if args.plugin_places:
-        options['plugin_places'] = args.plugin_places
+    options['plugin_places'] = args.plugin_places
+
     if args.extraMetadataFile:
         options['metadata'] = {}
         metadata = options['metadata']
@@ -422,6 +393,7 @@ def main():
             print 'Could not read the feature metadata json file: %s' \
                 % e
             sys.exit(1)
+
     options['link_container_log_files'] = args.linkContainerLogFiles
 
     apply_user_args(options=options, params=params)
