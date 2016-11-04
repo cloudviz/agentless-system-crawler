@@ -42,7 +42,10 @@ def apply_user_args(options={}, params={}):
                 if feature in options:
                     for arg in options[feature]:
                         crawlers[plugin][arg] = options[feature][arg]
+
+                # Copy general user args to all plugins configs
                 crawlers[plugin]['avoid_setns'] = options['avoid_setns']
+                crawlers[plugin]['root_dir'] = options['mountpoint']
             except KeyError as exc:
                 logger.warning(
                     'Can not apply users --options configuration: %s' %

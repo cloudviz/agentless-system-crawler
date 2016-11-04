@@ -352,10 +352,6 @@ def snapshot_containers(
     plugin_mode=False,
 ):
 
-    container_opts = {'host_namespace': host_namespace,
-                      'environment': environment,
-                      }
-
     user_list = options.get('docker_containers_list', 'ALL')
     partition_strategy = options.get('partition_strategy', {})
 

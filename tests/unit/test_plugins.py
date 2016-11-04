@@ -719,7 +719,8 @@ class PluginTests(unittest.TestCase):
                 side_effect=mocked_codecs_open)
     def test_config_host_crawler(self, *args):
         fc = ConfigHostCrawler()
-        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1']):
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      discover_config_files=False):
             assert fname == "config"
             assert f == ConfigFeature(name='file1', content='content',
                                       path='/etc/file1')
@@ -749,7 +750,8 @@ class PluginTests(unittest.TestCase):
                                         path='/etc/file1')) or
                     (f == ConfigFeature(name='file3.conf', content='content',
                                         path='/file3.conf')))
-        assert args[0].call_count == 2  # lstat
+        assert args[0].call_count == 2  # isdir
+        #assert args[5].call_count == 2  # lstat
 
     @mock.patch(
         ("crawler.plugins.config_container_crawler."
@@ -768,7 +770,8 @@ class PluginTests(unittest.TestCase):
                 side_effect=mocked_codecs_open)
     def test_config_container_crawler(self, *args):
         fc = ConfigContainerCrawler()
-        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1']):
+        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      discover_config_files=False):
             assert fname == "config"
             assert f == ConfigFeature(name='file1', content='content',
                                       path='/etc/file1')
@@ -830,6 +833,7 @@ class PluginTests(unittest.TestCase):
     def test_config_container_crawler_avoidsetns(self, *args):
         fc = ConfigContainerCrawler()
         for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
+                                      discover_config_files=False,
                                       avoid_setns=True):
             assert fname == "config"
             assert f == ConfigFeature(name='file1', content='content',

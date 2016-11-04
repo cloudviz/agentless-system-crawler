@@ -37,7 +37,7 @@ class ConfigHostCrawler(IHostCrawler):
                 '/etc/ssh/ssh_config',
                 '/etc/ssh/sshd_config',
                 '/etc/sudoers'],
-            discover_config_files=False,
+            discover_config_files=True,
             **kwargs):
         return crawl_config_files(
             root_dir=root_dir,
