@@ -79,7 +79,6 @@ def snapshot_generic(
     features=config_parser.get_config()['general']['features_to_crawl'],
     options={},
     format='csv',
-    overwrite=False,
     namespace='',
     ignore_exceptions=True
 ):
@@ -92,7 +91,6 @@ def snapshot_generic(
         'timestamp': int(time.time()),
         'system_type': 'vm',
         'compress': config_parser.get_config()['general']['compress'],
-        'overwrite': overwrite,
     }
 
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
@@ -132,7 +130,6 @@ def snapshot_mesos(
     features=None,
     options={},
     format='csv',
-    overwrite=False,
     namespace='',
     ignore_exceptions=True,
 ):
@@ -142,7 +139,6 @@ def snapshot_mesos(
         'timestamp': int(time.time()),
         'system_type': 'mesos',
         'compress': compress,
-        'overwrite': overwrite,
     }
 
     output_urls = [('{0}.{1}'.format(u, snapshot_num)
@@ -178,7 +174,7 @@ def sanitize_vm_list(vm_list):
     return _vm_list
 
 
-def reformat_output_urls(urls, name, snapshot_num, overwrite):
+def reformat_output_urls(urls, name, snapshot_num):
     """
     Reformat output URLs to include the snapshot_num and the system name
     """
@@ -186,11 +182,7 @@ def reformat_output_urls(urls, name, snapshot_num, overwrite):
     for url in urls:
         if url.startswith('file:'):
             file_suffix = ''
-            if overwrite is True:
-                file_suffix = '{0}'.format(name)
-            else:
-                file_suffix = '{0}.{1}'.format(
-                    name, snapshot_num)
+            file_suffix = '{0}.{1}'.format(name, snapshot_num)
             output_urls.append('{0}.{1}'.format(url, file_suffix))
         else:
             output_urls.append(url)
@@ -203,7 +195,6 @@ def snapshot_vms(
     features=config_parser.get_config()['general']['features_to_crawl'],
     options={},
     format='csv',
-    overwrite=False,
     namespace='',
     ignore_exceptions=True
 ):
@@ -234,11 +225,9 @@ def snapshot_vms(
             'timestamp': int(time.time()),
             'system_type': 'vm',
             'compress': config_parser.get_config()['general']['compress'],
-            'overwrite': overwrite,
         }
 
-        output_urls = reformat_output_urls(urls, vm_name,
-                                           snapshot_num, overwrite)
+        output_urls = reformat_output_urls(urls, vm_name, snapshot_num)
 
         vm_crawl_plugins = plugins_manager.get_vm_crawl_plugins(features)
         plugin_mode = config_parser.get_config()['general']['plugin_mode']
@@ -275,7 +264,6 @@ def snapshot_container(
     features=config_parser.get_config()['general']['features_to_crawl'],
     options={},
     format='csv',
-    overwrite=False,
     container=None,
     ignore_exceptions=True,
 ):
@@ -314,8 +302,7 @@ def snapshot_container(
         metadata['docker_image_tag'] = container.docker_image_tag
         metadata['docker_image_registry'] = container.docker_image_registry
 
-    output_urls = reformat_output_urls(urls, container.short_id,
-                                       snapshot_num, overwrite)
+    output_urls = reformat_output_urls(urls, container.short_id, snapshot_num)
 
     container_crawl_plugins = plugins_manager.get_container_crawl_plugins(
         features=features)
@@ -354,7 +341,6 @@ def snapshot_containers(
     features=config_parser.get_config()['general']['features_to_crawl'],
     options={},
     format='csv',
-    overwrite=False,
     ignore_exceptions=True,
     host_namespace='',
     link_log_files=False
@@ -409,7 +395,6 @@ def snapshot_containers(
             options=options,
             format=format,
             container=container,
-            overwrite=overwrite
         )
     return containers
 
@@ -438,7 +423,6 @@ def snapshot(
     frequency=-1,
     crawlmode=Modes.INVM,
     format='csv',
-    overwrite=False,
     first_snapshot_num=0,
     max_snapshots=-1
 ):
@@ -518,7 +502,6 @@ def snapshot(
                 features=features,
                 options=options,
                 format=format,
-                overwrite=overwrite,
                 host_namespace=namespace,
                 link_log_files=options.get('link_container_log_files', False)
             )
@@ -529,7 +512,6 @@ def snapshot(
                 snapshot_num=snapshot_num,
                 options=options,
                 format=format,
-                overwrite=overwrite,
                 namespace=namespace,
             )
         elif crawlmode == Modes.OUTVM:
@@ -539,7 +521,6 @@ def snapshot(
                 features=features,
                 options=options,
                 format=format,
-                overwrite=overwrite,
                 namespace=namespace,
             )
         elif crawlmode in [Modes.INVM, Modes.MOUNTPOINT]:
@@ -551,7 +532,6 @@ def snapshot(
                 options=options,
                 format=format,
                 namespace=namespace,
-                overwrite=overwrite
             )
         else:
             raise NotImplementedError('Crawl mode %s is not implemented' %

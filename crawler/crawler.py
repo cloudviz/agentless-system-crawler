@@ -332,13 +332,6 @@ def main():
              'OUTCONTAINER mode, then the crawler maintains links to '
              'container log files.')
     parser.add_argument(
-        '--overwrite',
-        dest='overwrite',
-        action='store_true',
-        default=False,
-        help='overwrite file type url parameter and strip trailing '
-             'sequence number')
-    parser.add_argument(
         '--avoidSetns',
         dest='avoid_setns',
         action='store_true',
@@ -374,7 +367,6 @@ def main():
     if args.frequency is not None:
         params['frequency'] = args.frequency
     options['compress'] = (args.compress in ['true', 'True'])
-    params['overwrite'] = args.overwrite
     if args.crawlmode:
         params['crawlmode'] = args.crawlmode
 
