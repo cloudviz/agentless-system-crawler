@@ -143,7 +143,7 @@ def join_abs_paths(root, appended_root):
     """ Join absolute paths: appended_root is appended after root
     """
     if not os.path.isabs(appended_root):
-        appended_root = '/' + appended_root       
+        appended_root = '/' + appended_root
     return os.path.normpath(os.path.join(root,
                                          os.path.relpath(appended_root, '/')))
 

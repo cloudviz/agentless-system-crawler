@@ -55,7 +55,8 @@ class CrawlutilsContainerTests(unittest.TestCase):
         os.makedirs(self.tempd + '/out')
 
         features = ['cpu', 'memory', 'interface', 'package']
-        crawler.plugins_manager.reload_container_crawl_plugins(features=features)
+        crawler.plugins_manager.reload_container_crawl_plugins(
+            features=features)
         crawler.crawlutils.snapshot_container(
             urls=[
                 'file://' + self.tempd + '/out/crawler'],

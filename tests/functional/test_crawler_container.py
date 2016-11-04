@@ -28,7 +28,6 @@ class SingleContainerTests(unittest.TestCase):
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-
         self.docker = docker.Client(
             base_url='unix://var/run/docker.sock', version='auto')
         try:
@@ -143,8 +142,7 @@ class SingleContainerTests(unittest.TestCase):
                 'link_container_log_files': False,
                 'os': {
                     'avoid_setns': False},
-                'cpu': {}},
-            'overwrite': False}
+                'cpu': {}}}
 
         crawler.crawlutils.snapshot(**options)
 
@@ -198,7 +196,7 @@ class SingleContainerTests(unittest.TestCase):
         assert 'memory.memory-used' in output
         assert 'apt.pkgsize' in output
         f.close()
-    
+
     def testCrawlContainer3(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
@@ -324,8 +322,7 @@ class SingleContainerTests(unittest.TestCase):
                 'link_container_log_files': False,
                 'os': {
                     'avoid_setns': False},
-                'cpu': {}},
-            'overwrite': False}
+                'cpu': {}}}
 
         crawler.crawlutils.snapshot(**options)
 

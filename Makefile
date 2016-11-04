@@ -48,6 +48,9 @@ test:
 unit:
 	python2.7 setup.py test --addopts '--fulltrace --cov=. tests/unit'
 
+functional:
+	python2.7 setup.py test --addopts '--fulltrace --cov=. tests/functional'
+
 clean:
 	@echo -ne "Stopping and removing crawler container..."
 	@docker stop agentless-crawler 1>/dev/null

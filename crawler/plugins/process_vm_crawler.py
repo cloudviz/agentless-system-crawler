@@ -11,7 +11,11 @@ import logging
 # External dependencies that must be pip install'ed separately
 
 import psutil
-import psvmi
+
+try:
+    import psvmi
+except ImportError:
+    psvmi = None
 
 logger = logging.getLogger('crawlutils')
 

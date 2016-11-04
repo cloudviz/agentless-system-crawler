@@ -40,9 +40,9 @@ def get_filtered_list_of_containers(
     environment=get_config()['general']['environment'],
     host_namespace=misc.get_host_ipaddr(),
     user_list='ALL',
-    partition_strategy={'name':'equally_by_pid',
-                        'args':{'process_id':0,
-                                'num_processes':1}}
+    partition_strategy={'name': 'equally_by_pid',
+                        'args': {'process_id': 0,
+                                 'num_processes': 1}}
 ):
     """
     Returns a partition of all the Container objects currently running in the

@@ -359,10 +359,11 @@ def snapshot_containers(
     user_list = options.get('docker_containers_list', 'ALL')
     partition_strategy = options.get('partition_strategy', {})
 
-    curr_containers = get_filtered_list_of_containers(environment=environment,
-                                                      user_list=user_list,
-                                                      partition_strategy=partition_strategy,
-                                                      host_namespace=host_namespace)
+    curr_containers = get_filtered_list_of_containers(
+        environment=environment,
+        user_list=user_list,
+        partition_strategy=partition_strategy,
+        host_namespace=host_namespace)
     deleted = [c for c in containers if c not in curr_containers]
     containers = curr_containers
 
@@ -462,8 +463,9 @@ def snapshot(
 
     plugins_manager.reload_env_plugin(plugin_places=plugin_places,
                                       environment=environment)
-    environment = options.get('environment',
-                              config_parser.get_config()['general']['environment'])
+    environment = options.get(
+        'environment',
+        config_parser.get_config()['general']['environment'])
     plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     plugins_manager.reload_container_crawl_plugins(

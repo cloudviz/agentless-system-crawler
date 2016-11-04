@@ -18,6 +18,7 @@ from crawler.dockerutils import (
 
 class DockerUtilsTests(unittest.TestCase):
     image_name = 'alpine:latest'
+    long_image_name = 'docker.io/alpine:latest'
 
     def setUp(self):
         self.docker = docker.Client(
@@ -58,7 +59,8 @@ class DockerUtilsTests(unittest.TestCase):
     def test_docker_history(self):
         history = exec_docker_history(self.container['Id'])
         print history[0]
-        assert self.image_name in history[0]['Tags']
+        assert self.image_name in history[0][
+            'Tags'] or self.long_image_name in history[0]['Tags']
 
     def test_dockerinspect(self):
         inspect = exec_dockerinspect(self.container['Id'])
