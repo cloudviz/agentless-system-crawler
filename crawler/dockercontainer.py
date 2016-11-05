@@ -250,7 +250,7 @@ class DockerContainer(Container):
     def __str__(self):
         return str(self.__dict__)
 
-    def link_logfiles(self, options={}):
+    def link_logfiles(self):
 
         host_log_dir = self._get_logfiles_links_dest(HOST_LOG_BASEDIR)
 
@@ -297,7 +297,7 @@ class DockerContainer(Container):
             # Not a critical error: move on
             logger.exception(e)
 
-    def unlink_logfiles(self, options={}):
+    def unlink_logfiles(self):
 
         host_log_dir = self._get_logfiles_links_dest(HOST_LOG_BASEDIR)
 
@@ -399,7 +399,7 @@ class DockerContainer(Container):
                                          host_log_dir=host_log_dir)]
         return _logs
 
-    def _set_logs_list(self, options={}):
+    def _set_logs_list(self):
         """
         Initializes the LogFileLinks list in `self.logs_list`
         """

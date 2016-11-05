@@ -75,8 +75,7 @@ class DockerContainerTests(unittest.TestCase):
         self.docker_container.log_file_list = [
             {'name': '/data/test1.log', 'type': None}]
 
-        log_list = self.docker_container._set_logs_list(
-            {'logcrawler': {'host_log_basedir': self.host_log_dir}})
+        log_list = self.docker_container._set_logs_list()
         log_list = self.docker_container.logs_list
         for log in log_list:
             if log.name == '/data/test1.log':

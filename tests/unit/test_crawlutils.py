@@ -234,11 +234,21 @@ class ContainerTests(unittest.TestCase):
         assert args[0].call_count == 2
         assert args[1].call_count == 2
 
-    @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
-                side_effect=lambda options, namespace:
-                [MockedDockerContainer(short_id='short_id', pid=101),
-                 MockedDockerContainer(short_id='short_id', pid=102),
-                 MockedDockerContainer(short_id='short_id', pid=103)])
+    @mock.patch(
+        'crawler.crawlutils.get_filtered_list_of_containers',
+        side_effect=lambda environment,
+        host_namespace,
+        user_list,
+        partition_strategy: [
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=101),
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=102),
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=103)])
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawler, autospec=True)
     @mock.patch('crawler.crawlutils.Emitter',
@@ -254,11 +264,21 @@ class ContainerTests(unittest.TestCase):
         assert args[1].call_count == 3
 
     @mock.patch('crawler.crawlutils.time.sleep')
-    @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
-                side_effect=lambda options, namespace:
-                [MockedDockerContainer(short_id='short_id', pid=101),
-                 MockedDockerContainer(short_id='short_id', pid=102),
-                 MockedDockerContainer(short_id='short_id', pid=103)])
+    @mock.patch(
+        'crawler.crawlutils.get_filtered_list_of_containers',
+        side_effect=lambda environment,
+        host_namespace,
+        user_list,
+        partition_strategy: [
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=101),
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=102),
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=103)])
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawler, autospec=True)
     @mock.patch('crawler.crawlutils.Emitter',
@@ -278,11 +298,21 @@ class ContainerTests(unittest.TestCase):
     @mock.patch.object(MockedDockerContainer, 'link_logfiles')
     @mock.patch.object(MockedDockerContainer, 'unlink_logfiles')
     @mock.patch('crawler.crawlutils.time.sleep')
-    @mock.patch('crawler.crawlutils.get_filtered_list_of_containers',
-                side_effect=lambda options, namespace:
-                [MockedDockerContainer(short_id='short_id', pid=101),
-                 MockedDockerContainer(short_id='short_id', pid=102),
-                 MockedDockerContainer(short_id='short_id', pid=103)])
+    @mock.patch(
+        'crawler.crawlutils.get_filtered_list_of_containers',
+        side_effect=lambda environment,
+        host_namespace,
+        user_list,
+        partition_strategy: [
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=101),
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=102),
+            MockedDockerContainer(
+                short_id='short_id',
+                pid=103)])
     @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
                 side_effect=MockedFeaturesCrawler, autospec=True)
     @mock.patch('crawler.crawlutils.Emitter',

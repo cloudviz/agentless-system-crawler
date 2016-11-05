@@ -95,8 +95,8 @@ class Container(object):
     def is_running(self):
         return os.path.exists('/proc/' + self.pid)
 
-    def link_logfiles(self, options={}):
+    def link_logfiles(self):
         raise NotImplementedError()
 
-    def unlink_logfiles(self, options={}):
+    def unlink_logfiles(self):
         raise NotImplementedError()

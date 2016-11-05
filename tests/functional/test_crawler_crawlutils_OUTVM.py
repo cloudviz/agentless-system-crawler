@@ -178,8 +178,7 @@ class CrawlutilsVMTest(unittest.TestCase):
                 'link_container_log_files': False,
                 'os': {
                     'avoid_setns': False},
-                'cpu': {}},
-            'overwrite': False}
+                'cpu': {}}}
 
         crawler.crawlutils.snapshot_vms(**fxn_args)
 

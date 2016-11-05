@@ -34,6 +34,10 @@ def csv_list(string):
     return string.split(',')
 
 
+def json_parser(string):
+    return json.loads(string)
+
+
 def setup_logger(logger_name, logfile='crawler.log', process_id=None):
     _logger = logging.getLogger(logger_name)
     _logger.setLevel(logging.INFO)
@@ -148,15 +152,15 @@ def main():
     parser.add_argument(
         '--options',
         dest='options',
-        type=str,
-        default=None,
-        help='JSON dict of crawler options (see README for defaults)')
+        type=json_parser,
+        default={},
+        help='JSON dict of crawler options (see README for defaults)'
+    )
     parser.add_argument(
         '--url',
         dest='url',
-        type=str,
-        nargs='+',
-        default=None,
+        type=csv_list,
+        default=['stdout://'],
         help='Send the snapshot data to URL. Defaults to file://frame',
     )
     parser.add_argument(
@@ -164,7 +168,7 @@ def main():
         dest='namespace',
         type=str,
         nargs='?',
-        default=None,
+        default=misc.get_host_ipaddr(),
         help='Data source this crawler is associated with. Defaults to '
              '/localhost',
     )
@@ -174,26 +178,16 @@ def main():
         type=csv_list,
         default=get_config()['general']['features_to_crawl'],
         help='Comma-separated list of feature-types to crawl. Defaults to '
-             '{0}'.format(get_config()['general']['features_to_crawl']))
-    parser.add_argument(
-        '--since',
-        dest='since',
-        type=str,
-        choices=[
-            'EPOCH',
-            'BOOT',
-            'LASTSNAPSHOT'],
-        default=None,
-        help='Only crawl features touched since {EPOCH,BOOT,LASTSNAPSHOT}. '
-             'Defaults to BOOT',
+             '{0}'.format(get_config()['general']['features_to_crawl'])
     )
     parser.add_argument(
         '--frequency',
         dest='frequency',
         type=int,
-        default=None,
+        default=-1,
         help='Target time period for iterations. Defaults to -1 which '
-             'means only run one iteration.')
+             'means only run one iteration.'
+    )
     parser.add_argument(
         '--compress',
         dest='compress',
@@ -207,7 +201,8 @@ def main():
     )
     parser.add_argument('--logfile', dest='logfile', type=str,
                         default='crawler.log',
-                        help='Logfile path. Defaults to crawler.log')
+                        help='Logfile path. Defaults to crawler.log'
+                        )
     parser.add_argument(
         '--crawlmode',
         dest='crawlmode',
@@ -229,14 +224,8 @@ def main():
         dest='mountpoint',
         type=str,
         default=get_config()['general']['default_mountpoint'],
-        help='Mountpoint location (required for --crawlmode MOUNTPOINT)')
-    parser.add_argument(
-        '--inputfile',
-        dest='inputfile',
-        type=str,
-        default=None,
-        help='Path to file that contains frame data (required for '
-             '--crawlmode FILE)')
+        help='Mountpoint location (required for --crawlmode MOUNTPOINT)'
+    )
     parser.add_argument(
         '--format',
         dest='format',
@@ -262,7 +251,7 @@ def main():
         '--crawlVMs',
         dest='crawl_vm',
         nargs='+',
-        default=None,
+        default='ALL',
         help='List of VMs to crawl'
              'Default is \'ALL\' VMs'
              'Currently need following as input for each VM'
@@ -305,9 +294,10 @@ def main():
         '--numprocesses',
         dest='numprocesses',
         type=int,
-        default=None,
+        default=multiprocessing.cpu_count(),
         help='Number of processes used for container crawling. Defaults '
-             'to the number of cores.')
+             'to the number of cores.'
+    )
     parser.add_argument(
         '--extraMetadataFile',
         dest='extraMetadataFile',
@@ -315,14 +305,15 @@ def main():
         default=None,
         help='Json file with data to be annotate all features. It can be used '
              'to append a set of system identifiers to the metadata feature '
-             'and if the --extraMetadataForAll')
-
+             'and if the --extraMetadataForAll'
+    )
     parser.add_argument(
         '--extraMetadataForAll',
         dest='extraMetadataForAll',
         action='store_true',
         default=False,
-        help='If specified all features are appended with extra metadata.')
+        help='If specified all features are appended with extra metadata.'
+    )
     parser.add_argument(
         '--linkContainerLogFiles',
         dest='linkContainerLogFiles',
@@ -330,14 +321,8 @@ def main():
         default=get_config()['general']['link_container_log_files'],
         help='Experimental feature. If specified and if running in '
              'OUTCONTAINER mode, then the crawler maintains links to '
-             'container log files.')
-    parser.add_argument(
-        '--overwrite',
-        dest='overwrite',
-        action='store_true',
-        default=False,
-        help='overwrite file type url parameter and strip trailing '
-             'sequence number')
+             'container log files.'
+    )
     parser.add_argument(
         '--avoidSetns',
         dest='avoid_setns',
@@ -351,79 +336,25 @@ def main():
     args = parser.parse_args()
     params = {}
 
-    params['options'] = {}
-    if args.options:
-        try:
-            _options = json.loads(args.options)
-        except (KeyError, ValueError):
-            sys.stderr.write('Can not parse the user options json.\n')
-            sys.exit(1)
-        for (option, value) in _options.iteritems():
-            params['options'][option] = value
+    params['options'] = args.options
+    params['urls'] = args.url
+    params['namespace'] = args.namespace
+    params['features'] = args.features
+    params['frequency'] = args.frequency
+    params['crawlmode'] = args.crawlmode
+    params['format'] = args.format
 
-    options = params['options']
-
-    if args.url:
-        params['urls'] = args.url
-    if args.namespace:
-        params['namespace'] = args.namespace
-    if args.features:
-        params['features'] = args.features
-    if args.since:
-        params['since'] = args.since
-    if args.frequency is not None:
-        params['frequency'] = args.frequency
+    options = args.options
     options['compress'] = (args.compress in ['true', 'True'])
-    params['overwrite'] = args.overwrite
-    if args.crawlmode:
-        params['crawlmode'] = args.crawlmode
-
-        if args.crawlmode == 'MOUNTPOINT':
-            if not args.mountpoint:
-                print ('Need to specify mountpoint location (--mountpoint) '
-                       'for MOUNTPOINT mode')
-                sys.exit(1)
-            if os.path.exists(args.mountpoint):
-                options['root_dir'] = args.mountpoint
-                options['os'] = {}
-                options['os']['root_dir'] = args.mountpoint
-                options['package'] = {}
-                options['package']['root_dir'] = args.mountpoint
-                options['file'] = {}
-                options['file']['root_dir'] = args.mountpoint
-                # To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
-                # reported file path.
-                options['file']['root_dir_alias'] = '/'
-                options['config'] = {}
-                options['config']['root_dir'] = args.mountpoint
-                # To remove args.mountpoint (e.g. /mnt/CrawlDisk) from each
-                # reported file path.
-                options['config']['root_dir_alias'] = '/'
-
-        if args.crawlmode == 'OUTCONTAINER':
-            if args.crawlContainers:
-                options['docker_containers_list'] = args.crawlContainers
-            if not args.numprocesses:
-                args.numprocesses = multiprocessing.cpu_count()
-            # if args.avoid_setns:
-            #    options['os']['avoid_setns'] = args.avoid_setns
-            #    options['config']['avoid_setns'] = args.avoid_setns
-            #    options['file']['avoid_setns'] = args.avoid_setns
-            #    options['package']['avoid_setns'] = args.avoid_setns
-
-        options['avoid_setns'] = args.avoid_setns
-
-        if args.crawlmode == 'OUTVM':
-            if args.crawl_vm:
-                options['vm_list'] = args.crawl_vm
-
-    if args.format:
-        params['format'] = args.format
-    if args.environment:
-        options['environment'] = args.environment
+    options['avoid_setns'] = args.avoid_setns
+    options['mountpoint'] = args.mountpoint
+    options['vm_list'] = args.crawl_vm
+    options['docker_containers_list'] = args.crawlContainers
+    options['environment'] = args.environment
     options['pluginmode'] = args.pluginmode
-    if args.plugin_places:
-        options['plugin_places'] = args.plugin_places
+    options['plugin_places'] = args.plugin_places
+    options['link_container_log_files'] = args.linkContainerLogFiles
+
     if args.extraMetadataFile:
         options['metadata'] = {}
         metadata = options['metadata']
@@ -435,9 +366,8 @@ def main():
             print 'Could not read the feature metadata json file: %s' \
                 % e
             sys.exit(1)
-    options['link_container_log_files'] = args.linkContainerLogFiles
 
-    apply_user_args(options=options)
+    apply_user_args(options=options, params=params)
 
     start_autonomous_crawler(args.numprocesses, args.logfile, params, options)
 

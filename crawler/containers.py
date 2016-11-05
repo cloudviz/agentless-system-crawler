@@ -37,8 +37,12 @@ def list_all_containers(user_list='ALL',
 
 
 def get_filtered_list_of_containers(
-    options={},
-    host_namespace=misc.get_host_ipaddr()
+    environment=get_config()['general']['environment'],
+    host_namespace=misc.get_host_ipaddr(),
+    user_list='ALL',
+    partition_strategy={'name': 'equally_by_pid',
+                        'args': {'process_id': 0,
+                                 'num_processes': 1}}
 ):
     """
     Returns a partition of all the Container objects currently running in the
@@ -47,14 +51,9 @@ def get_filtered_list_of_containers(
     The partitioning is given by `partition_strategy`.
     """
 
-    environment = options.get('environment',
-                              get_config()['general']['environment'])
     container_opts = {'host_namespace': host_namespace,
                       'environment': environment,
                       }
-
-    user_list = options.get('docker_containers_list', 'ALL')
-    partition_strategy = options.get('partition_strategy', {})
 
     assert(partition_strategy['name'] == 'equally_by_pid')
     process_id = partition_strategy['args']['process_id']

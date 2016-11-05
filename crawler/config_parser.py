@@ -22,7 +22,7 @@ def parse_crawler_config(config_path='crawler.conf'):
     _config.validate(vdt)
 
 
-def apply_user_args(options={}):
+def apply_user_args(options={}, params={}):
     global _config
 
     try:
@@ -34,21 +34,22 @@ def apply_user_args(options={}):
 
     # apply per plugin configs
     crawlers = _config['crawlers']
-    for plugin in crawlers:
-        try:
-            if 'avoid_setns' in options:
-                crawlers[plugin]['avoid_setns'] = options['avoid_setns']
+    for feature in params['features']:
+        for target in {'container', 'host', 'vm'}:
+            try:
+                plugin = '%s_%s' % (feature, target)
+                crawlers[plugin] = {}
+                if feature in options:
+                    for arg in options[feature]:
+                        crawlers[plugin][arg] = options[feature][arg]
 
-            # The user can pass options, we need to update the configuration
-            # state with it.
-            feature = crawlers[plugin]['feature']
-            if feature in options:
-                for arg in options[feature]:
-                    crawlers[plugin][arg] = options[feature][arg]
-        except KeyError as exc:
-            logger.warning(
-                'Can not apply users --options configuration: %s' %
-                exc)
+                # Copy general user args to all plugins configs
+                crawlers[plugin]['avoid_setns'] = options['avoid_setns']
+                crawlers[plugin]['root_dir'] = options['mountpoint']
+            except KeyError as exc:
+                logger.warning(
+                    'Can not apply users --options configuration: %s' %
+                    exc)
 
 
 def get_config():
