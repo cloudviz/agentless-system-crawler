@@ -3,12 +3,6 @@ import unittest
 import types
 from collections import namedtuple
 
-# for OUTVM psvmi
-from mock import Mock
-import sys
-sys.modules['psvmi'] = Mock()
-
-
 from crawler.features import (
     OSFeature,
     ConfigFeature,
@@ -34,6 +28,12 @@ from crawler.plugins.package_host_crawler import PackageHostCrawler
 from crawler.plugins.process_host_crawler import ProcessHostCrawler
 from crawler.plugins.os_vm_crawler import os_vm_crawler
 from crawler.plugins.process_vm_crawler import process_vm_crawler
+
+
+# for OUTVM psvmi
+from mock import Mock
+import sys
+sys.modules['psvmi'] = Mock()
 
 
 class DummyContainer(Container):
@@ -743,15 +743,20 @@ class PluginTests(unittest.TestCase):
                 side_effect=mocked_codecs_open)
     def test_config_host_crawler_with_discover(self, *args):
         fc = ConfigHostCrawler()
-        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
-                                      discover_config_files=True):
-            assert fname == "config"
-            assert ((f == ConfigFeature(name='file1', content='content',
-                                        path='/etc/file1')) or
-                    (f == ConfigFeature(name='file3.conf', content='content',
-                                        path='/file3.conf')))
-        assert args[0].call_count == 2  # isdir
-        #assert args[5].call_count == 2  # lstat
+
+        configs = fc.crawl(known_config_files=['/etc/file1'],
+                           discover_config_files=True)
+        print configs
+        assert set(configs) == set([('/file3.conf',
+                                     ConfigFeature(name='file3.conf',
+                                                   content='content',
+                                                   path='/file3.conf'),
+                                     'config'),
+                                    ('/etc/file1',
+                                     ConfigFeature(name='file1',
+                                                   content='content',
+                                                   path='/etc/file1'),
+                                     'config')])
 
     @mock.patch(
         ("crawler.plugins.config_container_crawler."
@@ -777,6 +782,10 @@ class PluginTests(unittest.TestCase):
                                       path='/etc/file1')
         assert args[0].call_count == 1  # codecs open
 
+    @mock.patch('crawler.plugins.config_crawler.codecs.open',
+                side_effect=mocked_codecs_open)
+    @mock.patch('crawler.plugins.config_crawler.os.lstat',
+                side_effect=mocked_os_lstat)
     @mock.patch(
         ("crawler.plugins.config_container_crawler."
             "dockerutils.exec_dockerinspect"),
@@ -795,20 +804,21 @@ class PluginTests(unittest.TestCase):
                 side_effect=lambda p: True)
     @mock.patch('crawler.plugins.config_crawler.os.path.getsize',
                 side_effect=lambda p: 1000)
-    @mock.patch('crawler.plugins.config_crawler.os.lstat',
-                side_effect=mocked_os_lstat)
-    @mock.patch('crawler.plugins.config_crawler.codecs.open',
-                side_effect=mocked_codecs_open)
     def test_config_container_crawler_discover(self, *args):
         fc = ConfigContainerCrawler()
-        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
-                                      discover_config_files=True):
-            assert fname == "config"
-            assert ((f == ConfigFeature(name='file1', content='content',
-                                        path='/etc/file1')) or
-                    (f == ConfigFeature(name='file3.conf', content='content',
-                                        path='/file3.conf')))
-        assert args[0].call_count == 2  # codecs open
+
+        configs = fc.crawl(known_config_files=['/etc/file1'],
+                           discover_config_files=True)
+        assert set(configs) == set([('/file3.conf',
+                                     ConfigFeature(name='file3.conf',
+                                                   content='content',
+                                                   path='/file3.conf'),
+                                     'config'),
+                                    ('/etc/file1',
+                                     ConfigFeature(name='file1',
+                                                   content='content',
+                                                   path='/etc/file1'),
+                                     'config')])
 
     @mock.patch(
         ("crawler.plugins.config_container_crawler."
@@ -869,15 +879,19 @@ class PluginTests(unittest.TestCase):
                 side_effect=mocked_codecs_open)
     def test_config_container_crawler_avoidsetns_discover(self, *args):
         fc = ConfigContainerCrawler()
-        for (k, f, fname) in fc.crawl(known_config_files=['/etc/file1'],
-                                      discover_config_files=True,
-                                      avoid_setns=True):
-            assert fname == "config"
-            assert ((f == ConfigFeature(name='file1', content='content',
-                                        path='/etc/file1')) or
-                    (f == ConfigFeature(name='file3.conf', content='content',
-                                        path='/file3.conf')))
-        assert args[0].call_count == 2  # lstat
+        configs = fc.crawl(known_config_files=['/etc/file1'],
+                           avoid_setns=True,
+                           discover_config_files=True)
+        assert set(configs) == set([('/file3.conf',
+                                     ConfigFeature(name='file3.conf',
+                                                   content='content',
+                                                   path='/file3.conf'),
+                                     'config'),
+                                    ('/etc/file1',
+                                     ConfigFeature(name='file1',
+                                                   content='content',
+                                                   path='/etc/file1'),
+                                     'config')])
 
     @mock.patch(
         'crawler.package_crawler.osinfo.get_osinfo',
