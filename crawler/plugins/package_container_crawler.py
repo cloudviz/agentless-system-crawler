@@ -2,23 +2,19 @@ import logging
 
 try:
     from crawler.package_crawler import crawl_packages
-    from crawler.runtime_environment import IRuntimeEnvironment
     from crawler.dockerutils import (exec_dockerinspect,
                                      get_docker_container_rootfs_path)
     from crawler.namespace import run_as_another_namespace, ALL_NAMESPACES
     from crawler.misc import join_abs_paths
-    from crawler.crawler_exceptions import (CrawlError,
-                                            CrawlUnsupportedPackageManager)
+    from crawler.crawler_exceptions import CrawlError
     from crawler.icrawl_plugin import IContainerCrawler
 except ImportError:
     from package_crawler import crawl_packages
-    from runtime_environment import IRuntimeEnvironment
     from dockerutils import (exec_dockerinspect,
                              get_docker_container_rootfs_path)
     from namespace import run_as_another_namespace, ALL_NAMESPACES
     from misc import join_abs_paths
-    from crawler_exceptions import (CrawlError,
-                                    CrawlUnsupportedPackageManager)
+    from crawler_exceptions import CrawlError
     from icrawl_plugin import IContainerCrawler
 
 logger = logging.getLogger('crawlutils')

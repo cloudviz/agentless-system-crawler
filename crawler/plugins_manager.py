@@ -14,9 +14,13 @@ vm_crawl_plugins = []
 host_crawl_plugins = []
 
 
-def _load_plugins(plugin_places=[misc.execution_path('plugins')],
-                  category_filter={},
-                  filter_func=lambda *arg: True):
+def _load_plugins(
+        plugin_places=[
+            misc.execution_path('plugins')],
+        category_filter={},
+        filter_func=lambda *arg: True,
+        features=config_parser.get_config()['general']['features_to_crawl']):
+
     pm = PluginManager(plugin_info_ext='plugin')
 
     # Normalize the paths to the location of this file.
@@ -31,7 +35,11 @@ def _load_plugins(plugin_places=[misc.execution_path('plugins')],
     enabled_plugins = [p for p in config['crawlers']]
 
     for plugin in pm.getAllPlugins():
-        if filter_func(plugin.plugin_object, plugin.name, enabled_plugins):
+        if filter_func(
+                plugin.plugin_object,
+                plugin.name,
+                enabled_plugins,
+                features):
             plugin_args = {}
             if plugin.name in config['crawlers']:
                 plugin_args = config['crawlers'][plugin.name]
@@ -65,6 +73,22 @@ def get_runtime_env_plugin():
     return runtime_env
 
 
+def plugin_filter_with_plugin_mode(
+        plugin_obj,
+        plugin_name,
+        enabled_plugins,
+        features):
+    return (plugin_obj.get_feature() in features)
+
+
+def plugin_filter_without_plugin_mode(
+        plugin_obj,
+        plugin_name,
+        enabled_plugins,
+        features):
+    return (plugin_name in enabled_plugins)
+
+
 def reload_container_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
@@ -74,18 +98,17 @@ def reload_container_crawl_plugins(
     # using --plugin_mode  to override plugins for legacy CLI based invocation
 
     if plugin_mode is False:  # aka override via --features CLI
-        filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_obj.get_feature() in features)
+        filter_func = plugin_filter_with_plugin_mode
     else:
-        filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_name in enabled_plugins)
+        filter_func = plugin_filter_without_plugin_mode
 
     container_crawl_plugins = list(
         _load_plugins(
             plugin_places + ['plugins'],
             category_filter={
                 "crawler": IContainerCrawler},
-            filter_func=filter_func))
+            filter_func=filter_func,
+            features=features))
 
 
 def reload_vm_crawl_plugins(
@@ -95,18 +118,17 @@ def reload_vm_crawl_plugins(
     global vm_crawl_plugins
 
     if plugin_mode is False:  # aka override via --features CLI
-        filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_obj.get_feature() in features)
+        filter_func = plugin_filter_with_plugin_mode
     else:
-        filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_name in enabled_plugins)
+        filter_func = plugin_filter_without_plugin_mode
 
     vm_crawl_plugins = list(
         _load_plugins(
             plugin_places + ['plugins'],
             category_filter={
                 "crawler": IVMCrawler},
-            filter_func=filter_func))
+            filter_func=filter_func,
+            features=features))
 
     # Filtering of features is a temp fix.
     # TODO remove the filtering of features after we move all
@@ -120,18 +142,17 @@ def reload_host_crawl_plugins(
     global host_crawl_plugins
 
     if plugin_mode is False:  # aka override via --features CLI
-        filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_obj.get_feature() in features)
+        filter_func = plugin_filter_with_plugin_mode
     else:
-        filter_func = lambda plugin_obj, plugin_name, enabled_plugins: (
-            plugin_name in enabled_plugins)
+        filter_func = plugin_filter_without_plugin_mode
 
     host_crawl_plugins = list(
         _load_plugins(
             plugin_places + ['plugins'],
             category_filter={
                 "crawler": IHostCrawler},
-            filter_func=filter_func))
+            filter_func=filter_func,
+            features=features))
     # Filtering of features is a temp fix.
     # TODO remove the filtering of features after we move all
     # features to be plugins.

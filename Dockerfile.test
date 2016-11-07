@@ -33,6 +33,6 @@ COPY psvmi/header.h .
 
 CMD (docker daemon > ../docker.out 2>&1 &) && \
 	sleep 5 && \
-        flake8 --max-complexity 10 . || true && \
+        flake8 --max-complexity 10 . && \
         pylint crawler || true && \
         python setup.py test --addopts '-s --cov=.'
