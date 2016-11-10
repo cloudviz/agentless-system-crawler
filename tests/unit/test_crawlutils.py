@@ -4,7 +4,6 @@ import unittest
 # for OUTVM psvmi
 from mock import Mock
 import sys
-sys.modules['psvmi'] = Mock()
 
 from crawler.crawlutils import (snapshot_generic,
                                 snapshot_container,

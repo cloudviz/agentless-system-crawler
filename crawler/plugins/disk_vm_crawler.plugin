@@ -1,0 +1,8 @@
+[Core]
+Name = disk_vm
+Module = disk_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Disk crawling function for VMs"

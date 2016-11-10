@@ -1,0 +1,8 @@
+[Core]
+Name = __GENERIC___vm
+Module = __GENERIC___vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "__GENERIC_UPPERCASE__ crawling function for VMs"

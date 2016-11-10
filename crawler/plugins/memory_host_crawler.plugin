@@ -1,0 +1,8 @@
+[Core]
+Name = memory_host
+Module = memory_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Memory crawling function for hosts"

@@ -1,0 +1,8 @@
+[Core]
+Name = load_vm
+Module = load_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Load crawling function for VMs"

@@ -1,0 +1,8 @@
+[Core]
+Name = memory_vm
+Module = memory_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Memory crawling function for VMs"

@@ -1,0 +1,8 @@
+[Core]
+Name = cpu_vm
+Module = cpu_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Cpu crawling function for VMs"

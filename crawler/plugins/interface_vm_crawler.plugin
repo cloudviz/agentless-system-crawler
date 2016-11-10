@@ -1,0 +1,8 @@
+[Core]
+Name = interface_vm
+Module = interface_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Interface crawling function for VMs"

@@ -6,7 +6,6 @@ from collections import namedtuple
 # for OUTVM psvmi
 from mock import Mock
 import sys
-sys.modules['psvmi'] = Mock()
 
 from crawler.features_crawler import FeaturesCrawler
 from crawler.crawlmodes import Modes
@@ -484,12 +483,13 @@ class FeaturesCrawlerTests(unittest.TestCase):
                                                       100000,
                                                       100000,
                                                       100000))
+    @mock.patch('crawler.features_crawler.psvmi')
     def test_crawl_os_outvm_mode_without_vm(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
         for os in fc.crawl_os():
             pass
-        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.features_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -948,6 +948,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
     @mock.patch('crawler.features_crawler.psvmi.process_iter',
                 side_effect=lambda vmc: [Process('init')])
+    @mock.patch('crawler.features_crawler.psvmi')
     def test_crawl_processes_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -956,7 +957,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
             assert f.pname == 'init'
             assert f.cmd == 'cmd'
             assert f.pid == 123
-        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.features_crawler.psutil.process_iter',
                 side_effect=lambda: [Process('init')])
@@ -987,6 +988,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
     @mock.patch('crawler.features_crawler.psvmi.process_iter',
                 side_effect=lambda vmc: [Process('init')])
+    @mock.patch('crawler.features_crawler.psvmi')
     def test_crawl_connections_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -995,7 +997,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
             assert f.remoteipaddr == '2.2.2.2'
             assert f.localport == '22'
             assert f.remoteport == '22'
-        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.features_crawler.psutil.process_iter',
                 side_effect=lambda: [Process('init')])
@@ -1051,6 +1053,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
         ("crawler.features_crawler.FeaturesCrawler."
             "_crawl_metrics_cpu_percent"),
         side_effect=lambda proc: 30.0)
+    @mock.patch('crawler.features_crawler.psvmi')
     def test_crawl_metrics_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -1064,7 +1067,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
             assert f.vms == 20
             assert f.read == 10
             assert f.write == 20
-        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch(
         'crawler.features_crawler.osinfo.get_osinfo',
@@ -1304,6 +1307,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
     @mock.patch('crawler.features_crawler.psvmi.system_memory_info',
                 side_effect=lambda vmc: psvmi_memory(10, 20, 30, 40))
+    @mock.patch('crawler.features_crawler.psvmi')
     def test_crawl_memory_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -1314,7 +1318,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 memory_cached=30,
                 memory_free=40,
                 memory_util_percentage=20)
-        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.features_crawler.psutil.virtual_memory',
                 side_effect=lambda: psutils_memory(10, 10, 3, 10))
@@ -1523,6 +1527,7 @@ class FeaturesCrawlerTests(unittest.TestCase):
     @mock.patch('crawler.features_crawler.psvmi.interface_iter',
                 side_effect=lambda vmc: [psvmi_interface(
                     'eth1', 10, 20, 30, 40, 50, 60)])
+    @mock.patch('crawler.features_crawler.psvmi')
     def test_crawl_interface_outvm_mode(self, *args):
         fc = FeaturesCrawler(crawl_mode=Modes.OUTVM,
                              vm=('dn', '2.6', 'ubuntu', 'x86'))
@@ -1547,8 +1552,8 @@ class FeaturesCrawlerTests(unittest.TestCase):
                 if_packets_rx=0,
                 if_errors_tx=0,
                 if_errors_rx=0)
-        assert args[0].call_count == 2
         assert args[1].call_count == 2
+        assert args[2].call_count == 2
 
     @mock.patch('crawler.features_crawler.os.getloadavg',
                 side_effect=lambda: [1, 2, 3])
