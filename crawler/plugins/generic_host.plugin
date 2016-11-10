@@ -1,0 +1,8 @@
+[Core]
+Name = __GENERIC___host
+Module = __GENERIC___host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "__GENERIC_UPPERCASE__ crawling function for hosts"

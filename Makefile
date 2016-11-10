@@ -40,6 +40,7 @@ setupelk:
 	@echo "You can view the crawl data at http://localhost:5601/app/kibana"
 	@echo "Please create an index by @timestamp on kibana dashboard"
 	
+.PHONY: test
 test:
 	@if [ ! -d psvmi ]; then git clone https://github.com/cloudviz/psvmi.git; fi
 	docker build -t agentless-system-crawler-test -f Dockerfile.test .

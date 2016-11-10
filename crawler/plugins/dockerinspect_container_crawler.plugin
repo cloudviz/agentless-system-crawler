@@ -1,0 +1,8 @@
+[Core]
+Name = dockerinspect_container
+Module = dockerinspect_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Dockerinspect crawling function for containers"

@@ -8,6 +8,7 @@ from crawler.features import (
     ConfigFeature,
     DiskFeature,
     PackageFeature,
+    ConnectionFeature,
     MemoryFeature,
     CpuFeature,
     InterfaceFeature,
@@ -15,25 +16,47 @@ from crawler.features import (
     DockerPSFeature)
 from crawler.container import Container
 from crawler.crawler_exceptions import CrawlError
-# from crawler.icrawl_plugin import IContainerCrawler
 from crawler.plugins.os_container_crawler import OSContainerCrawler
 from crawler.plugins.file_container_crawler import FileContainerCrawler
 from crawler.plugins.config_container_crawler import ConfigContainerCrawler
 from crawler.plugins.package_container_crawler import PackageContainerCrawler
 from crawler.plugins.process_container_crawler import ProcessContainerCrawler
+from crawler.plugins.disk_container_crawler import DiskContainerCrawler
+from crawler.plugins.metric_container_crawler import MetricContainerCrawler
+from crawler.plugins.connection_container_crawler import ConnectionContainerCrawler
+from crawler.plugins.memory_container_crawler import MemoryContainerCrawler
+from crawler.plugins.cpu_container_crawler import CpuContainerCrawler
+from crawler.plugins.interface_container_crawler import InterfaceContainerCrawler
+from crawler.plugins.load_container_crawler import LoadContainerCrawler
+from crawler.plugins.dockerhistory_container_crawler import DockerhistoryContainerCrawler
+from crawler.plugins.dockerinspect_container_crawler import DockerinspectContainerCrawler
+
 from crawler.plugins.os_host_crawler import OSHostCrawler
 from crawler.plugins.file_host_crawler import FileHostCrawler
 from crawler.plugins.config_host_crawler import ConfigHostCrawler
 from crawler.plugins.package_host_crawler import PackageHostCrawler
 from crawler.plugins.process_host_crawler import ProcessHostCrawler
+from crawler.plugins.disk_host_crawler import DiskHostCrawler
+from crawler.plugins.metric_host_crawler import MetricHostCrawler
+from crawler.plugins.connection_host_crawler import ConnectionHostCrawler
+from crawler.plugins.memory_host_crawler import MemoryHostCrawler
+from crawler.plugins.cpu_host_crawler import CpuHostCrawler
+from crawler.plugins.interface_host_crawler import InterfaceHostCrawler
+from crawler.plugins.load_host_crawler import LoadHostCrawler
+from crawler.plugins.dockerps_host_crawler import DockerpsHostCrawler
+
 from crawler.plugins.os_vm_crawler import os_vm_crawler
 from crawler.plugins.process_vm_crawler import process_vm_crawler
+from crawler.plugins.metric_vm_crawler import MetricVmCrawler
+from crawler.plugins.connection_vm_crawler import ConnectionVmCrawler
+from crawler.plugins.memory_vm_crawler import MemoryVmCrawler
+from crawler.plugins.interface_vm_crawler import InterfaceVmCrawler
+
 
 
 # for OUTVM psvmi
 from mock import Mock
 import sys
-sys.modules['psvmi'] = Mock()
 
 
 class DummyContainer(Container):
@@ -475,6 +498,7 @@ class PluginTests(unittest.TestCase):
                                                       100000,
                                                       100000,
                                                       100000))
+    @mock.patch('crawler.plugins.os_vm_crawler.psvmi')
     def test_os_vm_crawler_plugin_without_vm(self, *args):
         fc = os_vm_crawler()
         for os in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
@@ -490,7 +514,7 @@ class PluginTests(unittest.TestCase):
                     architecture='osplatform'),
                 'os')
             pass
-        assert args[0].call_count == 1
+        assert args[1].call_count == 1
 
     @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
                 side_effect=lambda p: True)
@@ -1124,6 +1148,7 @@ class PluginTests(unittest.TestCase):
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
     @mock.patch('crawler.plugins.process_vm_crawler.psvmi.process_iter',
                 side_effect=lambda vmc: [Process('init')])
+    @mock.patch('crawler.plugins.process_vm_crawler.psvmi')
     def test_process_vm_crawler(self, *args):
         fc = process_vm_crawler()
         for (k, f, fname) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
@@ -1132,4 +1157,548 @@ class PluginTests(unittest.TestCase):
             assert f.pname == 'init'
             assert f.cmd == 'cmd'
             assert f.pid == 123
+        assert args[1].call_count == 1 # process_iter
+
+    @mock.patch('crawler.plugins.disk_crawler.psutil.disk_partitions',
+                side_effect=mocked_disk_partitions)
+    @mock.patch('crawler.plugins.disk_crawler.psutil.disk_usage',
+                side_effect=lambda x: pdiskusage(10, 100))
+    def test_crawl_disk_partitions_invm_mode(self, *args):
+        fc = DiskHostCrawler()
+        disks = fc.crawl()
+        assert set(disks) == set([('/a',
+                                   DiskFeature(partitionname='/dev/a',
+                                               freepct=90.0,
+                                               fstype='type',
+                                               mountpt='/a',
+                                               mountopts='opts',
+                                               partitionsize=100),
+                                   'disk'),
+                                  ('/b',
+                                   DiskFeature(partitionname='/dev/b',
+                                               freepct=90.0,
+                                               fstype='type',
+                                               mountpt='/b',
+                                               mountopts='opts',
+                                               partitionsize=100),
+                                   'disk')])
+
+    @mock.patch(
+        'crawler.plugins.disk_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.disk_crawler.psutil.disk_partitions',
+                side_effect=mocked_disk_partitions)
+    @mock.patch('crawler.plugins.disk_crawler.psutil.disk_usage',
+                side_effect=lambda x: pdiskusage(10, 100))
+    @mock.patch(
+        ("crawler.plugins.disk_container_crawler.dockerutils."
+         "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    def test_crawl_disk_partitions_outcontainer_mode(self, *args):
+        fc = DiskContainerCrawler()
+        disks = fc.crawl('123')
+        assert set(disks) == set([('/a',
+                                   DiskFeature(partitionname='/dev/a',
+                                               freepct=90.0,
+                                               fstype='type',
+                                               mountpt='/a',
+                                               mountopts='opts',
+                                               partitionsize=100),
+                                   'disk'),
+                                  ('/b',
+                                   DiskFeature(partitionname='/dev/b',
+                                               freepct=90.0,
+                                               fstype='type',
+                                               mountpt='/b',
+                                               mountopts='opts',
+                                               partitionsize=100),
+                                   'disk')])
+
+    @mock.patch('crawler.plugins.metric_crawler.psutil.process_iter',
+                side_effect=lambda: [Process('init')])
+    def test_crawl_metrics_invm_mode(self, *args):
+        fc = MetricHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f.cpupct == 30.0
+            assert f.mempct == 30.0
+            assert f.pname == 'init'
+            assert f.pid == 123
+            assert f.rss == 10
+            assert f.status == 'Running'
+            assert f.vms == 20
+            assert f.read == 10
+            assert f.write == 20
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.metric_crawler.psutil.process_iter',
+                side_effect=lambda: [Process('init')])
+    @mock.patch('crawler.plugins.metric_crawler.round',
+                side_effect=throw_os_error)
+    def test_crawl_metrics_invm_mode_failure(self, *args):
+        with self.assertRaises(OSError):
+            fc = MetricHostCrawler()
+            for ff in fc.crawl():
+                pass
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.metric_crawler.psutil.process_iter',
+                side_effect=lambda: [Process('init')])
+    @mock.patch(
+        'crawler.plugins.metric_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        ("crawler.plugins.disk_container_crawler.dockerutils."
+         "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    def test_crawl_metrics_outcontainer_mode(self, *args):
+        fc = MetricContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f.cpupct == 30.0
+            assert f.mempct == 30.0
+            assert f.pname == 'init'
+            assert f.pid == 123
+            assert f.rss == 10
+            assert f.status == 'Running'
+            assert f.vms == 20
+            assert f.read == 10
+            assert f.write == 20
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.metric_vm_crawler.psvmi.context_init',
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
+    @mock.patch('crawler.plugins.metric_vm_crawler.psvmi.process_iter',
+                side_effect=lambda vmc: [Process('init')])
+    @mock.patch(
+        ("crawler.plugins.metric_vm_crawler."
+         "MetricVmCrawler._crawl_metrics_cpu_percent"),
+        side_effect=lambda proc: 30.0)
+    @mock.patch('crawler.plugins.metric_vm_crawler.psvmi')
+    def test_crawl_metrics_vm_mode(self, *args):
+        fc = MetricVmCrawler()
+        for (k, f, t) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
+            assert f.cpupct == 30.0
+            assert f.mempct == 30.0
+            assert f.pname == 'init'
+            assert f.pid == 123
+            assert f.rss == 10
+            assert f.status == 'Running'
+            assert f.vms == 20
+            assert f.read == 10
+            assert f.write == 20
+        assert args[1].call_count == 1 # process_iter
+
+    @mock.patch('crawler.plugins.connection_crawler.psutil.process_iter',
+                side_effect=lambda: [Process('init')])
+    def test_crawl_connections_invm_mode(self, *args):
+        fc = ConnectionHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f.localipaddr == '1.1.1.1'
+            assert f.remoteipaddr == '2.2.2.2'
+            assert f.localport == '22'
+            assert f.remoteport == '22'
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.connection_crawler.psutil.process_iter',
+                side_effect=lambda: [Process('init')])
+    @mock.patch(
+        'crawler.plugins.connection_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        ("crawler.plugins.connection_container_crawler.dockerutils."
+         "exec_dockerinspect"),
+        side_effect=lambda long_id: {'State': {'Pid': 123}})
+    def test_crawl_connections_outcontainer_mode(self, *args):
+        fc = ConnectionContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f.localipaddr == '1.1.1.1'
+            assert f.remoteipaddr == '2.2.2.2'
+            assert f.localport == '22'
+            assert f.remoteport == '22'
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.connection_vm_crawler.psvmi.context_init',
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
+    @mock.patch('crawler.plugins.connection_vm_crawler.psvmi.process_iter',
+                side_effect=lambda vmc: [Process('init')])
+    @mock.patch('crawler.plugins.connection_vm_crawler.psvmi')
+    def test_crawl_connections_outvm_mode(self, *args):
+        fc = ConnectionVmCrawler()
+        for (k, f, t) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
+            assert f.localipaddr == '1.1.1.1'
+            assert f.remoteipaddr == '2.2.2.2'
+            assert f.localport == '22'
+            assert f.remoteport == '22'
+        assert args[1].call_count == 1
+
+    @mock.patch('crawler.plugins.memory_host_crawler.psutil.virtual_memory',
+                side_effect=lambda: psutils_memory(2, 2, 3, 4))
+    def test_crawl_memory_invm_mode(self, *args):
+        fc = MemoryHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f == MemoryFeature(
+                memory_used=2,
+                memory_buffered=3,
+                memory_cached=4,
+                memory_free=2,
+                memory_util_percentage=50)
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.memory_host_crawler.psutil.virtual_memory',
+                side_effect=throw_os_error)
+    def test_crawl_memory_invm_mode_failure(self, *args):
+        fc = MemoryHostCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl():
+                pass
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.memory_vm_crawler.psvmi.context_init',
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
+    @mock.patch('crawler.plugins.memory_vm_crawler.psvmi.system_memory_info',
+                side_effect=lambda vmc: psvmi_memory(10, 20, 30, 40))
+    @mock.patch('crawler.plugins.memory_vm_crawler.psvmi')
+    def test_crawl_memory_outvm_mode(self, *args):
+        fc = MemoryVmCrawler()
+        for (k, f, t) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
+            assert f == MemoryFeature(
+                memory_used=10,
+                memory_buffered=20,
+                memory_cached=30,
+                memory_free=40,
+                memory_util_percentage=20)
+        assert args[1].call_count == 1
+
+    @mock.patch(
+        'crawler.plugins.memory_container_crawler.psutil.virtual_memory',
+        side_effect=lambda: psutils_memory(
+            10,
+            10,
+            3,
+            10))
+    @mock.patch('crawler.plugins.memory_container_crawler.open',
+                side_effect=mocked_memory_cgroup_open)
+    @mock.patch('crawler.plugins.memory_container_crawler.DockerContainer',
+                side_effect=lambda container_id: DummyContainer(container_id))
+    def test_crawl_memory_outcontainer_mode(self, *args):
+        fc = MemoryContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f == MemoryFeature(
+                memory_used=2,
+                memory_buffered=200,
+                memory_cached=100,
+                memory_free=0,
+                memory_util_percentage=100)
+        assert args[1].call_count == 3  # 3 cgroup files
+
+    @mock.patch(
+        'crawler.plugins.memory_container_crawler.psutil.virtual_memory',
+        side_effect=lambda: psutils_memory(
+            10,
+            10,
+            3,
+            10))
+    @mock.patch('crawler.plugins.memory_container_crawler.open',
+                side_effect=throw_os_error)
+    @mock.patch('crawler.plugins.memory_container_crawler.DockerContainer',
+                side_effect=lambda container_id: DummyContainer(container_id))
+    def test_crawl_memory_outcontainer_mode_failure(self, *args):
+        fc = MemoryContainerCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl('123'):
+                pass
+        assert args[1].call_count == 1  # 1 cgroup files
+
+    @mock.patch(
+        'crawler.plugins.cpu_host_crawler.psutil.cpu_times_percent',
+        side_effect=lambda percpu: [
+            psutils_cpu(
+                10,
+                20,
+                30,
+                40,
+                50,
+                60,
+                70)])
+    def test_crawl_cpu_invm_mode(self, *args):
+        fc = CpuHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f == CpuFeature(
+                cpu_idle=10,
+                cpu_nice=20,
+                cpu_user=30,
+                cpu_wait=40,
+                cpu_system=50,
+                cpu_interrupt=60,
+                cpu_steal=70,
+                cpu_util=90)
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.cpu_host_crawler.psutil.cpu_times_percent',
+                side_effect=throw_os_error)
+    def test_crawl_cpu_invm_mode_failure(self, *args):
+        fc = CpuHostCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl():
+                pass
+        assert args[0].call_count == 1
+
+    @mock.patch(
+        'crawler.features_crawler.psutil.cpu_times_percent',
+        side_effect=lambda percpu: [
+            psutils_cpu(
+                10,
+                20,
+                30,
+                40,
+                50,
+                60,
+                70)])
+    @mock.patch('crawler.plugins.cpu_container_crawler.time.sleep')
+    @mock.patch('crawler.plugins.cpu_container_crawler.open',
+                side_effect=mocked_cpu_cgroup_open)
+    @mock.patch('crawler.plugins.cpu_container_crawler.DockerContainer',
+                side_effect=lambda container_id: DummyContainer(container_id))
+    def test_crawl_cpu_outcontainer_mode(self, *args):
+        fc = CpuContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f == CpuFeature(
+                cpu_idle=90.0,
+                cpu_nice=20,
+                cpu_user=5.0,
+                cpu_wait=40,
+                cpu_system=5.0,
+                cpu_interrupt=60,
+                cpu_steal=70,
+                cpu_util=10.0)
+        assert args[1].call_count == 3  # open for 3 cgroup files
+
+    @mock.patch(
+        'crawler.features_crawler.psutil.cpu_times_percent',
+        side_effect=lambda percpu: [
+            psutils_cpu(
+                10,
+                20,
+                30,
+                40,
+                50,
+                60,
+                70)])
+    @mock.patch('crawler.plugins.cpu_container_crawler.time.sleep')
+    @mock.patch('crawler.plugins.cpu_container_crawler.open',
+                side_effect=throw_os_error)
+    @mock.patch('crawler.plugins.cpu_container_crawler.DockerContainer',
+                side_effect=lambda container_id: DummyContainer(container_id))
+    def test_crawl_cpu_outcontainer_mode_failure(self, *args):
+        fc = CpuContainerCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl('123'):
+                pass
+        assert args[0].call_count == 1
+
+
+    @mock.patch(
+        'crawler.plugins.interface_host_crawler.psutil.net_io_counters',
+        side_effect=lambda pernic: {'interface1-unit-tests':
+                                    psutils_net(
+                                        10,
+                                        20,
+                                        30,
+                                        40,
+                                        50,
+                                        60)})
+    def test_crawl_interface_invm_mode(self, *args):
+        fc = InterfaceHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
+
+        for (k, f, t) in fc.crawl():
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
+        assert args[0].call_count == 2
+
+
+    @mock.patch('crawler.plugins.interface_host_crawler.psutil.net_io_counters',
+                side_effect=throw_os_error)
+    def test_crawl_interface_invm_mode_failure(self, *args):
+        fc = InterfaceHostCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl():
+                pass
+
+        # Each crawl in crawlutils.py instantiates a FeaturesCrawler object
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl():
+                pass
+        assert args[0].call_count == 2
+
+
+    @mock.patch('crawler.plugins.interface_container_crawler.DockerContainer',
+                side_effect=lambda container_id: DummyContainer(container_id))
+    @mock.patch('crawler.plugins.interface_container_crawler.run_as_another_namespace',
+                side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        'crawler.plugins.interface_container_crawler.psutil.net_io_counters',
+        side_effect=lambda pernic: {'eth0':
+                                    psutils_net(
+                                        10,
+                                        20,
+                                        30,
+                                        40,
+                                        50,
+                                        60)})
+    def test_crawl_interface_outcontainer_mode(self, *args):
+        fc = InterfaceContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
+
+        for (k, f, t) in fc.crawl('123'):
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
+        assert args[0].call_count == 2
+        assert args[1].call_count == 2
+
+
+    @mock.patch('crawler.plugins.interface_vm_crawler.psvmi.context_init',
+                side_effect=lambda dn1, dn2, kv, d, a: 1000)
+    @mock.patch('crawler.plugins.interface_vm_crawler.psvmi.interface_iter',
+                side_effect=lambda vmc: [psvmi_interface(
+                    'eth1', 10, 20, 30, 40, 50, 60)])
+    @mock.patch('crawler.plugins.interface_vm_crawler.psvmi')
+    def test_crawl_interface_outvm_mode(self, *args):
+        fc = InterfaceVmCrawler()
+        for (k, f, t) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
+
+        for (k, f, t) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
+            assert f == InterfaceFeature(
+                if_octets_tx=0,
+                if_octets_rx=0,
+                if_packets_tx=0,
+                if_packets_rx=0,
+                if_errors_tx=0,
+                if_errors_rx=0)
+        assert args[1].call_count == 2
+        assert args[2].call_count == 2
+
+    @mock.patch('crawler.plugins.load_host_crawler.os.getloadavg',
+                side_effect=lambda: [1, 2, 3])
+    def test_crawl_load_invm_mode(self, *args):
+        fc = LoadHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f == LoadFeature(shortterm=1, midterm=2, longterm=2)
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.load_host_crawler.os.getloadavg',
+                side_effect=throw_os_error)
+    def test_crawl_load_invm_mode_failure(self, *args):
+        fc = LoadHostCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl():
+                pass
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.load_container_crawler.run_as_another_namespace',
+                side_effect=mocked_run_as_another_namespace)
+    @mock.patch('crawler.plugins.load_container_crawler.os.getloadavg',
+                side_effect=lambda: [1, 2, 3])
+    @mock.patch('crawler.plugins.load_container_crawler.DockerContainer',
+                side_effect=lambda container_id: DummyContainer(container_id))
+    def test_crawl_load_outcontainer_mode(self, *args):
+        fc = LoadContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f == LoadFeature(shortterm=1, midterm=2, longterm=2)
+        assert args[1].call_count == 1
+        assert args[2].call_count == 1
+
+    @mock.patch('crawler.plugins.dockerps_host_crawler.exec_dockerps',
+                side_effect=lambda: [{'State': {'Running': True},
+                                      'Image': 'reg/image:latest',
+                                      'Config': {'Cmd': 'command'},
+                                      'Name': 'name',
+                                      'Id': 'id'}])
+    def test_crawl_dockerps_invm_mode(self, *args):
+        fc = DockerpsHostCrawler()
+        for (k, f, t) in fc.crawl():
+            assert f == DockerPSFeature(
+                Status=True,
+                Created=0,
+                Image='reg/image:latest',
+                Ports=[],
+                Command='command',
+                Names='name',
+                Id='id')
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.dockerps_host_crawler.exec_dockerps',
+                side_effect=throw_os_error)
+    def test_crawl_dockerps_invm_mode_failure(self, *args):
+        fc = DockerpsHostCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl():
+                pass
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.dockerhistory_container_crawler.exec_docker_history',
+                side_effect=lambda long_id: [
+                    {'Id': 'image1', 'random': 'abc'},
+                    {'Id': 'image2', 'random': 'abc'}])
+    def test_crawl_dockerhistory_outcontainer_mode(self, *args):
+        fc = DockerhistoryContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f == {'history': [{'Id': 'image1', 'random': 'abc'},
+                                     {'Id': 'image2', 'random': 'abc'}]}
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.dockerhistory_container_crawler.exec_docker_history',
+                side_effect=throw_os_error)
+    def test_crawl_dockerhistory_outcontainer_mode_failure(self, *args):
+        fc = DockerhistoryContainerCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl('123'):
+                pass
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.dockerinspect_container_crawler.exec_dockerinspect',
+                side_effect=lambda long_id: {'Id': 'image1', 'random': 'abc'})
+    def test_crawl_dockerinspect_outcontainer_mode(self, *args):
+        fc = DockerinspectContainerCrawler()
+        for (k, f, t) in fc.crawl('123'):
+            assert f == {'Id': 'image1', 'random': 'abc'}
+        assert args[0].call_count == 1
+
+    @mock.patch('crawler.plugins.dockerinspect_container_crawler.exec_dockerinspect',
+                side_effect=throw_os_error)
+    def test_crawl_dockerinspect_outcontainer_mode_failure(self, *args):
+        fc = DockerinspectContainerCrawler()
+        with self.assertRaises(OSError):
+            for (k, f, t) in fc.crawl('123'):
+                pass
         assert args[0].call_count == 1
