@@ -417,6 +417,43 @@ def _get_next_iteration_time(next_iteration_time, frequency, snapshot_time):
     return (time_to_sleep, next_iteration_time)
 
 
+def load_plugins(
+    features=config_parser.get_config()['general']['features_to_crawl'],
+    options={}
+):
+    environment = options.get(
+        'environment',
+        config_parser.get_config()['general']['environment'])
+
+    plugin_places = options.get(
+        'plugin_places',
+        config_parser.get_config()['general']['plugin_places'])
+
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
+
+    plugins_manager.reload_env_plugin(
+        plugin_places=plugin_places,
+        environment=environment)
+
+    plugins_manager.reload_container_crawl_plugins(
+        plugin_places=plugin_places,
+        features=features,
+        plugin_mode=plugin_mode,
+        options=options)
+
+    plugins_manager.reload_vm_crawl_plugins(
+        plugin_places=plugin_places,
+        features=features,
+        plugin_mode=plugin_mode,
+        options=options)
+
+    plugins_manager.reload_host_crawl_plugins(
+        plugin_places=plugin_places,
+        features=features,
+        plugin_mode=plugin_mode,
+        options=options)
+
+
 def snapshot(
     urls=['stdout://'],
     namespace=misc.get_host_ipaddr(),
@@ -448,36 +485,13 @@ def snapshot(
     saved_args = locals()
     logger.debug('snapshot args: %s' % (saved_args))
 
-    environment = options.get(
-        'environment',
-        config_parser.get_config()['general']['environment'])
-    plugin_places = options.get(
-        'plugin_places',
-        config_parser.get_config()['general']['plugin_places'])
-
     compress = config_parser.get_config()['general']['compress']
-
-    plugins_manager.reload_env_plugin(plugin_places=plugin_places,
-                                      environment=environment)
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
     environment = options.get(
         'environment',
         config_parser.get_config()['general']['environment'])
-    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
-    plugins_manager.reload_container_crawl_plugins(
-        plugin_places=plugin_places,
-        features=features,
-        plugin_mode=plugin_mode)
-
-    plugins_manager.reload_vm_crawl_plugins(
-        plugin_places=plugin_places,
-        features=features,
-        plugin_mode=plugin_mode)
-
-    plugins_manager.reload_host_crawl_plugins(
-        plugin_places=plugin_places,
-        features=features,
-        plugin_mode=plugin_mode)
+    load_plugins(features, options)
 
     next_iteration_time = None
 

@@ -4,14 +4,34 @@ from runtime_environment import IRuntimeEnvironment
 from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
 import misc
 import config_parser
+import logging
+
+logger = logging.getLogger('crawlutils')
 
 # default runtime environment: cloudsigth and plugins in 'plugins/'
 runtime_env = None
 
-
 container_crawl_plugins = []
 vm_crawl_plugins = []
 host_crawl_plugins = []
+
+
+def get_plugin_args(plugin, config, options):
+    plugin_args = {}
+    if plugin.name in config['crawlers']:
+        try:
+            plugin_args = config['crawlers'][plugin.name]
+            plugin_args['avoid_setns'] = options['avoid_setns']
+            plugin_args['avoid_setns'] = plugin_args.as_bool('avoid_setns')
+            plugin_args['root_dir'] = options['mountpoint']
+            feature = plugin.plugin_object.get_feature()
+            if feature in options:
+                for arg in options[feature]:
+                    plugin_args[arg] = options[feature][arg]
+        except KeyError as exc:
+            logger.warning(
+                'Can not apply users --options configuration: %s' % exc)
+    return plugin_args
 
 
 def _load_plugins(
@@ -19,7 +39,8 @@ def _load_plugins(
             misc.execution_path('plugins')],
         category_filter={},
         filter_func=lambda *arg: True,
-        features=config_parser.get_config()['general']['features_to_crawl']):
+        features=config_parser.get_config()['general']['features_to_crawl'],
+        options={}):
 
     pm = PluginManager(plugin_info_ext='plugin')
 
@@ -40,9 +61,7 @@ def _load_plugins(
                 plugin.name,
                 enabled_plugins,
                 features):
-            plugin_args = {}
-            if plugin.name in config['crawlers']:
-                plugin_args = config['crawlers'][plugin.name]
+            plugin_args = get_plugin_args(plugin, config, options)
             yield (plugin.plugin_object, plugin_args)
 
 
@@ -92,7 +111,8 @@ def plugin_filter_without_plugin_mode(
 def reload_container_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
-        plugin_mode=config_parser.get_config()['general']['plugin_mode']):
+        plugin_mode=config_parser.get_config()['general']['plugin_mode'],
+        options={}):
     global container_crawl_plugins
 
     # using --plugin_mode  to override plugins for legacy CLI based invocation
@@ -108,13 +128,15 @@ def reload_container_crawl_plugins(
             category_filter={
                 "crawler": IContainerCrawler},
             filter_func=filter_func,
-            features=features))
+            features=features,
+            options=options))
 
 
 def reload_vm_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
-        plugin_mode=config_parser.get_config()['general']['plugin_mode']):
+        plugin_mode=config_parser.get_config()['general']['plugin_mode'],
+        options={}):
     global vm_crawl_plugins
 
     if plugin_mode is False:  # aka override via --features CLI
@@ -128,7 +150,8 @@ def reload_vm_crawl_plugins(
             category_filter={
                 "crawler": IVMCrawler},
             filter_func=filter_func,
-            features=features))
+            features=features,
+            options=options))
 
     # Filtering of features is a temp fix.
     # TODO remove the filtering of features after we move all
@@ -138,7 +161,8 @@ def reload_vm_crawl_plugins(
 def reload_host_crawl_plugins(
         plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
-        plugin_mode=config_parser.get_config()['general']['plugin_mode']):
+        plugin_mode=config_parser.get_config()['general']['plugin_mode'],
+        options={}):
     global host_crawl_plugins
 
     if plugin_mode is False:  # aka override via --features CLI
@@ -152,7 +176,8 @@ def reload_host_crawl_plugins(
             category_filter={
                 "crawler": IHostCrawler},
             filter_func=filter_func,
-            features=features))
+            features=features,
+            options=options))
     # Filtering of features is a temp fix.
     # TODO remove the filtering of features after we move all
     # features to be plugins.

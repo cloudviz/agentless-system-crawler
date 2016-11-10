@@ -32,25 +32,6 @@ def apply_user_args(options={}, params={}):
     except KeyError as exc:
         logger.warning('Can not apply users --options configuration: %s' % exc)
 
-    # apply per plugin configs
-    crawlers = _config['crawlers']
-    for feature in params['features']:
-        for target in {'container', 'host', 'vm'}:
-            try:
-                plugin = '%s_%s' % (feature, target)
-                crawlers[plugin] = {}
-                if feature in options:
-                    for arg in options[feature]:
-                        crawlers[plugin][arg] = options[feature][arg]
-
-                # Copy general user args to all plugins configs
-                crawlers[plugin]['avoid_setns'] = options['avoid_setns']
-                crawlers[plugin]['root_dir'] = options['mountpoint']
-            except KeyError as exc:
-                logger.warning(
-                    'Can not apply users --options configuration: %s' %
-                    exc)
-
 
 def get_config():
     global _config
