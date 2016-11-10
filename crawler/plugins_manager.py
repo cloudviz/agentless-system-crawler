@@ -83,6 +83,9 @@ def reload_env_plugin(options={}):
     try:
         (runtime_env, unused_args) = _plugins[0]
     except (TypeError, IndexError):
+        plugin_places = options.get(
+            'plugin_places',
+            config_parser.get_config()['general']['plugin_places'])
         raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
                                                'environment plugin at %s' %
                                                (environment, plugin_places))
