@@ -421,36 +421,18 @@ def load_plugins(
     features=config_parser.get_config()['general']['features_to_crawl'],
     options={}
 ):
-    environment = options.get(
-        'environment',
-        config_parser.get_config()['general']['environment'])
-
-    plugin_places = options.get(
-        'plugin_places',
-        config_parser.get_config()['general']['plugin_places'])
-
-    plugin_mode = config_parser.get_config()['general']['plugin_mode']
-
-    plugins_manager.reload_env_plugin(
-        plugin_places=plugin_places,
-        environment=environment)
+    plugins_manager.reload_env_plugin(options=options)
 
     plugins_manager.reload_container_crawl_plugins(
-        plugin_places=plugin_places,
         features=features,
-        plugin_mode=plugin_mode,
         options=options)
 
     plugins_manager.reload_vm_crawl_plugins(
-        plugin_places=plugin_places,
         features=features,
-        plugin_mode=plugin_mode,
         options=options)
 
     plugins_manager.reload_host_crawl_plugins(
-        plugin_places=plugin_places,
         features=features,
-        plugin_mode=plugin_mode,
         options=options)
 
 

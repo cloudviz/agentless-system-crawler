@@ -98,10 +98,10 @@ class CrawlutilsVMTest(unittest.TestCase):
             'interface': {}}
 
         features = ['memory', 'interface']
-        crawler.config_parser.apply_user_args(options=options, params={'features':features})
+        crawler.config_parser.apply_user_args(
+            options=options, params={'features': features})
         crawler.plugins_manager.reload_vm_crawl_plugins(
-            features=features,
-            plugin_mode=False,
+            features=features
         )
 
         crawler.crawlutils.snapshot_vms(urls=[

@@ -35,14 +35,16 @@ def get_plugin_args(plugin, config, options):
 
 
 def _load_plugins(
-        plugin_places=[
-            misc.execution_path('plugins')],
         category_filter={},
         filter_func=lambda *arg: True,
         features=config_parser.get_config()['general']['features_to_crawl'],
         options={}):
 
     pm = PluginManager(plugin_info_ext='plugin')
+
+    plugin_places = options.get(
+        'plugin_places',
+        config_parser.get_config()['general']['plugin_places'])
 
     # Normalize the paths to the location of this file.
     # XXX-ricarkol: there has to be a better way to do this.
@@ -65,12 +67,15 @@ def _load_plugins(
             yield (plugin.plugin_object, plugin_args)
 
 
-def reload_env_plugin(plugin_places=[misc.execution_path('plugins')],
-                      environment='cloudsight'):
+def reload_env_plugin(options={}):
     global runtime_env
+
+    environment = options.get(
+        'environment',
+        config_parser.get_config()['general']['environment'])
+
     _plugins = list(
         _load_plugins(
-            plugin_places,
             category_filter={"env": IRuntimeEnvironment},
             filter_func=lambda plugin, *unused:
             plugin.get_environment_name() == environment))
@@ -109,11 +114,10 @@ def plugin_filter_without_plugin_mode(
 
 
 def reload_container_crawl_plugins(
-        plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
-        plugin_mode=config_parser.get_config()['general']['plugin_mode'],
         options={}):
     global container_crawl_plugins
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     # using --plugin_mode  to override plugins for legacy CLI based invocation
 
@@ -124,7 +128,6 @@ def reload_container_crawl_plugins(
 
     container_crawl_plugins = list(
         _load_plugins(
-            plugin_places + ['plugins'],
             category_filter={
                 "crawler": IContainerCrawler},
             filter_func=filter_func,
@@ -133,11 +136,10 @@ def reload_container_crawl_plugins(
 
 
 def reload_vm_crawl_plugins(
-        plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
-        plugin_mode=config_parser.get_config()['general']['plugin_mode'],
         options={}):
     global vm_crawl_plugins
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     if plugin_mode is False:  # aka override via --features CLI
         filter_func = plugin_filter_with_plugin_mode
@@ -146,7 +148,6 @@ def reload_vm_crawl_plugins(
 
     vm_crawl_plugins = list(
         _load_plugins(
-            plugin_places + ['plugins'],
             category_filter={
                 "crawler": IVMCrawler},
             filter_func=filter_func,
@@ -159,11 +160,10 @@ def reload_vm_crawl_plugins(
 
 
 def reload_host_crawl_plugins(
-        plugin_places=[misc.execution_path('plugins')],
         features=config_parser.get_config()['general']['features_to_crawl'],
-        plugin_mode=config_parser.get_config()['general']['plugin_mode'],
         options={}):
     global host_crawl_plugins
+    plugin_mode = config_parser.get_config()['general']['plugin_mode']
 
     if plugin_mode is False:  # aka override via --features CLI
         filter_func = plugin_filter_with_plugin_mode
@@ -172,7 +172,6 @@ def reload_host_crawl_plugins(
 
     host_crawl_plugins = list(
         _load_plugins(
-            plugin_places + ['plugins'],
             category_filter={
                 "crawler": IHostCrawler},
             filter_func=filter_func,
@@ -192,8 +191,7 @@ def get_container_crawl_plugins(
         'config']):
     global container_crawl_plugins
     if not container_crawl_plugins:
-        reload_container_crawl_plugins(features=features,
-                                       plugin_mode=False)
+        reload_container_crawl_plugins(features=features)
     return container_crawl_plugins
 
 
@@ -206,8 +204,7 @@ def get_vm_crawl_plugins(
         'config']):
     global vm_crawl_plugins
     if not vm_crawl_plugins:
-        reload_vm_crawl_plugins(features=features,
-                                plugin_mode=False)
+        reload_vm_crawl_plugins(features=features)
     return vm_crawl_plugins
 
 
@@ -220,6 +217,5 @@ def get_host_crawl_plugins(
         'config']):
     global host_crawl_plugins
     if not host_crawl_plugins:
-        reload_host_crawl_plugins(features=features,
-                                  plugin_mode=False)
+        reload_host_crawl_plugins(features=features)
     return host_crawl_plugins
