@@ -21,7 +21,7 @@ def get_plugin_args(plugin, config, options):
 
     if plugin.name in config['crawlers']:
         plugin_args = config['crawlers'][plugin.name]
-        if plugin_args.has_key('avoid_setns'):
+        if 'avoid_setns' in plugin_args:
             plugin_args['avoid_setns'] = plugin_args.as_bool('avoid_setns')
 
     feature = plugin.plugin_object.get_feature()
