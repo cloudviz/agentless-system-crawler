@@ -273,15 +273,6 @@ def main():
              'as an example. Defaults to "cloudsight".',
     )
     parser.add_argument(
-        '--pluginmode',
-        dest='pluginmode',
-        action='store_true',
-        default=get_config()['general']['plugin_mode'],
-        help='If --pluginmode is given, then only enabled plugins in'
-             'config/*.conf are loaded,'
-             'else legacy mode is run via CLI'
-    )
-    parser.add_argument(
         '--plugins',
         dest='plugin_places',
         type=csv_list,
@@ -351,7 +342,6 @@ def main():
     options['vm_list'] = args.crawl_vm
     options['docker_containers_list'] = args.crawlContainers
     options['environment'] = args.environment
-    options['pluginmode'] = args.pluginmode
     options['plugin_places'] = args.plugin_places
     options['link_container_log_files'] = args.linkContainerLogFiles
 
