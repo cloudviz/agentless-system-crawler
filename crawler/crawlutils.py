@@ -218,9 +218,6 @@ def snapshot_vms(
         vm_name = vm[0]
         vm = vm[1:]
 
-        crawler = features_crawler.FeaturesCrawler(
-            crawl_mode=Modes.OUTVM, vm=vm)
-
         metadata = {
             'namespace': namespace,
             'features': ','.join(map(str, features)),
@@ -266,9 +263,6 @@ def snapshot_container(
     if not container:
         raise ValueError('snapshot_container can only be called with a '
                          'container object already initialized.')
-
-    crawler = features_crawler.FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
-                                               container=container)
 
     metadata = options.get('metadata', {})
     extra_metadata = metadata.get('extra_metadata', {})
