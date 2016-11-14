@@ -81,8 +81,7 @@ def snapshot_generic(
     options={},
     format='csv',
     namespace='',
-    ignore_exceptions=True,
-    plugin_mode=False
+    ignore_exceptions=True
 ):
 
     crawler = features_crawler.FeaturesCrawler(crawl_mode=crawlmode)
@@ -199,8 +198,7 @@ def snapshot_vms(
     options={},
     format='csv',
     namespace='',
-    ignore_exceptions=True,
-    plugin_mode=False,
+    ignore_exceptions=True
 ):
 
     # Default will become ALL from None, when auto kernel detection
@@ -219,9 +217,6 @@ def snapshot_vms(
     for vm in vm_list:
         vm_name = vm[0]
         vm = vm[1:]
-
-        crawler = features_crawler.FeaturesCrawler(
-            crawl_mode=Modes.OUTVM, vm=vm)
 
         metadata = {
             'namespace': namespace,
@@ -252,14 +247,6 @@ def snapshot_vms(
                     if not ignore_exceptions:
                         raise exc
 
-            # TODO remove this call after we move all features to plugins
-            if plugin_mode is False:
-                _snapshot_single_frame(emitter=emitter,
-                                       features=features,
-                                       options=options,
-                                       crawler=crawler,
-                                       ignore_exceptions=ignore_exceptions)
-
 
 def snapshot_container(
     urls=['stdout://'],
@@ -269,17 +256,13 @@ def snapshot_container(
     options={},
     format='csv',
     container=None,
-    ignore_exceptions=True,
-    plugin_mode=False,
+    ignore_exceptions=True
 ):
     global should_exit
 
     if not container:
         raise ValueError('snapshot_container can only be called with a '
                          'container object already initialized.')
-
-    crawler = features_crawler.FeaturesCrawler(crawl_mode=Modes.OUTCONTAINER,
-                                               container=container)
 
     metadata = options.get('metadata', {})
     extra_metadata = metadata.get('extra_metadata', {})
@@ -328,14 +311,6 @@ def snapshot_container(
                 if not ignore_exceptions:
                     raise exc
 
-        # TODO remove this call after we move all features to plugins
-        if plugin_mode is False:
-            _snapshot_single_frame(emitter=emitter,
-                                   features=features,
-                                   options=options,
-                                   crawler=crawler,
-                                   ignore_exceptions=ignore_exceptions)
-
 
 def snapshot_containers(
     containers,
@@ -348,8 +323,7 @@ def snapshot_containers(
     format='csv',
     ignore_exceptions=True,
     host_namespace='',
-    link_log_files=False,
-    plugin_mode=False,
+    link_log_files=False
 ):
 
     user_list = options.get('docker_containers_list', 'ALL')
@@ -421,36 +395,18 @@ def load_plugins(
     features=config_parser.get_config()['general']['features_to_crawl'],
     options={}
 ):
-    environment = options.get(
-        'environment',
-        config_parser.get_config()['general']['environment'])
-
-    plugin_places = options.get(
-        'plugin_places',
-        config_parser.get_config()['general']['plugin_places'])
-
-    plugin_mode = config_parser.get_config()['general']['plugin_mode']
-
-    plugins_manager.reload_env_plugin(
-        plugin_places=plugin_places,
-        environment=environment)
+    plugins_manager.reload_env_plugin(options=options)
 
     plugins_manager.reload_container_crawl_plugins(
-        plugin_places=plugin_places,
         features=features,
-        plugin_mode=plugin_mode,
         options=options)
 
     plugins_manager.reload_vm_crawl_plugins(
-        plugin_places=plugin_places,
         features=features,
-        plugin_mode=plugin_mode,
         options=options)
 
     plugins_manager.reload_host_crawl_plugins(
-        plugin_places=plugin_places,
         features=features,
-        plugin_mode=plugin_mode,
         options=options)
 
 
@@ -486,7 +442,6 @@ def snapshot(
     logger.debug('snapshot args: %s' % (saved_args))
 
     compress = config_parser.get_config()['general']['compress']
-    plugin_mode = config_parser.get_config()['general']['plugin_mode']
     environment = options.get(
         'environment',
         config_parser.get_config()['general']['environment'])
@@ -525,8 +480,7 @@ def snapshot(
                 options=options,
                 format=format,
                 host_namespace=namespace,
-                link_log_files=options.get('link_container_log_files', False),
-                plugin_mode=plugin_mode
+                link_log_files=options.get('link_container_log_files', False)
             )
         elif crawlmode == Modes.MESOS:
             snapshot_mesos(
@@ -546,8 +500,7 @@ def snapshot(
                 compress=compress,
                 options=options,
                 format=format,
-                namespace=namespace,
-                plugin_mode=False,
+                namespace=namespace
             )
         elif crawlmode in [Modes.INVM, Modes.MOUNTPOINT]:
             snapshot_generic(
@@ -558,8 +511,7 @@ def snapshot(
                 compress=compress,
                 options=options,
                 format=format,
-                namespace=namespace,
-                plugin_mode=False,
+                namespace=namespace
             )
         else:
             raise NotImplementedError('Crawl mode %s is not implemented' %
