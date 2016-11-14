@@ -16,9 +16,6 @@ logger = logging.getLogger('crawlutils')
 class CloudsightEnvironment(IRuntimeEnvironment):
     name = 'cloudsight'
 
-    def get_feature(self):
-        return self.name
-
     def get_environment_name(self):
         return self.name
 

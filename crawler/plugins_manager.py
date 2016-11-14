@@ -24,12 +24,14 @@ def get_plugin_args(plugin, config, options):
         if 'avoid_setns' in plugin_args:
             plugin_args['avoid_setns'] = plugin_args.as_bool('avoid_setns')
 
-    feature = plugin.plugin_object.get_feature()
-    if feature in options:
-        for arg in options[feature]:
-            plugin_args[arg] = options[feature][arg]
-    # the alternative: plugin_args = options.get(feature)
-    # might overwrite options from crawler.conf
+    is_feature_crawler = getattr(plugin.plugin_object, 'get_feature', None)
+    if is_feature_crawler is not None:
+        feature = plugin.plugin_object.get_feature()
+        if feature in options:
+            for arg in options[feature]:
+                plugin_args[arg] = options[feature][arg]
+        # the alternative: plugin_args = options.get(feature)
+        # might overwrite options from crawler.conf
 
     try:
         if options['avoid_setns'] is True:
