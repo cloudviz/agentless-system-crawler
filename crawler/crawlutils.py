@@ -14,7 +14,6 @@ from ctypes import CDLL
 import uuid
 import psutil
 from mesos import snapshot_crawler_mesos_frame
-import config_parser
 
 try:
     libc = CDLL('libc.so.6')
@@ -357,7 +356,7 @@ def _get_next_iteration_time(next_iteration_time, frequency, snapshot_time):
 
 
 def load_plugins(
-    features=config_parser.get_config()['general']['features_to_crawl'],
+    features=['os', 'cpu'],
     options={}
 ):
     plugins_manager.reload_env_plugin(options=options)
@@ -378,7 +377,7 @@ def load_plugins(
 def snapshot(
     urls=['stdout://'],
     namespace=misc.get_host_ipaddr(),
-    features=config_parser.get_config()['general']['features_to_crawl'],
+    features=['os', 'cpu'],
     options={},
     frequency=-1,
     crawlmode=Modes.INVM,
@@ -406,10 +405,8 @@ def snapshot(
     saved_args = locals()
     logger.debug('snapshot args: %s' % (saved_args))
 
-    compress = config_parser.get_config()['general']['compress']
-    environment = options.get(
-        'environment',
-        config_parser.get_config()['general']['environment'])
+    compress = False
+    environment = options.get('environment', 'cloudsight')
 
     load_plugins(features, options)
 

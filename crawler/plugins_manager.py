@@ -47,14 +47,12 @@ def get_plugin_args(plugin, config, options):
 def _load_plugins(
         category_filter={},
         filter_func=lambda *arg: True,
-        features=config_parser.get_config()['general']['features_to_crawl'],
+        features=['os', 'cpu'],
         options={}):
 
     pm = PluginManager(plugin_info_ext='plugin')
 
-    plugin_places = options.get(
-        'plugin_places',
-        config_parser.get_config()['general']['plugin_places'])
+    plugin_places = options.get('plugin_places', ['plugins'])
 
     # Normalize the paths to the location of this file.
     # XXX-ricarkol: there has to be a better way to do this.
@@ -80,9 +78,7 @@ def _load_plugins(
 def reload_env_plugin(options={}):
     global runtime_env
 
-    environment = options.get(
-        'environment',
-        config_parser.get_config()['general']['environment'])
+    environment = options.get('environment', 'cloudsight')
 
     _plugins = list(
         _load_plugins(
@@ -93,9 +89,7 @@ def reload_env_plugin(options={}):
     try:
         (runtime_env, unused_args) = _plugins[0]
     except (TypeError, IndexError):
-        plugin_places = options.get(
-            'plugin_places',
-            config_parser.get_config()['general']['plugin_places'])
+        plugin_places = options.get('plugin_places', ['plugins'])
         raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
                                                'environment plugin at %s' %
                                                (environment, plugin_places))
@@ -120,7 +114,7 @@ def plugin_selection_filter(
 
 
 def reload_container_crawl_plugins(
-        features=config_parser.get_config()['general']['features_to_crawl'],
+        features=['os', 'cpu'],
         options={}):
     global container_crawl_plugins
 
@@ -134,7 +128,7 @@ def reload_container_crawl_plugins(
 
 
 def reload_vm_crawl_plugins(
-        features=config_parser.get_config()['general']['features_to_crawl'],
+        features=['os', 'cpu'],
         options={}):
     global vm_crawl_plugins
 
@@ -148,7 +142,7 @@ def reload_vm_crawl_plugins(
 
 
 def reload_host_crawl_plugins(
-        features=config_parser.get_config()['general']['features_to_crawl'],
+        features=['os', 'cpu'],
         options={}):
     global host_crawl_plugins
 

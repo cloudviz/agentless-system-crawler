@@ -17,6 +17,10 @@ def parse_crawler_config(config_path='crawler.conf'):
     _config = ConfigObj(infile=misc.execution_path(config_path),
                         configspec=misc.execution_path(CONFIG_SPEC_PATH))
 
+    # Configspec is not being used currently
+    # but keeping validate() and apply_user_args() for future.
+    # Essentially NOP right now
+
     # 2. apply defaults
     vdt = Validator()
     _config.validate(vdt)
