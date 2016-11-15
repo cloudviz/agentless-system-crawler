@@ -70,25 +70,15 @@ class MockedEmitter:
             assert self.args == ('linux', {'os': 'some_os'}, 'os')
 
 
-class MockedFeaturesCrawler:
+class MockedOSCrawler:
 
-    def __init__(self, *args, **kwargs):
-        self.funcdict = {
-            'os': self.crawl_os
-        }
-
-    def crawl_os(self, *args, **kwargs):
-        yield ('linux', {'os': 'some_os'})
+    def crawl(self, **kwargs):
+        return [('linux', {'os': 'some_os'}, 'os')]
 
 
-class MockedFeaturesCrawlerFailure:
+class MockedOSCrawlerFailure:
 
-    def __init__(self, *args, **kwargs):
-        self.funcdict = {
-            'os': self.crawl_os
-        }
-
-    def crawl_os(self, *args, **kwargs):
+    def crawl(self, **kwargs):
         raise OSError('some exception')
 
 
@@ -104,8 +94,8 @@ class ContainerTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_host_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_generic_invm(self, *args):
@@ -119,8 +109,8 @@ class ContainerTests(unittest.TestCase):
         assert args[0].call_count == 1
         assert args[1].call_count == 1
 
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawlerFailure, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_host_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawlerFailure(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_generic_invm_failure(self, *args):
@@ -134,15 +124,11 @@ class ContainerTests(unittest.TestCase):
         assert args[0].call_count == 1
         assert args[1].call_count == 1
 
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
-    @mock.patch(
-        ("crawler.crawlutils.plugins_manager."
-            "get_container_crawl_plugins"),
-        side_effect=lambda features: [])
-    def _test_snapshot_generic_outcontainer(self, *args):
+    def test_snapshot_generic_outcontainer(self, *args):
         snapshot_container(snapshot_num=123,
                            container=MockedDockerContainer(),
                            features=['os'],
@@ -153,14 +139,11 @@ class ContainerTests(unittest.TestCase):
         assert args[0].call_count == 1
         assert args[1].call_count == 1
 
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawlerFailure, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawlerFailure(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
-    @mock.patch(
-        'crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
-        side_effect=lambda features: [])
-    def _test_snapshot_generic_outcontainer_failure(self, *args):
+    def test_snapshot_generic_outcontainer_failure(self, *args):
         with self.assertRaises(OSError):
             snapshot_container(snapshot_num=123,
                                container=MockedDockerContainer(),
@@ -200,8 +183,8 @@ class ContainerTests(unittest.TestCase):
         assert args[1].call_count == 1
 
     @mock.patch('crawler.crawlutils.time.sleep')
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_host_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_invm_two_iters(self, *args):
@@ -217,8 +200,8 @@ class ContainerTests(unittest.TestCase):
         assert args[1].call_count == 2
 
     @mock.patch('crawler.crawlutils.time.sleep')
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_host_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
     def test_snapshot_invm_two_iters_freq_zero(self, *args):
@@ -248,11 +231,11 @@ class ContainerTests(unittest.TestCase):
             MockedDockerContainer(
                 short_id='short_id',
                 pid=103)])
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
-    def _test_snapshot_outcontainer(self, *args):
+    def test_snapshot_outcontainer(self, *args):
         snapshot(crawlmode=Modes.OUTCONTAINER,
                  first_snapshot_num=123,
                  features=['os'],
@@ -278,11 +261,11 @@ class ContainerTests(unittest.TestCase):
             MockedDockerContainer(
                 short_id='short_id',
                 pid=103)])
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
-    def _test_snapshot_outcontainer_two_iters(self, *args):
+    def test_snapshot_outcontainer_two_iters(self, *args):
         snapshot(crawlmode=Modes.OUTCONTAINER,
                  first_snapshot_num=123,
                  features=['os'],
@@ -312,11 +295,11 @@ class ContainerTests(unittest.TestCase):
             MockedDockerContainer(
                 short_id='short_id',
                 pid=103)])
-    @mock.patch('crawler.crawlutils.features_crawler.FeaturesCrawler',
-                side_effect=MockedFeaturesCrawler, autospec=True)
+    @mock.patch('crawler.crawlutils.plugins_manager.get_container_crawl_plugins',
+                side_effect=lambda features : [(MockedOSCrawler(), {})])
     @mock.patch('crawler.crawlutils.Emitter',
                 side_effect=MockedEmitter, autospec=True)
-    def _test_snapshot_outcontainer_two_iters_with_linking(
+    def test_snapshot_outcontainer_two_iters_with_linking(
             self,
             mock_emitter,
             mock_crawler,

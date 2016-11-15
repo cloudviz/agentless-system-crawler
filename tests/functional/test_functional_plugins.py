@@ -44,33 +44,33 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
 
         shutil.rmtree(self.tempd)
 
-    def test_features_crawler_crawl_invm_cpu(self):
+    def test_crawl_invm_cpu(self):
         fc = CpuHostCrawler()
         cores = len(list(fc.crawl()))
         assert cores > 0
 
-    def test_features_crawler_crawl_invm_mem(self):
+    def test_crawl_invm_mem(self):
         fc = MemoryHostCrawler()
         cores = len(list(fc.crawl()))
         assert cores > 0
 
-    def test_features_crawler_crawl_outcontainer_cpu(self):
+    def test_crawl_outcontainer_cpu(self):
         fc = CpuContainerCrawler()
         for key, feature, t in fc.crawl(self.container['Id']):
             print key, feature
         cores = len(list(fc.crawl(self.container['Id'])))
         assert cores > 0
 
-    def test_features_crawler_crawl_outcontainer_os(self):
+    def test_crawl_outcontainer_os(self):
         fc = OSContainerCrawler()
         assert len(list(fc.crawl(self.container['Id']))) == 1
 
-    def test_features_crawler_crawl_outcontainer_processes(self):
+    def test_crawl_outcontainer_processes(self):
         fc = ProcessContainerCrawler()
         # sleep + crawler
         assert len(list(fc.crawl(self.container['Id']))) == 2
 
-    def test_features_crawler_crawl_outcontainer_mem(self):
+    def test_crawl_outcontainer_mem(self):
         fc = MemoryContainerCrawler()
         output = "%s" % list(fc.crawl(self.container['Id']))
         assert 'memory_used' in output

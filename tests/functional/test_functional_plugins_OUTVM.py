@@ -99,13 +99,13 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
             # no need to rm qcow disk files since they get destroyed on
             # container exit
 
-    def test_features_crawler_crawl_outvm_os(self):
+    def test_crawl_outvm_os(self):
         fc = os_vm_crawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             for item in fc.crawl(vm_desc=(pid, kernel, distro, arch)):
                 assert 'Linux' in item
 
-    def test_features_crawler_crawl_outvm_process(self):
+    def test_crawl_outvm_process(self):
         fc = process_vm_crawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             for item in fc.crawl(vm_desc=(pid, kernel, distro, arch)):
@@ -117,14 +117,14 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
                 else:
                     assert p.pid > 0
 
-    def test_features_crawler_crawl_outvm_mem(self):
+    def test_crawl_outvm_mem(self):
         fc = MemoryVmCrawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             for item in fc.crawl(vm_desc=(pid, kernel, distro, arch)):
                 meminfo = MemoryFeature._make(item[1])
                 assert (meminfo.memory_util_percentage >= 0)
 
-    def test_features_crawler_crawl_outvm_metrics(self):
+    def test_crawl_outvm_metrics(self):
         fc = MetricVmCrawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             for item in fc.crawl(vm_desc=(pid, kernel, distro, arch)):
@@ -133,25 +133,24 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
                     assert p.rss > 0
                     assert p.vms > 0
                     assert p.mempct >= 0
-                    # stritly speaking > 0 but due to rounding in
-                    # features_crawler.py
+                    # stritly speaking > 0 but due to rounding
 
             # to see if 100% cpu util shows up for psvmi_test_init
             # time.sleep(1)
             # print list(crawler.crawl_metrics())
 
-    def _test_features_crawler_crawl_outvm_modules(self):
+    def _test_crawl_outvm_modules(self):
         for crawler in self.crawlers:
             output = crawler.crawl_modules()
             assert len(list(output)) > 0
 
-    def test_features_crawler_crawl_outvm_interface(self):
+    def test_crawl_outvm_interface(self):
         fc = InterfaceVmCrawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             output = fc.crawl(vm_desc=(pid, kernel, distro, arch))
             assert any('lo' in item[0] for item in output)
 
-    def test_features_crawler_crawl_outvm_connections(self):
+    def test_crawl_outvm_connections(self):
         fc = ConnectionVmCrawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             output = fc.crawl(vm_desc=(pid, kernel, distro, arch))
