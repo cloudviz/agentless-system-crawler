@@ -1443,7 +1443,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 1
 
     @mock.patch(
-        'crawler.features_crawler.psutil.cpu_times_percent',
+        'crawler.plugins.cpu_container_crawler.psutil.cpu_times_percent',
         side_effect=lambda percpu: [
             psutils_cpu(
                 10,
@@ -1473,7 +1473,7 @@ class PluginTests(unittest.TestCase):
         assert args[1].call_count == 3  # open for 3 cgroup files
 
     @mock.patch(
-        'crawler.features_crawler.psutil.cpu_times_percent',
+        'crawler.plugins.cpu_container_crawler.psutil.cpu_times_percent',
         side_effect=lambda percpu: [
             psutils_cpu(
                 10,

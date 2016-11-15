@@ -25,7 +25,6 @@ except Exception as e:
 # External dependencies that must be pip install'ed separately
 
 from emitter import Emitter
-import features_crawler
 from containers import get_filtered_list_of_containers
 import misc
 from crawlmodes import Modes
@@ -47,31 +46,6 @@ def signal_handler_exit(signum, stack):
     should_exit = True
 
 
-def _snapshot_single_frame(
-    emitter,
-    features,
-    options,
-    crawler,
-    ignore_exceptions,
-):
-
-    global should_exit
-
-    for feature in features:
-        feature_options = options.get(feature, {})
-        if should_exit:
-            break
-        if feature_options is None:
-            continue
-        try:
-            for (key, val) in crawler.funcdict[feature](**feature_options):
-                emitter.emit(key, val, feature)
-        except Exception as exc:
-            logger.exception(exc)
-            if not ignore_exceptions:
-                raise exc
-
-
 def snapshot_generic(
     crawlmode=Modes.INVM,
     urls=['stdout://'],
@@ -83,8 +57,6 @@ def snapshot_generic(
     namespace='',
     ignore_exceptions=True
 ):
-
-    crawler = features_crawler.FeaturesCrawler(crawl_mode=crawlmode)
 
     metadata = {
         'namespace': namespace,
@@ -115,13 +87,6 @@ def snapshot_generic(
                 logger.exception(exc)
                 if not ignore_exceptions:
                     raise exc
-
-        # TODO remove this call after we move all features to plugins
-        _snapshot_single_frame(emitter=emitter,
-                               features=features,
-                               options=options,
-                               crawler=crawler,
-                               ignore_exceptions=ignore_exceptions)
 
 
 def snapshot_mesos(
