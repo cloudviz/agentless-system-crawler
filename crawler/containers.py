@@ -7,7 +7,6 @@ import logging
 import container
 import misc
 from dockercontainer import list_docker_containers
-from config_parser import get_config
 
 logger = logging.getLogger('crawlutils')
 
@@ -37,7 +36,7 @@ def list_all_containers(user_list='ALL',
 
 
 def get_filtered_list_of_containers(
-    environment=get_config()['general']['environment'],
+    environment='cloudsight',
     host_namespace=misc.get_host_ipaddr(),
     user_list='ALL',
     partition_strategy={'name': 'equally_by_pid',
@@ -70,7 +69,7 @@ def get_filtered_list_of_containers(
         to a plugin or not should be in the plugin itself.
         """
 
-        default_environment = get_config()['general']['environment']
+        default_environment = 'cloudsight'
         if (environment != default_environment and
                 not _container.is_docker_container()):
             continue

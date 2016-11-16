@@ -176,9 +176,9 @@ def main():
         '--features',
         dest='features',
         type=csv_list,
-        default=get_config()['general']['features_to_crawl'],
+        default=['os', 'cpu'],
         help='Comma-separated list of feature-types to crawl. Defaults to '
-             '{0}'.format(get_config()['general']['features_to_crawl'])
+             'os, cpu',
     )
     parser.add_argument(
         '--frequency',
@@ -195,9 +195,9 @@ def main():
         choices=[
             'true',
             'false'],
-        default='true' if get_config()['general']['compress'] else 'false',
+        default='false',
         help='Whether to GZIP-compress the output frame data, must be one of '
-             '{true,false}. Defaults to true',
+             '{true,false}. Defaults to false',
     )
     parser.add_argument('--logfile', dest='logfile', type=str,
                         default='crawler.log',
@@ -223,7 +223,7 @@ def main():
         '--mountpoint',
         dest='mountpoint',
         type=str,
-        default=get_config()['general']['default_mountpoint'],
+        default='/',
         help='Mountpoint location (required for --crawlmode MOUNTPOINT)'
     )
     parser.add_argument(
@@ -266,7 +266,7 @@ def main():
         '--environment',
         dest='environment',
         type=str,
-        default=get_config()['general']['environment'],
+        default='cloudsight',
         help='This speficies some environment specific behavior, like how '
              'to name a container. The way to add a new behavior is by '
              'implementing a plugin (see plugins/cloudsight_environment.py '
@@ -276,10 +276,10 @@ def main():
         '--plugins',
         dest='plugin_places',
         type=csv_list,
-        default=get_config()['general']['plugin_places'],
+        default=['plugins'],
         help='This is a comma separated list of directories where to find '
              'plugins. Each path can be an absolute, or a relative to the '
-             'location of the crawler.py.',
+             'location of the crawler.py. Default is "plugins"',
     )
     parser.add_argument(
         '--numprocesses',
@@ -309,7 +309,7 @@ def main():
         '--linkContainerLogFiles',
         dest='linkContainerLogFiles',
         action='store_true',
-        default=get_config()['general']['link_container_log_files'],
+        default=False,
         help='Experimental feature. If specified and if running in '
              'OUTCONTAINER mode, then the crawler maintains links to '
              'container log files.'
