@@ -1,7 +1,6 @@
 import unittest
 import subprocess
 import time
-import re
 
 from crawler.plugins.os_vm_crawler import os_vm_crawler
 from crawler.plugins.process_vm_crawler import process_vm_crawler
@@ -20,17 +19,15 @@ from crawler.features import (
 # Tests the FeaturesCrawler class
 # Throws an AssertionError if any test fails
 
-class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
+class VmPluginsFunctionalTests(unittest.TestCase):
 
-    def get_qemu_pid(self, vm_name):
-        ps = subprocess.Popen(('ps', 'ax'), stdout=subprocess.PIPE)
-        output = ps.communicate()[0]
-        for line in output.split('\n'):
-            if 'qemu' in line:
-                matchObj = re.match(r'(\s)*([0-9]+) .* -name (.*?) .*', line)
-                if vm_name == matchObj.group(3):  # contains 'vm1'
-                    pid = matchObj.group(2)
-                    return pid
+    SETUP_ONCE = False
+    vm_descs = [['vm2', '4.0.3.x86_64', 'vanilla', 'x86_64'],
+                ['vm3', '3.2.0-101-generic_3.2.0-101.x86_64',
+                    'ubuntu', 'x86_64'],
+                ['vm4', '3.13.0-24-generic_3.13.0-24.x86_64',
+                    'ubuntu', 'x86_64']
+                ]
 
     def create_vm_via_bash(self, vmID):
         qemu_out_file = "/tmp/psvmi_qemu_out"
@@ -84,16 +81,18 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
                 break
 
     def setUp(self):
-        self.SETUP_ONCE = False
-        self.crawlers = []
-        self.vm_descs = [
-            ['vm2', '4.0.3.x86_64', 'vanilla', 'x86_64'],
-            ['vm3', '3.2.0-101-generic_3.2.0-101.x86_64', 'ubuntu', 'x86_64'],
-            ['vm4', '3.13.0-24-generic_3.13.0-24.x86_64', 'ubuntu', 'x86_64']]
-        for vm_desc in self.vm_descs:
-            self.create_vm_via_bash(vm_desc)
+        if VmPluginsFunctionalTests.SETUP_ONCE is False:
+            for vm_desc in VmPluginsFunctionalTests.vm_descs:
+                self.create_vm_via_bash(vm_desc)
+            VmPluginsFunctionalTests.SETUP_ONCE = True
+        self.vm_descs = VmPluginsFunctionalTests.vm_descs
 
-    def tearDown(self):
+    @classmethod
+    def teardown_class(cls):
+        for _, _, _, _, pid in VmPluginsFunctionalTests.vm_descs:
+            subprocess.call(["kill", "-9", pid])
+
+    def _tearDown(self):
         for _, _, _, _, pid in self.vm_descs:
             subprocess.call(["kill", "-9", pid])
             # no need to rm qcow disk files since they get destroyed on
@@ -154,7 +153,7 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
         fc = ConnectionVmCrawler()
         for _, kernel, distro, arch, pid in self.vm_descs:
             output = fc.crawl(vm_desc=(pid, kernel, distro, arch))
-            assert len(list(output)) == 0 # There are no connections
+            assert len(list(output)) == 0  # There are no connections
 
     if __name__ == '__main__':
         unittest.main()
