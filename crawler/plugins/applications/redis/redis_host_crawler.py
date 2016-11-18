@@ -22,8 +22,8 @@ class RedisHostCrawler(IHostCrawler):
 
     # TODO: prepare an useful way to set host/port
     def crawl(self, root_dir='/', **kwargs):
-        client = redis.Redis(host='localhost', port=self.default_port)
         try:
+            client = redis.Redis(host='localhost', port=self.default_port)
             metrics = client.info()
         except ConnectionError:
             logger.info("redis does not listen on port:%d", self.default_port)
