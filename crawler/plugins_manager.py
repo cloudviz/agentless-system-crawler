@@ -63,7 +63,15 @@ def _load_plugins(
     pm.collectPlugins()
 
     config = config_parser.get_config()
-    enabled_plugins = [p for p in config['crawlers']]
+
+    enabled_plugins = []
+    if 'enabled_plugins' in config['general']:
+        enabled_plugins = config['general']['enabled_plugins']
+        if 'ALL' in enabled_plugins:
+            enabled_plugins = [p for p in config['crawlers']]
+            # Reading from 'crawlers' section inside crawler.conf
+            # Alternatively, 'ALL' can be made to signify
+            # all crawlers in plugins/*
 
     for plugin in pm.getAllPlugins():
         if filter_func(
