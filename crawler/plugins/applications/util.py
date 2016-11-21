@@ -12,7 +12,7 @@ class Inspector(object):
 
     def is_app_container(self, app=''):
         '''
-        Check whether this container is expected application container or not.
+        Check whether this container is expected application container.
 
         Use inspect information. If not present app name in image name,
         this method returns false.
@@ -37,9 +37,6 @@ class Inspector(object):
 
 
 class PodInspector(Inspector):
-    '''
-    Utility class for searching ip and ports for app container managed by kubernetes.
-    '''
 
     def get_ip(self):
         pod_name = self.inspect['Config']['Labels']['io.kubernetes.pod.name']
@@ -47,7 +44,8 @@ class PodInspector(Inspector):
 
         # search pause container to know actual pod IP address
         for c in self.containers:
-            if c['Image'].find('pause') != -1 and pod_name == c['Labels']['io.kubernetes.pod.name']:
+            if c['Image'].find('pause') != -1 \
+                    and pod_name == c['Labels']['io.kubernetes.pod.name']:
                 pod_ip = c['NetworkSettings'][
                     'Networks']['bridge']['IPAddress']
                 break

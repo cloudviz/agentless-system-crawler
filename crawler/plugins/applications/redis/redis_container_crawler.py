@@ -13,7 +13,8 @@ class RedisContainerCrawler(IContainerCrawler):
     Crawling app provided metrics for redis container on docker.
     Usually redis listens on port 6379.
 
-    ContainerInspector class automatically search IP and port for the container.
+    ContainerInspector class automatically searches
+    IP and port for the container.
     If not set, the it tries to access default port.
     '''
 
