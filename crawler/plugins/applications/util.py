@@ -1,4 +1,4 @@
-import docker
+import dockerutils
 
 
 class Inspector(object):
@@ -7,10 +7,8 @@ class Inspector(object):
     '''
 
     def __init__(self, container_id):
-        self.client = docker.Client(
-            base_url='unix://var/run/docker.sock', version='auto')
-        self.inspects = self.client.inspect_container(container_id)
-        self.containers = self.client.containers()
+        self.inspect = dockerutils.exec_dockerinspect(container_id)
+        # self.cotainers = dockerutils.exec_dockerlistcontainers()
 
     def is_app_container(self, app=''):
         '''
@@ -23,7 +21,7 @@ class Inspector(object):
         :return:
         '''
 
-        if self.inspects['Config']['Image'].find(app) == -1:
+        if self.inspect['Config']['Image'].find(app) == -1:
             return False
         else:
             return True
@@ -33,7 +31,7 @@ class Inspector(object):
 
     def get_ports(self):
         ports = []
-        for item in self.inspects['Config']['ExposedPorts'].keys():
+        for item in self.inspect['Config']['ExposedPorts'].keys():
             ports.append(item.split('/')[0])
         return ports
 
@@ -44,7 +42,7 @@ class PodInspector(Inspector):
     '''
 
     def get_ip(self):
-        pod_name = self.inspects['Config']['Labels']['io.kubernetes.pod.name']
+        pod_name = self.inspect['Config']['Labels']['io.kubernetes.pod.name']
         pod_ip = ""
 
         # search pause container to know actual pod IP address
@@ -62,6 +60,6 @@ class ContainerInspector(Inspector):
     '''
 
     def get_ip(self):
-        ip = self.inspects['NetworkSettings'][
+        ip = self.inspect['NetworkSettings'][
             'Networks']['bridge']['IPAddress']
         return ip
