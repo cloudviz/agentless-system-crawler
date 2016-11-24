@@ -46,9 +46,9 @@ def flatten_obj(obj, prefix=''):
                         else:
                             flatten(j, key+'.'+str(i), results)
                 else:
-                     if len(prefix) != 0:
+                    if len(prefix) != 0:
                         results[prefix+'.'+key] = val
-                     else:
+                    else:
                         results[key] = val
         elif isinstance(obj, list):
             for i, j in enumerate(obj):
@@ -57,7 +57,7 @@ def flatten_obj(obj, prefix=''):
                 else:
                     flatten(j, key+'.'+str(i), results)
         else:
-             if len(prefix) != 0:
+            if len(prefix) != 0:
                 results[prefix] = obj
 
     flatten(obj, '', results)

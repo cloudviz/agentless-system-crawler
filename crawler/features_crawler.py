@@ -1301,31 +1301,31 @@ class FeaturesCrawler:
         feature_key = '{0}-{1}'.format('cpu', cpu.cpu_vendor_id)
         yield (feature_key, cpu)
 
-    
+
     def crawl_gpu(self):
         '''
         nvidia-smi returns following: MEMORY, UTILIZATION, ECC, TEMPERATURE, 
         POWER, CLOCK, COMPUTE, PIDS, PERFORMANCE, SUPPORTED_CLOCKS, PAGE_RETIREMENT, 
         ACCOUNTING
-    
+
         currently, following are requested based on dlaas requirements: utilization.gpu
         utilization.memory, memory.total, memory.free, memory.used
         nvidia-smi --query-gpu=utilization.gpu,utilization.memory,memory.total,memory.free,memory.used --format=csv,noheader,nounits
         '''
-    
+
         util_atttibutes = ['gpu','memory']
         memory_atttibutes = ['total','free','used']
-    
+
         if not os.path.exists(NVIDIA_SMI):
             return 
-    
+
         nvidia_smi_proc = subprocess.Popen([NVIDIA_SMI, '--query-gpu=utilization.gpu,utilization.memory,memory.total,memory.free,memory.used',
-                    '--format=csv,noheader,nounits' ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                            '--format=csv,noheader,nounits' ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         nvidia_smi_proc_out, nvidia_smi_proc_err = nvidia_smi_proc.communicate()
 
         if nvidia_smi_proc.returncode > 0:
             raise Exception('Unable to get gpu metrics')
-    
+
         metrics = nvidia_smi_proc_out.split('\n')
         for i, val_str in enumerate(metrics):
             if len(val_str) != 0:

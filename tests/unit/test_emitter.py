@@ -260,14 +260,14 @@ class EmitterTests(unittest.TestCase):
                      format='graphite') as emitter:
             emitter.emit("gpu0",
                          {'memory': {
-                                        'total': '11519', 
-                                        'used': '55', 
-                                        'free': '11464'
-                                    }, 
-                          'utilization': {
-                                          'gpu': '0', 
-                                          'memory': ' 0'
-                                      }
+                             'total': '11519', 
+                             'used': '55', 
+                             'free': '11464'
+                         }, 
+                             'utilization': {
+                             'gpu': '0', 
+                             'memory': ' 0'
+                         }
                          },
                          'gpu')
 
