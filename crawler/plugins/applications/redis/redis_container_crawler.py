@@ -26,7 +26,8 @@ class RedisContainerCrawler(IContainerCrawler):
         # only crawl redis container. Otherwise, quit.
         c = DockerContainer(container_id)
         if c.image_name.find(self.feature_key) == -1:
-            logger.debug("%s is not %s container" % (c.image_name, self.feature_key))
+            logger.debug("%s is not %s container" %
+                         (c.image_name, self.feature_key))
             return
 
         # extract IP and Port information
