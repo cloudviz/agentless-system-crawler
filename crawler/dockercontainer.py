@@ -119,6 +119,7 @@ class DockerContainer(Container):
         self.cmd = inspect['Config']['Cmd']
         self.mounts = inspect.get('Mounts')
         self.volumes = inspect.get('Volumes')
+        self.image_name = inspect['Config']['Image']
         self.inspect = inspect
 
         self.process_namespace = (process_namespace or
@@ -166,6 +167,17 @@ class DockerContainer(Container):
 
     def is_docker_container(self):
         return True
+
+    def get_container_ip(self):
+        ip = self.inspect['NetworkSettings'][
+            'Networks']['bridge']['IPAddress']
+        return ip
+
+    def get_container_ports(self):
+        ports = []
+        for item in self.inspect['Config']['ExposedPorts'].keys():
+            ports.append(item.split('/')[0])
+        return ports
 
     def _set_environment_specific_options(self,
                                           container_opts={}):
