@@ -1,6 +1,6 @@
 from icrawl_plugin import IContainerCrawler
+from dockercontainer import DockerContainer
 from plugins.applications.redis import feature
-from plugins.applications.util import ContainerInspector
 from requests.exceptions import ConnectionError
 import redis
 import logging
@@ -12,10 +12,6 @@ class RedisContainerCrawler(IContainerCrawler):
     '''
     Crawling app provided metrics for redis container on docker.
     Usually redis listens on port 6379.
-
-    ContainerInspector class automatically searches
-    IP and port for the container.
-    If not set, the it tries to access default port.
     '''
 
     feature_type = "application"
@@ -28,19 +24,20 @@ class RedisContainerCrawler(IContainerCrawler):
     def crawl(self, container_id=None, **kwargs):
 
         # only crawl redis container. Otherwise, quit.
-        c = ContainerInspector(container_id)
-        if not c.is_app_container(self.feature_key):
+        c = DockerContainer(container_id)
+        if c.image_name.find(self.feature_key) == -1:
+            logger.debug("%s is not %s container" % (c.image_name, self.feature_key))
             return
 
         # extract IP and Port information
-        ip = c.get_ip()
-        ports = c.get_ports()
+        ip = c.get_container_ip()
+        ports = c.get_container_ports()
 
         # set default port number
         if len(ports) == 0:
             ports.append(self.default_port)
 
-        # querying all available ports
+        # query to all available ports
         for port in ports:
             client = redis.Redis(host=ip, port=port)
             try:
