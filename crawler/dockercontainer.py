@@ -179,7 +179,6 @@ class DockerContainer(Container):
             ports.append(item.split('/')[0])
         return ports
 
-
     def _set_environment_specific_options(self,
                                           container_opts={}):
         """
