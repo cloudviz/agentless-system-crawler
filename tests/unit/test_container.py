@@ -22,10 +22,6 @@ class ContainerTests(unittest.TestCase):
             c.get_memory_cgroup_path()
         with self.assertRaises(NotImplementedError):
             c.get_cpu_cgroup_path()
-        with self.assertRaises(NotImplementedError):
-            c.link_logfiles()
-        with self.assertRaises(NotImplementedError):
-            c.unlink_logfiles()
 
     @mock.patch('crawler.emitter.os.path.exists', side_effect=mocked_exists)
     def test_is_running(self, mock_exists):

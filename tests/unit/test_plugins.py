@@ -53,7 +53,6 @@ from crawler.plugins.memory_vm_crawler import MemoryVmCrawler
 from crawler.plugins.interface_vm_crawler import InterfaceVmCrawler
 
 
-
 # for OUTVM psvmi
 from mock import Mock
 import sys
@@ -538,7 +537,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 6
         assert args[1].call_count == 1  # oswalk
         args[1].assert_called_with('/')
-        assert args[2].call_count == 1  # isdir
+        assert args[2].call_count == 2  # isdir
         args[2].assert_called_with('/')
 
     @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
@@ -563,7 +562,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 4
         assert args[1].call_count == 1  # oswalk
         args[1].assert_called_with('/')
-        assert args[2].call_count == 1  # isdir
+        assert args[2].call_count == 2  # isdir
         args[2].assert_called_with('/')
 
     @mock.patch('crawler.plugins.file_crawler.os.path.isdir',
@@ -607,7 +606,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 6
         assert args[1].call_count == 1  # oswalk
         args[1].assert_called_with('/')
-        assert args[2].call_count == 1  # isdir
+        assert args[2].call_count == 2  # isdir
         args[2].assert_called_with('/')
 
     @mock.patch(
@@ -660,7 +659,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 6
         assert args[1].call_count == 1  # oswalk
         args[1].assert_called_with('/1/2/3')
-        assert args[2].call_count == 1  # isdir
+        assert args[2].call_count == 2  # isdir
         args[2].assert_called_with('/1/2/3')
 
     @mock.patch(
@@ -693,7 +692,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 4
         assert args[1].call_count == 1  # oswalk
         args[1].assert_called_with('/')
-        assert args[2].call_count == 1  # isdir
+        assert args[2].call_count == 2  # isdir
         args[2].assert_called_with('/')
 
     @mock.patch(
@@ -730,7 +729,7 @@ class PluginTests(unittest.TestCase):
         assert args[0].call_count == 4
         assert args[1].call_count == 1  # oswalk
         args[1].assert_called_with('/1/2/3')
-        assert args[2].call_count == 1  # isdir
+        assert args[2].call_count == 2  # isdir
         args[2].assert_called_with('/1/2/3')
 
     @mock.patch('crawler.plugins.config_crawler.os.path.isdir',
@@ -1157,7 +1156,7 @@ class PluginTests(unittest.TestCase):
             assert f.pname == 'init'
             assert f.cmd == 'cmd'
             assert f.pid == 123
-        assert args[1].call_count == 1 # process_iter
+        assert args[1].call_count == 1  # process_iter
 
     @mock.patch('crawler.plugins.disk_crawler.psutil.disk_partitions',
                 side_effect=mocked_disk_partitions)
@@ -1285,7 +1284,7 @@ class PluginTests(unittest.TestCase):
             assert f.vms == 20
             assert f.read == 10
             assert f.write == 20
-        assert args[1].call_count == 1 # process_iter
+        assert args[1].call_count == 1  # process_iter
 
     @mock.patch('crawler.plugins.connection_crawler.psutil.process_iter',
                 side_effect=lambda: [Process('init')])
@@ -1495,7 +1494,6 @@ class PluginTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 1
 
-
     @mock.patch(
         'crawler.plugins.interface_host_crawler.psutil.net_io_counters',
         side_effect=lambda pernic: {'interface1-unit-tests':
@@ -1527,9 +1525,9 @@ class PluginTests(unittest.TestCase):
                 if_errors_rx=0)
         assert args[0].call_count == 2
 
-
-    @mock.patch('crawler.plugins.interface_host_crawler.psutil.net_io_counters',
-                side_effect=throw_os_error)
+    @mock.patch(
+        'crawler.plugins.interface_host_crawler.psutil.net_io_counters',
+        side_effect=throw_os_error)
     def test_crawl_interface_invm_mode_failure(self, *args):
         fc = InterfaceHostCrawler()
         with self.assertRaises(OSError):
@@ -1542,11 +1540,11 @@ class PluginTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 2
 
-
     @mock.patch('crawler.plugins.interface_container_crawler.DockerContainer',
                 side_effect=lambda container_id: DummyContainer(container_id))
-    @mock.patch('crawler.plugins.interface_container_crawler.run_as_another_namespace',
-                side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        'crawler.plugins.interface_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
     @mock.patch(
         'crawler.plugins.interface_container_crawler.psutil.net_io_counters',
         side_effect=lambda pernic: {'eth0':
@@ -1578,7 +1576,6 @@ class PluginTests(unittest.TestCase):
                 if_errors_rx=0)
         assert args[0].call_count == 2
         assert args[1].call_count == 2
-
 
     @mock.patch('crawler.plugins.interface_vm_crawler.psvmi.context_init',
                 side_effect=lambda dn1, dn2, kv, d, a: 1000)
@@ -1625,8 +1622,9 @@ class PluginTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.plugins.load_container_crawler.run_as_another_namespace',
-                side_effect=mocked_run_as_another_namespace)
+    @mock.patch(
+        'crawler.plugins.load_container_crawler.run_as_another_namespace',
+        side_effect=mocked_run_as_another_namespace)
     @mock.patch('crawler.plugins.load_container_crawler.os.getloadavg',
                 side_effect=lambda: [1, 2, 3])
     @mock.patch('crawler.plugins.load_container_crawler.DockerContainer',
@@ -1677,8 +1675,9 @@ class PluginTests(unittest.TestCase):
                                      {'Id': 'image2', 'random': 'abc'}]}
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.plugins.dockerhistory_container_crawler.exec_docker_history',
-                side_effect=throw_os_error)
+    @mock.patch(
+        'crawler.plugins.dockerhistory_container_crawler.exec_docker_history',
+        side_effect=throw_os_error)
     def test_crawl_dockerhistory_outcontainer_mode_failure(self, *args):
         fc = DockerhistoryContainerCrawler()
         with self.assertRaises(OSError):
@@ -1686,16 +1685,20 @@ class PluginTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.plugins.dockerinspect_container_crawler.exec_dockerinspect',
-                side_effect=lambda long_id: {'Id': 'image1', 'random': 'abc'})
+    @mock.patch(
+        'crawler.plugins.dockerinspect_container_crawler.exec_dockerinspect',
+        side_effect=lambda long_id: {
+            'Id': 'image1',
+            'random': 'abc'})
     def test_crawl_dockerinspect_outcontainer_mode(self, *args):
         fc = DockerinspectContainerCrawler()
         for (k, f, t) in fc.crawl('123'):
             assert f == {'Id': 'image1', 'random': 'abc'}
         assert args[0].call_count == 1
 
-    @mock.patch('crawler.plugins.dockerinspect_container_crawler.exec_dockerinspect',
-                side_effect=throw_os_error)
+    @mock.patch(
+        'crawler.plugins.dockerinspect_container_crawler.exec_dockerinspect',
+        side_effect=throw_os_error)
     def test_crawl_dockerinspect_outcontainer_mode_failure(self, *args):
         fc = DockerinspectContainerCrawler()
         with self.assertRaises(OSError):

@@ -127,15 +127,15 @@ class EmitterTests(unittest.TestCase):
     def test_emitter_csv_compressed_stdout(self):
         with Capturing() as _output:
             with Emitter(urls=['stdout://'],
-                         emitter_args={'namespace': '123',
-                                       'compress': True}) as emitter:
+                         metadata={'namespace': '123',
+                                   'compress': True}) as emitter:
                 emitter.emit("dummy", {'test': 'bla'}, 'dummy')
         output = "%s" % _output
         assert output
 
     def test_emitter_csv_simple_file(self):
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args={'namespace': 'bla'}) as emitter:
+                     metadata={'namespace': 'bla'}) as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
                           'test2': 12345,
@@ -151,10 +151,9 @@ class EmitterTests(unittest.TestCase):
 
     def test_emitter_all_features_compressed_csv(self):
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args={'extra': '{"a":"1", "b":2}',
-                                   'extra_all_features': True,
-                                   'uuid': 'aaaaaa',
-                                   'compress': True},
+                     metadata={'extra': '{"a":"1", "b":2}',
+                               'uuid': 'aaaaaa'},
+                     compress=True,
                      format='csv') as emitter:
             emitter.emit("memory", {'test3': 12345}, 'memory')
             emitter.emit("memory_0", {'test3': 12345}, 'memory')
@@ -173,9 +172,8 @@ class EmitterTests(unittest.TestCase):
 
     def test_emitter_all_features_csv(self):
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args={'extra': '{"a":"1", "b":2}',
-                                   'extra_all_features': True,
-                                   'uuid': 'aaaaaa'},
+                     metadata={'extra': '{"a":"1", "b":2}',
+                               'uuid': 'aaaaaa'},
                      format='csv') as emitter:
             emitter.emit("memory", {'test3': 12345}, 'memory')
             emitter.emit("memory_0", {'test3': 12345}, 'memory')
@@ -194,9 +192,8 @@ class EmitterTests(unittest.TestCase):
 
     def test_emitter_all_features_graphite(self):
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args={'extra': '{"a":"1", "b":2}',
-                                   'extra_all_features': True,
-                                   'uuid': 'aaaaaa'},
+                     metadata={'extra': '{"a":"1", "b":2}',
+                               'uuid': 'aaaaaa'},
                      format='graphite') as emitter:
             emitter.emit("memory", {'test3': 12345}, 'memory')
             emitter.emit("memory_0", {'test3': 12345}, 'memory')
@@ -210,7 +207,7 @@ class EmitterTests(unittest.TestCase):
             _output = f.readlines()
             output = "%s" % _output
             print output
-            assert len(_output) == 24
+            assert len(_output) == 8
 
     # Tests the Emitter crawler class
     # Throws an AssertionError if any test fails
@@ -218,7 +215,7 @@ class EmitterTests(unittest.TestCase):
         metadata = {}
         metadata['namespace'] = 'namespace777'
         with Emitter(urls=['stdout://'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite') as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
@@ -257,7 +254,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         try:
             with Emitter(urls=['file:///tmp/test_emitter'],
-                         emitter_args=metadata,
+                         metadata=metadata,
                          format='unsupported') as emitter:
                 emitter.emit("dummy_feature",
                              {'test': 'bla',
@@ -272,9 +269,8 @@ class EmitterTests(unittest.TestCase):
 
     def test_emitter_exception(self):
         emitter = Emitter(urls=['file:///tmp/test_emitter'],
-                          emitter_args={'extra': '{"a2}',
-                                        'extra_all_features': True,
-                                        'uuid': 'aaaaaa'},
+                          metadata={'extra': '{"a2}',
+                                    'uuid': 'aaaaaa'},
                           format='csv')
         emitter.__enter__()
         with self.assertRaises(ValueError):
@@ -282,18 +278,16 @@ class EmitterTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             with Emitter(urls=['file:///tmp/test_emitter'],
-                         emitter_args={'extra': '{"a2}',
-                                       'extra_all_features': True,
-                                       'uuid': 'aaaaaa'},
+                         metadata={'extra': '{"a2}',
+                                   'uuid': 'aaaaaa'},
                          format='csv') as emitter:
                 raise ValueError('bla')
 
     def test_emitter_incorrect_json(self):
         try:
             with Emitter(urls=['file:///tmp/test_emitter'],
-                         emitter_args={'extra': '{"a2}',
-                                       'extra_all_features': True,
-                                       'uuid': 'aaaaaa'},
+                         metadata={'extra': '{"a2}',
+                                   'uuid': 'aaaaaa'},
                          format='csv') as emitter:
                 emitter.emit("memory", {'test3': 12345}, 'memory')
         except ValueError:
@@ -320,7 +314,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         try:
             with Emitter(urls=['error:///tmp/test_emitter'],
-                         emitter_args=metadata,
+                         metadata=metadata,
                          format='graphite') as emitter:
                 emitter.emit("dummy_feature",
                              {'test': 'bla',
@@ -343,7 +337,7 @@ class EmitterTests(unittest.TestCase):
         metadata = {}
         metadata['namespace'] = 'namespace777'
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite') as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
@@ -379,7 +373,7 @@ class EmitterTests(unittest.TestCase):
         metadata = {}
         metadata['namespace'] = 'namespace777'
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite') as emitter:
             with self.assertRaises(AttributeError):
                 emitter.emit("dummy", {'blabla'}, 'dummy')
@@ -389,9 +383,9 @@ class EmitterTests(unittest.TestCase):
     def test_emitter_graphite_simple_compressed_file(self):
         metadata = {}
         metadata['namespace'] = 'namespace777'
-        metadata['compress'] = True
         with Emitter(urls=['file:///tmp/test_emitter'],
-                     emitter_args=metadata,
+                     metadata=metadata,
+                     compress=True,
                      format='graphite') as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
@@ -431,7 +425,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['http://1.1.1.1/good'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
@@ -454,11 +448,11 @@ class EmitterTests(unittest.TestCase):
     def test_emitter_graphite_broker_compress(self, mock_sleep, mock_post):
         metadata = {}
         metadata['namespace'] = 'namespace777'
-        metadata['compress'] = True
         retries = 2
         with Emitter(urls=['http://1.1.1.1/good'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
+                     compress=True,
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
@@ -482,7 +476,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['http://1.1.1.1/bad'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
@@ -508,7 +502,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['http://1.1.1.1/exception'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
@@ -532,7 +526,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 10
         with Emitter(urls=['http://1.1.1.1/encoding_error'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
@@ -573,7 +567,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['kafka://1.1.1.1:123/topic1'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
@@ -596,7 +590,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['kafka://1.1.1.1:123/topic1'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
@@ -620,7 +614,7 @@ class EmitterTests(unittest.TestCase):
         retries = 2
         with self.assertRaises(RandomKafkaException):
             with Emitter(urls=['kafka://1.1.1.1:123/badtopic'],
-                         emitter_args=metadata,
+                         metadata=metadata,
                          max_emit_retries=retries) as emitter:
                 emitter.emit("dummy_feature",
                              {'test': 'bla',
@@ -642,7 +636,7 @@ class EmitterTests(unittest.TestCase):
         with self.assertRaises(
                 crawler.crawler_exceptions.EmitterUnsupportedFormat):
             with Emitter(urls=['kafka://1.1.1.1:123/badtopic'],
-                         emitter_args=metadata,
+                         metadata=metadata,
                          format='blablafformat',
                          max_emit_retries=retries) as emitter:
                 emitter.emit("dummy_feature",
@@ -662,7 +656,7 @@ class EmitterTests(unittest.TestCase):
         retries = 1
         with self.assertRaises(RandomKafkaException):
             with Emitter(urls=['kafka://1.1.1.1:123/badtopic'],
-                         emitter_args=metadata,
+                         metadata=metadata,
                          max_emit_retries=retries) as emitter:
                 emitter.emit("dummy_feature",
                              {'test': 'bla',
@@ -683,7 +677,7 @@ class EmitterTests(unittest.TestCase):
         # with
         # self.assertRaises(crawler.crawler_exceptions.EmitterEmitTimeout):
         with Emitter(urls=['kafka://1.1.1.1:123/timeouttopic'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      max_emit_retries=retries,
                      kafka_timeout_secs=0.1) as emitter:
             emitter.emit("dummy", {'test': 'bla'}, 'dummy')
@@ -698,7 +692,7 @@ class EmitterTests(unittest.TestCase):
         retries = 2
         with self.assertRaises(OSError):
             with Emitter(urls=['kafka://1.1.1.1:123/timeouttopic'],
-                         emitter_args=metadata,
+                         metadata=metadata,
                          max_emit_retries=retries,
                          kafka_timeout_secs=0.1) as emitter:
                 emitter.emit("dummy", {'test': 'bla'}, 'dummy')
@@ -740,7 +734,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['mtgraphite://1.1.1.1:123/topic1'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
                          {'test': 'bla',
@@ -759,7 +753,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 2
         with Emitter(urls=['mtgraphite://1.1.1.1:123/topic1'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='graphite',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
@@ -793,7 +787,7 @@ class EmitterTests(unittest.TestCase):
         metadata['namespace'] = 'namespace777'
         retries = 5
         with Emitter(urls=['http://1.1.1.1/good'],
-                     emitter_args=metadata,
+                     metadata=metadata,
                      format='json',
                      max_emit_retries=retries) as emitter:
             emitter.emit("dummy_feature",
