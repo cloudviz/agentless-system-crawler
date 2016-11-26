@@ -20,14 +20,14 @@ rm -f /tmp/test_crawl_all_features_container*
 rm -f /tmp/test_crawl_all_features_invm*
 
 # start teh container crawler
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER --numprocesses 2 \
+python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER --numprocesses 2 \
 	--features=cpu,memory,os,config,file,package,dockerinspect,dockerhistory,metric,load --crawlContainers $ID \
 	--url file:///tmp/test_crawl_all_features_container --frequency 1 --logfile crawler-container.log --options \
 	'{"config": {"known_config_files":["etc/ric_config"]}, "file": {"root_dir": "/bla/"}}' &
 PID_CONTAINER=$!
 
 # start teh VM crawler
-python2.7 ../config_and_metrics_crawler/crawler.py \
+python2.7 ../../crawler/crawler.py \
 	--features=cpu,memory,os,config,file,package,dockerps,metric,load --numprocesses 1 \
 	--url file:///tmp/test_crawl_all_features_invm --frequency 1 --logfile crawler-vm.log --options \
 	'{"config": {"known_config_files":["etc/ric_config"]}, "file": {"root_dir": "/root/bla/"}}' &

@@ -9,13 +9,13 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 docker rm -f test_crawl_config_container_1 2> /dev/null > /dev/null
-UUID=`uuid`
+UUID=`uuidgen`
 docker run -d --name test_crawl_config_container_1 ubuntu bash -c "echo $UUID > /etc/ric_config; sleep 60" 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' test_crawl_config_container_1`
 
 rm -f /tmp/test_crawl_config_container
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=config --crawlContainers $ID --options '{"config": {"known_config_files":["etc/ric_config"]}}' \
 	> /tmp/test_crawl_config_container
 

@@ -8,10 +8,10 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-UUID=`uuid`
+UUID=`uuidgen`
 echo $UUID >> /etc/ric_config
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
+python2.7 ../../crawler/crawler.py --crawlmode INVM \
 	--features=config --options '{"config": {"known_config_files":["etc/ric_config"]}}' \
 	> /tmp/test_crawl_config_invm
 

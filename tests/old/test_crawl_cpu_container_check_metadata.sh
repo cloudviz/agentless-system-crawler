@@ -40,9 +40,9 @@ docker rm -f ${CONTAINER_NAME} 2> /dev/null > /dev/null
 docker run -d --name ${CONTAINER_NAME} ${CONTAINER_IMAGE} sleep 60 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' ${CONTAINER_NAME}`
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
+python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $ID \
-	--extraMetadataFile /tmp/metadata.json --extraMetadataForAll > /tmp/check_metadata_frame
+	--extraMetadata '{"test_field": 1234, "test_field2": "aaaa"}' > /tmp/check_metadata_frame
 
 docker rm -f ${CONTAINER_NAME} > /dev/null
 

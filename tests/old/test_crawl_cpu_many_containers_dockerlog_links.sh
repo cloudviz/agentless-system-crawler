@@ -28,7 +28,7 @@ EOF
 HOST_IP=`python2.7 -c "$GET_HOST_IP_PY"`
 
 COUNT=4
-MSG=`uuid`
+MSG=`uuidgen`
 
 for i in `seq 1 $COUNT`
 do
@@ -39,9 +39,7 @@ done
 
 IDS=`docker ps | grep test_crawl_cpu_many_containers | awk '{printf "%s,",  $1}' | sed s/,$//g`
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
-	--features=cpu --crawlContainers $IDS --numprocesses 2 \
-	--linkContainerLogFiles 2> /dev/null > /dev/null
+python2.7  ../../crawler/containers_logs_linker.py --crawlContainers $IDS 2> /dev/null > /dev/null
 
 COUNT2=0
 for i in `seq 1 $COUNT`

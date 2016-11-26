@@ -14,7 +14,7 @@ ID=`docker inspect -f '{{ .Id }}' test_crawl_cpu_container_1`
 
 rm -f /tmp/test_crawl_all_features_container*
 
-timeout 10 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
+timeout 10 python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu,memory,os,config,file,package,dockerinspect,dockerhistory,metric,load --crawlContainers $ID \
 	--url file:///tmp/test_crawl_all_features_container --frequency 1 --options \
 	'{"config": {"known_config_files":["etc/ric_config"]}, "file": {"root_dir": "/bla/"}}'

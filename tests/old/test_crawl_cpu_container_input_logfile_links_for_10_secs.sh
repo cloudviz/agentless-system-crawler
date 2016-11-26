@@ -29,12 +29,12 @@ print get_host_ipaddr()
 EOF
 
 read -d '' JSON_LOG_TYPES <<"EOF"
-[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "/var/log/input_file_name.log"}, {"type": null, "name": "docker.log"}]
+[{"type": null, "name": "/var/log/input_file_name.log"}, {"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "docker.log"}]
 EOF
 
 HOST_IP=`python2.7 -c "$GET_HOST_IP_PY" 2> /dev/null`
 
-MSG=`uuid`
+MSG=`uuidgen`
 NAME=test_crawl_cpu_container_log_links_1
 rm -rf /var/log/crawler_container_logs/$HOST_IP/$NAME/
 docker rm -f $NAME 2> /dev/null > /dev/null
@@ -43,9 +43,7 @@ docker run -d -e LOG_LOCATIONS=/var/log/input_file_name.log --name $NAME \
 	ubuntu bash -c "echo $MSG >> /var/log/input_file_name.log; sleep 5; echo $MSG >> /var/log/input_file_name.log; sleep 6000 " 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' $NAME`
 
-timeout 10 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
-	--features=cpu --frequency 1 \
-	--linkContainerLogFiles --url file:///tmp/$NAME
+timeout 10 python2.7  ../../crawler/containers_logs_linker.py --frequency 1
 
 LOG_COUNT=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/input_file_name.log`
 

@@ -11,7 +11,7 @@ fi
 nc -l -p 7777 2> /dev/null > /dev/null &
 PID=$!
 
-COUNT=`python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
+COUNT=`python2.7 ../../crawler/crawler.py --crawlmode INVM \
 	--features=connection | grep -c ^connection`
 
 # Any VM should have at least a pair of connections

@@ -30,16 +30,14 @@ EOF
 
 HOST_IP=`python2.7 -c "$GET_HOST_IP_PY" 2> /dev/null`
 
-MSG=`uuid`
+MSG=`uuidgen`
 NAME=test_crawl_cpu_container_log_links_1
 rm -rf /var/log/crawler_container_logs/$HOST_IP/$NAME/
 docker rm -f $NAME 2> /dev/null > /dev/null
 docker run -d --name $NAME ubuntu bash -c "echo $MSG ; sleep 6000 " 2> /dev/null > /dev/null
 ID=`docker inspect -f '{{ .Id }}' $NAME`
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
-	--features=cpu --crawlContainers $ID \
-	--linkContainerLogFiles --url file:///tmp/$NAME
+python2.7  ../../crawler/containers_logs_linker.py --crawlContainers $ID
 
 grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log
 
