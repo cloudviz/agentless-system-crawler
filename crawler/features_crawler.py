@@ -9,6 +9,7 @@ import codecs
 import fnmatch
 import re
 import time
+import subprocess
 
 # Additional modules
 
@@ -37,6 +38,7 @@ from package_utils import get_rpm_packages, get_dpkg_packages
 
 logger = logging.getLogger('crawlutils')
 
+NVIDIA_SMI = "/usr/bin/nvidia-smi"
 
 class FeaturesCrawler:
 
@@ -88,6 +90,7 @@ class FeaturesCrawler:
             'config': self.crawl_config_files,
             'memory': self.crawl_memory,
             'cpu': self.crawl_cpu,
+            'gpu': self.crawl_gpu,
             'interface': self.crawl_interface,
             'load': self.crawl_load,
             'dockerps': self.crawl_dockerps,
@@ -1297,6 +1300,42 @@ class FeaturesCrawler:
 
         feature_key = '{0}-{1}'.format('cpu', cpu.cpu_vendor_id)
         yield (feature_key, cpu)
+
+
+    def crawl_gpu(self):
+        '''
+        nvidia-smi returns following: MEMORY, UTILIZATION, ECC, TEMPERATURE, 
+        POWER, CLOCK, COMPUTE, PIDS, PERFORMANCE, SUPPORTED_CLOCKS, PAGE_RETIREMENT, 
+        ACCOUNTING
+
+        currently, following are requested based on dlaas requirements: utilization.gpu
+        utilization.memory, memory.total, memory.free, memory.used
+        nvidia-smi --query-gpu=utilization.gpu,utilization.memory,memory.total,memory.free,memory.used --format=csv,noheader,nounits
+        '''
+
+        util_atttibutes = ['gpu','memory']
+        memory_atttibutes = ['total','free','used']
+
+        if not os.path.exists(NVIDIA_SMI):
+            return 
+
+        nvidia_smi_proc = subprocess.Popen([NVIDIA_SMI, '--query-gpu=utilization.gpu,utilization.memory,memory.total,memory.free,memory.used',
+                                            '--format=csv,noheader,nounits' ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        nvidia_smi_proc_out, nvidia_smi_proc_err = nvidia_smi_proc.communicate()
+
+        if nvidia_smi_proc.returncode > 0:
+            raise Exception('Unable to get gpu metrics')
+
+        metrics = nvidia_smi_proc_out.split('\n')
+        for i, val_str in enumerate(metrics):
+            if len(val_str) != 0:
+                values = val_str.split(',')
+                entry = {'utilization':{'gpu': values[0], 'memory': values[1]}, 
+                         'memory': {'total':values[2], 'free': values[3], 'used': values[4]}}
+                key = 'gpu{}'.format(i)
+                yield (key, entry)
+
+        return
 
     def _crawl_wrapper(self, _function, namespaces=ALL_NAMESPACES, *args):
         # TODO: add kwargs

@@ -252,6 +252,48 @@ class EmitterTests(unittest.TestCase):
         assert float(_output[1].split(' ')[1]) == 12345.0
         assert float(_output[2].split(' ')[1]) == 12345.0
 
+    def _test_emitter_graphite_nested_dict(self):
+        metadata = {}
+        metadata['namespace'] = 'namespace777'
+        with Emitter(urls=['stdout://'],
+                     emitter_args=metadata,
+                     format='graphite') as emitter:
+            emitter.emit("gpu0",
+                         {'memory': {
+                             'total': '11519', 
+                             'used': '55', 
+                             'free': '11464'
+                         }, 
+                             'utilization': {
+                             'gpu': '0', 
+                             'memory': ' 0'
+                         }
+                         },
+                         'gpu')
+
+    def test_emitter_graphite_nested_dict(self):
+        with Capturing() as _output:
+            self._test_emitter_graphite_nested_dict()
+        output = "%s" % _output
+        # should look like this:
+        # [
+        #    'namespace777.gpu0.utilization.memory 0.000000 1479812320',
+        #    'namespace777.gpu0.utilization.gpu 0.000000 1479812320',
+        #    'namespace777.gpu0.memory.total 11519.000000 1479812320',
+        #    'namespace777.gpu0.memory.free 11464.000000 1479812320',
+        #    'namespace777.gpu0.memory.used 55.000000 1479812320'
+        # ]
+
+        assert len(_output) == 5
+        assert 'namespace777.gpu0.utilization.memory' in output
+        assert 'namespace777.gpu0.utilization.gpu' in output
+        assert 'namespace777.gpu0.memory.total' in output
+        assert 'namespace777.gpu0.memory.free' in output
+        assert 'namespace777.gpu0.memory.used' in output
+        # all fields in graphite format
+        for line in _output:
+            assert len(line.split(' ')) == 3
+
     def test_emitter_unsupported_format(self):
         metadata = {}
         metadata['namespace'] = 'namespace777'

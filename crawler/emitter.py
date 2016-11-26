@@ -29,6 +29,40 @@ logger = logging.getLogger('crawlutils')
 # Kafka logs too much
 logging.getLogger('kafka').addHandler(NullHandler())
 
+def flatten_obj(obj, prefix=''):
+    results = {}
+    def flatten(obj, prefix, results):
+        if isinstance(obj, dict):
+            for key, val in obj.iteritems():
+                if isinstance(val, dict):
+                    if len(prefix) != 0:
+                        flatten(val, prefix+'.'+key, results)
+                    else:
+                        flatten(val, key, results)
+                elif isinstance(val, list):
+                    for i, j in enumerate(val):
+                        if len(prefix) != 0:
+                            flatten(j, prefix+'.'+key+'.'+str(i), results)
+                        else:
+                            flatten(j, key+'.'+str(i), results)
+                else:
+                    if len(prefix) != 0:
+                        results[prefix+'.'+key] = val
+                    else:
+                        results[key] = val
+        elif isinstance(obj, list):
+            for i, j in enumerate(obj):
+                if len(prefix) != 0:
+                    flatten(j, prefix+'.'+key+'.'+str(i), results)
+                else:
+                    flatten(j, key+'.'+str(i), results)
+        else:
+            if len(prefix) != 0:
+                results[prefix] = obj
+
+    flatten(obj, '', results)
+    return results
+
 def kafka_send(kurl, temp_fpath, format, topic, queue=None):
     try:
         kafka_python_client = kafka_python.KafkaClient(kurl)
@@ -122,7 +156,7 @@ class Emitter:
         timestamp=None,
     ):
         timestamp = int(timestamp or time.time())
-        items = data.items()
+        items = flatten_obj(data).items()
 
         # this is for issue #343
 

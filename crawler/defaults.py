@@ -66,6 +66,7 @@ DEFAULT_CRAWL_OPTIONS = {
     'interface': {},
     'cpu': {},
     'load': {},
+    'gpu': {},
     'dockerps': {},
     'dockerhistory': {},
     'dockerinspect': {},
