@@ -31,25 +31,30 @@ DEFAULT_LOG_FILES = [{'name': '/var/log/messages',
                       'type': None}, ]
 
 
-def list_docker_containers(container_opts={}, user_list='ALL'):
+def list_docker_containers(host_namespace='', user_list=None):
     """
     Get the list of running Docker containers, as `DockerContainer` objects.
-
     This is basically polling. Ideally, we should subscribe to Docker
     events so we can keep the containers list up to date without having to
     poll like this.
+
+    :param host_namespace: string representing the host name (e.g. host IP)
+    :param user_list: list of Docker container IDs. `None` means all
+    containers.
+    :return: a list of DockerContainer objects
     """
     for inspect in exec_dockerps():
         long_id = inspect['Id']
 
-        if user_list not in ['ALL', 'all', 'All']:
+        if user_list not in ['ALL', 'all', 'All', None]:
             user_ctrs = [cid[:12] for cid in user_list.split(',')]
             short_id = long_id[:12]
             if short_id not in user_ctrs:
                 continue
 
         try:
-            c = DockerContainer(long_id, inspect, container_opts)
+            c = DockerContainer(long_id, inspect=inspect,
+                                host_namespace=host_namespace)
             if c.namespace:
                 yield c
         except ContainerInvalidEnvironment as e:
@@ -87,7 +92,7 @@ class DockerContainer(Container):
         self,
         long_id,
         inspect=None,
-        container_opts={},
+        host_namespace='',
         process_namespace=None,
     ):
 
@@ -96,8 +101,6 @@ class DockerContainer(Container):
             raise TypeError('long_id should be a string')
         if inspect and not isinstance(inspect, dict):
             raise TypeError('inspect should be a dict.')
-        if container_opts and not isinstance(container_opts, dict):
-            raise TypeError('container_opts should be a dict.')
 
         if not inspect:
             try:
@@ -111,6 +114,7 @@ class DockerContainer(Container):
 
         assert(long_id == inspect['Id'])
         self.long_id = long_id
+        self.host_namespace = host_namespace
         self.pid = str(state['Pid'])
         self.name = inspect['Name']
         self.running = state['Running']
@@ -142,7 +146,7 @@ class DockerContainer(Container):
             self.root_fs = None
 
         self._set_logs_list_input()
-        self._set_environment_specific_options(container_opts)
+        self._set_environment_specific_options()
         self._set_logs_list()
 
     def _set_image_fields(self, repo_tag):
@@ -179,24 +183,32 @@ class DockerContainer(Container):
             ports.append(item.split('/')[0])
         return ports
 
-    def _set_environment_specific_options(self,
-                                          container_opts={}):
+    def get_metadata_dict(self):
+        metadata = super(DockerContainer, self).get_metadata_dict()
+        metadata['owner_namespace'] = self.owner_namespace
+        metadata['docker_image_long_name'] = self.docker_image_long_name
+        metadata['docker_image_short_name'] = self.docker_image_short_name
+        metadata['docker_image_tag'] = self.docker_image_tag
+        metadata['docker_image_registry'] = self.docker_image_registry
+
+        return metadata
+
+    def _set_environment_specific_options(self):
         """
         This function is used to setup these environment specific fields:
         namespace, log_prefix, and logfile_links.
-
-        The environment is defined by the --environment argument.
         """
 
         logger.info('setup_namespace_and_metadata: long_id=' +
                     self.long_id)
 
-        host_namespace = container_opts.get('host_namespace', 'undefined')
-
         try:
-            _options = {'root_fs': self.root_fs, 'type': 'docker',
-                        'name': self.name, 'host_namespace': host_namespace,
-                        'container_logs': DEFAULT_LOG_FILES}
+            _options = {
+                'root_fs': self.root_fs,
+                'type': 'docker',
+                'name': self.name,
+                'host_namespace': self.host_namespace,
+                'container_logs': DEFAULT_LOG_FILES}
             env = plugins_manager.get_runtime_env_plugin()
             namespace = env.get_container_namespace(
                 self.long_id, _options)

@@ -83,19 +83,48 @@ class Emitter:
     def __init__(
         self,
         urls,
-        emitter_args={},
+        metadata={},
         format='csv',
         max_emit_retries=9,
-        kafka_timeout_secs=30
+        kafka_timeout_secs=30,
+        snapshot_num=None,
+        compress=False,
+        extra_metadata={}
     ):
 
-        self.urls = urls
-        self.emitter_args = emitter_args
-        self.compress = emitter_args.get('compress', False)
+        self.metadata = metadata
+        self.metadata.update(extra_metadata)
+        self.compress = compress
         self.format = format
         self.max_emit_retries = max_emit_retries
         self.mtgclient = None
         self.kafka_timeout_secs = kafka_timeout_secs
+        self.system_type = self.metadata.get('system_type', 'host')
+        self.reformat_output_urls(urls, snapshot_num)
+
+    def reformat_output_urls(self, urls, snapshot_num):
+        """
+        Reformat output URLs to include the snapshot_num and the system name
+        """
+        if snapshot_num is None:
+            self.urls = urls
+        else:
+            if self.system_type in ['container', 'vm']:
+                output_urls = []
+                for url in urls:
+                    if url.startswith('file:'):
+                        if self.system_type == 'container':
+                            name = self.metadata['container_short_id']
+                        else:
+                            name = self.metadata['name']
+                        file_suffix = '{0}.{1}'.format(name, snapshot_num)
+                        output_urls.append('{0}.{1}'.format(url, file_suffix))
+                    else:
+                        output_urls.append(url)
+                self.urls = output_urls
+            else:
+                self.urls = [('{0}.{1}'.format(u, snapshot_num)
+                              if u.startswith('file:') else u) for u in urls]
 
     def __enter__(self):
         (self.temp_fd, self.temp_fpath) = \
@@ -158,19 +187,12 @@ class Emitter:
             self.emitfile.write(tmp_message)
 
     def _emit_metadata_feature(self):
-        metadata = copy.deepcopy(self.emitter_args)
+        metadata = copy.deepcopy(self.metadata)
 
         # Update timestamp to the actual emit time
 
         metadata['timestamp'] = \
             time.strftime('%Y-%m-%dT%H:%M:%S%z')
-        if 'extra' in metadata:
-            del metadata['extra']
-            if self.emitter_args['extra']:
-                metadata.update(json.loads(self.emitter_args['extra'
-                                                             ]))
-        if 'extra_all_features' in metadata:
-            del metadata['extra_all_features']
         if self.format == 'csv' or self.format == 'json':
             self.csv_writer.writerow(
                 ['metadata',
@@ -194,11 +216,6 @@ class Emitter:
         else:
             feature_val_as_dict = feature_val._asdict()
 
-        if 'extra' in self.emitter_args and self.emitter_args['extra'] \
-                and 'extra_all_features' in self.emitter_args \
-                and self.emitter_args['extra_all_features']:
-            feature_val_as_dict.update(json.loads(self.emitter_args['extra'
-                                                                    ]))
         if self.format == 'csv' or self.format == 'json':
             self.csv_writer.writerow(
                 [feature_type,
@@ -206,8 +223,8 @@ class Emitter:
                  json.dumps(feature_val_as_dict,
                             separators=(',', ':'))])
         elif self.format == 'graphite':
-            if 'namespace' in self.emitter_args:
-                namespace = self.emitter_args['namespace']
+            if 'namespace' in self.metadata:
+                namespace = self.metadata['namespace']
             else:
                 namespace = 'undefined'
             self.emit_dict_as_graphite(
@@ -241,7 +258,7 @@ class Emitter:
         for attempt in range(max_emit_retries):
             try:
                 response = requests.post(url, headers=headers,
-                                         params=self.emitter_args,
+                                         params=self.metadata,
                                          data=payload)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)

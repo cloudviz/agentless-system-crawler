@@ -17,7 +17,8 @@ def crawl_files(
         root_dir_alias=None,
         accessed_since=0):
 
-    root_dir = str(root_dir)
+    if not os.path.isdir(root_dir):
+        return
 
     saved_args = locals()
     logger.debug('crawl_files: %s' % (saved_args))

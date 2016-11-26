@@ -11,22 +11,29 @@ from dockercontainer import list_docker_containers
 logger = logging.getLogger('crawlutils')
 
 
-def list_all_containers(user_list='ALL',
-                        container_opts={},
-                        ):
+def list_all_containers(user_list='ALL', host_namespace='',
+                        ignore_raw_containers=True):
     """
-    Returns a list of all running containers, as `Container` objects.
+    Returns a list of all running containers in the host.
 
-    A running container is defined as a process subtree with the `pid`
-    namespace different to the `init` process `pid` namespace.
+    :param user_list: list of Docker container IDs. TODO: include rkt Ids.
+    :param host_namespace: string representing the host name (e.g. host IP)
+    :param ignore_raw_containers: if True, only include Docker or rkt.
+    An example of a non-docker container is a chromium-browser process.
+    :return: a list of Container objects
     """
     visited_ns = set()  # visited PID namespaces
 
-    for _container in list_docker_containers(container_opts, user_list):
+    for _container in list_docker_containers(host_namespace, user_list):
         curr_ns = _container.process_namespace
         if curr_ns not in visited_ns:
             visited_ns.add(curr_ns)
             yield _container
+
+    # XXX get list of rkt containers
+
+    if ignore_raw_containers:
+        return
 
     for _container in container.list_raw_containers(user_list):
         curr_ns = _container.process_namespace
@@ -35,53 +42,34 @@ def list_all_containers(user_list='ALL',
             yield _container
 
 
-def get_filtered_list_of_containers(
+def get_containers(
     environment='cloudsight',
     host_namespace=misc.get_host_ipaddr(),
     user_list='ALL',
-    partition_strategy={'name': 'equally_by_pid',
-                        'args': {'process_id': 0,
-                                 'num_processes': 1}}
+    ignore_raw_containers=True
 ):
     """
-    Returns a partition of all the Container objects currently running in the
-    system and set the `namespace` and metadata of these containers.
+    Returns a list of all containers running in the host.
 
-    The partitioning is given by `partition_strategy`.
+    XXX This list excludes non-docker containers when running in non-cloudsight
+    environment. TODO: fix this weird behaviour.
+
+    :param environment: this defines how the name (namespace) is constructed.
+    :param host_namespace: string representing the host name (e.g. host IP)
+    :param user_list: list of Docker container IDs. TODO: include rkt.
+    :param ignore_raw_containers: if True, only include Docker or rkt.
+    An example of a non-docker container is a chromium-browser process.
+    :return: a list of Container objects.
     """
-
-    container_opts = {'host_namespace': host_namespace,
-                      'environment': environment,
-                      }
-
-    assert(partition_strategy['name'] == 'equally_by_pid')
-    process_id = partition_strategy['args']['process_id']
-    num_processes = partition_strategy['args']['num_processes']
-
     filtered_list = []
-    containers_list = list_all_containers(user_list, container_opts)
+    containers_list = list_all_containers(user_list, host_namespace,
+                                          ignore_raw_containers)
     for _container in containers_list:
-
-        """
-        There are docker and non-docker containers in this list. An example of
-        a non-docker container is a chromium-browser process.
-        TODO(kollerr): the logic that defines whether a container is acceptable
-        to a plugin or not should be in the plugin itself.
-        """
-
         default_environment = 'cloudsight'
         if (environment != default_environment and
                 not _container.is_docker_container()):
             continue
 
-        """
-        The partition strategy is to split all the containers equally by
-        process pid. We do it by hashing the long_id of the container.
-        """
-
-        _hash = _container.long_id
-        num = int(_hash, 16) % int(num_processes)
-        if num == process_id:
-            filtered_list.append(_container)
+        filtered_list.append(_container)
 
     return filtered_list

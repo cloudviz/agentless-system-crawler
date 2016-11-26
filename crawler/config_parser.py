@@ -26,17 +26,6 @@ def parse_crawler_config(config_path='crawler.conf'):
     _config.validate(vdt)
 
 
-def apply_user_args(options={}, params={}):
-    global _config
-
-    try:
-        # apply global configs
-        if 'compress' in options:
-            _config['general']['compress'] = options['compress']
-    except KeyError as exc:
-        logger.warning('Can not apply users --options configuration: %s' % exc)
-
-
 def get_config():
     global _config
 

@@ -3,10 +3,11 @@
 import os
 import sys
 import inspect
-import logging
 import socket
 import subprocess
 import psutil
+import logging
+import logging.handlers
 
 # Additional modules
 
@@ -15,6 +16,25 @@ import psutil
 from netifaces import interfaces, ifaddresses, AF_INET
 
 logger = logging.getLogger('crawlutils')
+
+
+def setup_logger(logger_name, logfile='crawler.log'):
+    """
+    Setup a logger node called logger_name with rotation every 10MBs.
+
+    :param logger_name: logger node
+    :param logfile: filename for the log
+    :return: a logger object
+    """
+    _logger = logging.getLogger(logger_name)
+    _logger.setLevel(logging.INFO)
+    h = logging.handlers.RotatingFileHandler(filename=logfile,
+                                             maxBytes=10e6, backupCount=1)
+    f = logging.Formatter(
+        '%(asctime)s %(processName)-10s %(levelname)-8s %(message)s')
+    h.setFormatter(f)
+    _logger.addHandler(h)
+    return _logger
 
 
 def subprocess_run(cmd, ignore_failure=False, shell=True):
