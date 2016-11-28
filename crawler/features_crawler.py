@@ -1313,14 +1313,17 @@ class FeaturesCrawler:
         nvidia-smi --query-gpu=utilization.gpu,utilization.memory,memory.total,memory.free,memory.used --format=csv,noheader,nounits
         '''
 
-        util_atttibutes = ['gpu','memory']
-        memory_atttibutes = ['total','free','used']
-
         if not os.path.exists(NVIDIA_SMI):
-            return 
+            return
 
-        nvidia_smi_proc = subprocess.Popen([NVIDIA_SMI, '--query-gpu=utilization.gpu,utilization.memory,memory.total,memory.free,memory.used',
-                                            '--format=csv,noheader,nounits' ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        params = ['utilization.gpu', 'utilization.memory', 'memory.total',
+                  'memory.free', 'memory.used', 'temperature.gpu', 'power.draw',
+                  'power.limit']
+
+        nvidia_smi_proc = subprocess.Popen([NVIDIA_SMI,
+                                            '--query-gpu={}'.format(','.join(params)),
+                                            '--format=csv,noheader,nounits' ],
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         nvidia_smi_proc_out, nvidia_smi_proc_err = nvidia_smi_proc.communicate()
 
         if nvidia_smi_proc.returncode > 0:
@@ -1330,11 +1333,13 @@ class FeaturesCrawler:
         for i, val_str in enumerate(metrics):
             if len(val_str) != 0:
                 values = val_str.split(',')
-                entry = {'utilization':{'gpu': values[0], 'memory': values[1]}, 
-                         'memory': {'total':values[2], 'free': values[3], 'used': values[4]}}
+                entry = {'utilization':{'gpu': values[0], 'memory': values[1]},
+                         'memory': {'total':values[2], 'free': values[3], 'used': values[4]},
+                         'temperature':values[5],
+                         'power':{'draw': values[6], 'limit':values[7]}
+                         }
                 key = 'gpu{}'.format(i)
                 yield (key, entry)
-
         return
 
     def _crawl_wrapper(self, _function, namespaces=ALL_NAMESPACES, *args):
