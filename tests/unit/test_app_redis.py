@@ -156,7 +156,7 @@ class RedisContainerCrawlTests(TestCase):
         c = RedisContainerCrawler()
         self.assertEqual(c.get_feature(), "application")
 
-    @mock.patch('dockercontainer.DockerContainer',
+    @mock.patch('crawler.dockercontainer.DockerContainer',
                 MockedRedisContainer1)
     @mock.patch('redis.Redis', MockedRedisClient)
     def test_redis_container_crawler(self):
@@ -168,7 +168,7 @@ class RedisContainerCrawlTests(TestCase):
         self.assertEqual(emitted_tuple[2], "application",
                          "feature type must be equal to application")
 
-    @mock.patch('dockercontainer.DockerContainer',
+    @mock.patch('crawler.dockercontainer.DockerContainer',
                 MockedRedisContainer2)
     def test_none_redis_container_crawler(self):
         c = RedisContainerCrawler()
