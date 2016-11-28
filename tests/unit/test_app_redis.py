@@ -156,6 +156,7 @@ class MockedRedisContainer3(object):
         ports = []
         return ports
 
+
 class MockedRedisContainer4(object):
 
     def __init__(
@@ -221,7 +222,7 @@ class RedisContainerCrawlTests(TestCase):
                 MockedRedisContainer4)
     @mock.patch('redis.Redis', MockedRedisClient2)
     def test_no_available_ports(self):
-        c = RedisHostCrawler()
+        c = RedisContainerCrawler()
         with self.assertRaises(ConnectionError):
             c.crawl("mockcontainerid")
 
