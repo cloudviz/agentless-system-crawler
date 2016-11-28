@@ -53,3 +53,6 @@ class RedisContainerCrawler(IContainerCrawler):
                 continue
             feature_attributes = feature.create_feature(metrics)
             return [(self.feature_key, feature_attributes, self.feature_type)]
+
+        # any ports are not available
+        raise ConnectionError("no listen ports")

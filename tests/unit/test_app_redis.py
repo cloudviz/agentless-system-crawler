@@ -5,6 +5,7 @@ from crawler.plugins.applications.redis.redis_host_crawler \
     import RedisHostCrawler
 from crawler.plugins.applications.redis.redis_container_crawler \
     import RedisContainerCrawler
+from requests.exceptions import ConnectionError
 
 
 class MockedRedisClient(object):
@@ -98,6 +99,16 @@ class MockedRedisClient(object):
         return metrics
 
 
+class MockedRedisClient2(object):
+
+    def __init__(self, host='localhost', port=6379):
+        self.host = host
+        self.port = port
+
+    def info(self):
+        raise ConnectionError()
+
+
 class MockedRedisContainer1(object):
 
     def __init__(
@@ -127,6 +138,22 @@ class MockedRedisContainer2(object):
 
     def get_container_ports(self):
         ports = ["6379"]
+        return ports
+
+
+class MockedRedisContainer3(object):
+
+    def __init__(
+            self,
+            container_id,
+    ):
+        self.image_name = 'redis-no-ports'
+
+    def get_container_ip(self):
+        return "1.2.3.4"
+
+    def get_container_ports(self):
+        ports = []
         return ports
 
 
@@ -175,6 +202,21 @@ class RedisContainerCrawlTests(TestCase):
         with self.assertRaises(NameError):
             c.crawl("mockcontainerid")
 
+    @mock.patch('redis.Redis', MockedRedisClient2)
+    def test_no_redis_connection(self):
+        c = RedisHostCrawler()
+        with self.assertRaises(ConnectionError):
+            c.crawl("mockcontainerid")
+
+    @mock.patch('crawler.dockercontainer.DockerContainer',
+                MockedRedisContainer3)
+    @mock.patch('redis.Redis', MockedRedisClient)
+    def test_set_default_port(self):
+        c = RedisContainerCrawler()
+        emitted_tuple = c.crawl("mockcontainerid")[0]
+        self.assertEqual(emitted_tuple[0], "redis",
+                         "feature key must be equal to redis")
+
 
 class RedisHostCrawlTests(TestCase):
 
@@ -197,3 +239,9 @@ class RedisHostCrawlTests(TestCase):
             self.assertIsInstance(emitted_tuple[1], RedisFeature)
             self.assertEqual(emitted_tuple[2], "application",
                              "feature type must be equal to application")
+
+    @mock.patch('redis.Redis', MockedRedisClient2)
+    def test_no_redis_connection(self):
+        c = RedisHostCrawler()
+        with self.assertRaises(ConnectionError):
+            c.crawl()

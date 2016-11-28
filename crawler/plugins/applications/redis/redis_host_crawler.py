@@ -31,7 +31,7 @@ class RedisHostCrawler(IHostCrawler):
             metrics = client.info()
         except ConnectionError:
             logger.info("redis does not listen on port:%d", self.default_port)
-            return
+            raise ConnectionError("no listen at %d", self.default_port)
 
         feature_attributes = feature.create_feature(metrics)
 
