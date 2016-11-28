@@ -1315,20 +1315,20 @@ class FeaturesCrawler:
 
         if not os.path.exists(NVIDIA_SMI):
             return
-    
+
         params = ['utilization.gpu', 'utilization.memory', 'memory.total',
                   'memory.free', 'memory.used', 'temperature.gpu', 'power.draw',
                   'power.limit']
-    
+
         nvidia_smi_proc = subprocess.Popen([NVIDIA_SMI,
-                    '--query-gpu={}'.format(','.join(params)),
-                    '--format=csv,noheader,nounits' ],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                            '--query-gpu={}'.format(','.join(params)),
+                                            '--format=csv,noheader,nounits' ],
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         nvidia_smi_proc_out, nvidia_smi_proc_err = nvidia_smi_proc.communicate()
-    
+
         if nvidia_smi_proc.returncode > 0:
             raise Exception('Unable to get gpu metrics')
-    
+
         metrics = nvidia_smi_proc_out.split('\n')
         for i, val_str in enumerate(metrics):
             if len(val_str) != 0:
