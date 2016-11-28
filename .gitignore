@@ -10,3 +10,4 @@ eggs/
 .eggs/
 .coverage*
 .idea
+.DS_Store

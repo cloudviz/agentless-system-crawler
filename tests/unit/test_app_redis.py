@@ -1,42 +1,18 @@
 import mock
 from unittest import TestCase
-# from crawler.plugins.applications.redis import feature
-# from crawler.plugins.applications.redis.redis_host_crawler import RedisHostCrawler
+from plugins.applications.redis.feature import RedisFeature
+from plugins.applications.redis.redis_host_crawler import RedisHostCrawler
+from plugins.applications.redis.redis_container_crawler \
+    import RedisContainerCrawler
 
 
-class RedisCrawlingTests(TestCase):
+class MockedRedisClient(object):
 
-    def setUp(self):
-        pass
+    def __init__(self, host='localhost', port=6379):
+        self.host = host
+        self.port = port
 
-    def tearDown(self):
-        pass
-
-    def test_redis_module(self):
-        import redis
-        v = redis.VERSION
-        self.assertIsNotNone(v, "redis module does not exist")
-
-
-class RedisCrawlingHostTests(TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    '''
-    def test_redis_host_crawling(self):
-        with mock.patch('redis.Redis.info', side_effect=self.mockedinfo):
-            c = RedisHostCrawler()
-            emitted_tuple = c.crawl()[0]
-            self.assertEqual(emitted_tuple[0], "redis", "feature key must be equal to redis")
-            self.assertIsInstance(emitted_tuple[1], crawler.plugins.applications.redis.feature.RedisFeature)
-            self.assertEqual(emitted_tuple[2], "application", "feature type must be equal to application")
-    '''
-
-    def mockedinfo(self):
+    def info(self):
         metrics = {
             "aof_current_rewrite_time_sec": -1,
             "aof_enabled": 0,
@@ -120,3 +96,103 @@ class RedisCrawlingHostTests(TestCase):
         }
         return metrics
 
+
+class MockedRedisContainer1(object):
+
+    def __init__(
+            self,
+            container_id,
+    ):
+        self.image_name = 'redis-container'
+
+    def get_container_ip(self):
+        return "1.2.3.4"
+
+    def get_container_ports(self):
+        ports = ["6379"]
+        return ports
+
+
+class MockedRedisContainer2(object):
+
+    def __init__(
+            self,
+            container_id,
+    ):
+        self.image_name = 'dummy'
+
+    def get_container_ip(self):
+        return "1.2.3.4"
+
+    def get_container_ports(self):
+        ports = ["6379"]
+        return ports
+
+
+class RedisModuleTests(TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_redis_module(self):
+        import redis
+        v = redis.VERSION
+        self.assertIsNotNone(v, "redis module does not exist")
+
+
+class RedisContainerCrawlTests(TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_feature(self):
+        c = RedisContainerCrawler()
+        self.assertEqual(c.get_feature(), "application")
+
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedRedisContainer1)
+    @mock.patch('redis.Redis', MockedRedisClient)
+    def test_redis_container_crawler(self):
+        c = RedisContainerCrawler()
+        emitted_tuple = c.crawl("mockcontainerid")[0]
+        self.assertEqual(emitted_tuple[0], "redis",
+                         "feature key must be equal to redis")
+        self.assertIsInstance(emitted_tuple[1], RedisFeature)
+        self.assertEqual(emitted_tuple[2], "application",
+                         "feature type must be equal to application")
+
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedRedisContainer2)
+    def test_none_redis_container_crawler(self):
+        c = RedisContainerCrawler()
+        with self.assertRaises(NameError):
+            c.crawl("mockcontainerid")
+
+
+class RedisHostCrawlTests(TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_feature(self):
+        c = RedisHostCrawler()
+        self.assertEqual(c.get_feature(), "application")
+
+    def test_redis_host_crawler(self):
+        with mock.patch('redis.Redis', MockedRedisClient):
+            c = RedisHostCrawler()
+            emitted_tuple = c.crawl()[0]
+            self.assertEqual(emitted_tuple[0], "redis",
+                             "feature key must be equal to redis")
+            self.assertIsInstance(emitted_tuple[1], RedisFeature)
+            self.assertEqual(emitted_tuple[2], "application",
+                             "feature type must be equal to application")

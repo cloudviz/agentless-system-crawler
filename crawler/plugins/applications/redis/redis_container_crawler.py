@@ -1,7 +1,7 @@
 from icrawl_plugin import IContainerCrawler
-from dockercontainer import DockerContainer
 from plugins.applications.redis import feature
 from requests.exceptions import ConnectionError
+import dockercontainer
 import redis
 import logging
 
@@ -24,11 +24,11 @@ class RedisContainerCrawler(IContainerCrawler):
     def crawl(self, container_id=None, **kwargs):
 
         # only crawl redis container. Otherwise, quit.
-        c = DockerContainer(container_id)
+        c = dockercontainer.DockerContainer(container_id)
         if c.image_name.find(self.feature_key) == -1:
             logger.debug("%s is not %s container" %
                          (c.image_name, self.feature_key))
-            return
+            raise NameError("this is not target crawl container")
 
         # extract IP and Port information
         ip = c.get_container_ip()
