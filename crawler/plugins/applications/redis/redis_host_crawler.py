@@ -1,5 +1,9 @@
-from icrawl_plugin import IHostCrawler
-from plugins.applications.redis import feature
+try:
+    from icrawl_plugin import IHostCrawler
+    from plugins.applications.redis import feature
+except ImportError:
+    from crawler.icrawl_plugin import IHostCrawler
+    from crawler.plugins.applications.redis import feature
 from requests.exceptions import ConnectionError
 import redis
 import logging
@@ -27,7 +31,7 @@ class RedisHostCrawler(IHostCrawler):
             metrics = client.info()
         except ConnectionError:
             logger.info("redis does not listen on port:%d", self.default_port)
-            return
+            raise ConnectionError("no listen at %d", self.default_port)
 
         feature_attributes = feature.create_feature(metrics)
 
