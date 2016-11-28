@@ -1,8 +1,9 @@
 import mock
 from unittest import TestCase
-from plugins.applications.redis.feature import RedisFeature
-from plugins.applications.redis.redis_host_crawler import RedisHostCrawler
-from plugins.applications.redis.redis_container_crawler \
+from crawler.plugins.applications.redis.feature import RedisFeature
+from crawler.plugins.applications.redis.redis_host_crawler \
+    import RedisHostCrawler
+from crawler.plugins.applications.redis.redis_container_crawler \
     import RedisContainerCrawler
 
 
