@@ -18,9 +18,7 @@ def _crawl_metrics_cpu_percent(process):
 def crawl_metrics():
     created_since = -1
 
-    list = psutil.process_iter()
-
-    for p in list:
+    for p in psutil.process_iter():
         create_time = (
             p.create_time() if hasattr(
                 p.create_time,

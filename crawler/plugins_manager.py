@@ -16,6 +16,8 @@ vm_crawl_plugins = []
 host_crawl_plugins = []
 
 
+# XXX make this a class
+
 def get_plugin_args(plugin, config, options):
     plugin_args = {}
 
@@ -36,7 +38,8 @@ def get_plugin_args(plugin, config, options):
     try:
         if options['avoid_setns'] is True:
             plugin_args['avoid_setns'] = options['avoid_setns']
-        plugin_args['root_dir'] = options['mountpoint']
+        if options['mountpoint'] != '/':
+            plugin_args['root_dir'] = options['mountpoint']
     except KeyError as exc:
         logger.warning(
             'Can not apply users --options configuration: %s' % exc)
@@ -48,11 +51,10 @@ def _load_plugins(
         category_filter={},
         filter_func=lambda *arg: True,
         features=['os', 'cpu'],
+        plugin_places=['plugins'],
         options={}):
 
     pm = PluginManager(plugin_info_ext='plugin')
-
-    plugin_places = options.get('plugin_places', ['plugins'])
 
     # Normalize the paths to the location of this file.
     # XXX-ricarkol: there has to be a better way to do this.
@@ -83,10 +85,8 @@ def _load_plugins(
             yield (plugin.plugin_object, plugin_args)
 
 
-def reload_env_plugin(options={}):
+def reload_env_plugin(environment='cloudsight', plugin_places=['plugins']):
     global runtime_env
-
-    environment = options.get('environment', 'cloudsight')
 
     _plugins = list(
         _load_plugins(
@@ -97,7 +97,7 @@ def reload_env_plugin(options={}):
     try:
         (runtime_env, unused_args) = _plugins[0]
     except (TypeError, IndexError):
-        plugin_places = options.get('plugin_places', ['plugins'])
+        plugin_places = plugin_places
         raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
                                                'environment plugin at %s' %
                                                (environment, plugin_places))
@@ -123,6 +123,7 @@ def plugin_selection_filter(
 
 def reload_container_crawl_plugins(
         features=['os', 'cpu'],
+        plugin_places=['plugins'],
         options={}):
     global container_crawl_plugins
 
@@ -132,11 +133,13 @@ def reload_container_crawl_plugins(
                 "crawler": IContainerCrawler},
             filter_func=plugin_selection_filter,
             features=features,
+            plugin_places=plugin_places,
             options=options))
 
 
 def reload_vm_crawl_plugins(
         features=['os', 'cpu'],
+        plugin_places=['plugins'],
         options={}):
     global vm_crawl_plugins
 
@@ -146,11 +149,13 @@ def reload_vm_crawl_plugins(
                 "crawler": IVMCrawler},
             filter_func=plugin_selection_filter,
             features=features,
+            plugin_places=plugin_places,
             options=options))
 
 
 def reload_host_crawl_plugins(
         features=['os', 'cpu'],
+        plugin_places=['plugins'],
         options={}):
     global host_crawl_plugins
 
@@ -160,6 +165,7 @@ def reload_host_crawl_plugins(
                 "crawler": IHostCrawler},
             filter_func=plugin_selection_filter,
             features=features,
+            plugin_places=plugin_places,
             options=options))
 
 

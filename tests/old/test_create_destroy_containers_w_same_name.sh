@@ -32,22 +32,16 @@ rm -f /tmp/$NAME*
 rm -rf /var/log/crawler_container_logs/$HOST_IP/$NAME/
 docker rm -f $NAME 2> /dev/null > /dev/null
 
-MSG=`uuid`
+MSG=`uuidgen`
 docker run -d --name $NAME ubuntu bash -c "echo $MSG ; sleep 1000" 2> /dev/null > /dev/null
 ID1=`docker ps | grep $NAME | awk '{print $1}'`
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
-	--features=cpu,interface --url file:///tmp/`uuid` \
-	--linkContainerLogFiles --frequency 1 --numprocesses 4 \
-	--url file:///tmp/$NAME --format graphite &
+python2.7  ../../crawler/containers_logs_linker.py --frequency 1 &
 PID=$!
 sleep 3
 
 # By now the log should be there
 COUNT=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log`
-
-# Also, there should be cpu, and interface metrics for the container
-COUNT_METRICS=`grep -l eth0 /tmp/${NAME}.${ID1}.* | wc -l`
 
 # after this, the log will disappear
 docker rm -f $NAME 2> /dev/null > /dev/null
@@ -55,7 +49,7 @@ docker rm -f $NAME 2> /dev/null > /dev/null
 sleep 3
 
 # By now the container should be dead, and the link should be deleted
-if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log ] && [ ${COUNT_METRICS} -gt "0" ]
+if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log ]
 then
 	:
 	#echo 1
@@ -70,7 +64,7 @@ fi
 sleep 3
 
 # Now start a container with the same name
-MSG=`uuid`
+MSG=`uuidgen`
 docker run -d --name $NAME ubuntu bash -c "echo $MSG ; sleep 1000" 2> /dev/null > /dev/null
 # Although this is a container with teh same name, the ID is not the same
 ID2=`docker ps | grep $NAME | awk '{print $1}'`
@@ -80,16 +74,13 @@ sleep 3
 # By now the log should be there
 COUNT=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log`
 
-# Also, there should be cpu, and interface metrics for the container
-COUNT_METRICS=`grep -l eth0 /tmp/${NAME}.${ID2}.* | wc -l`
-
 # after this, the log will disappear
 docker rm -f $NAME 2> /dev/null > /dev/null
 
 sleep 3
 
 # By now the container should be dead, and the link should be deleted
-if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log ] && [ ${COUNT_METRICS} -gt "0" ]
+if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/docker.log ]
 then
 	echo 1
 else

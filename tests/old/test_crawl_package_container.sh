@@ -13,7 +13,7 @@ docker run -d --name test_crawl_package_container_1 ubuntu sleep 60 2> /dev/null
 ID=`docker inspect -f '{{ .Id }}' test_crawl_package_container_1`
 
 
-COUNT=`python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
+COUNT=`python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=package --crawlContainers $ID | grep ^package | grep -c ubuntu`
 
 docker rm -f test_crawl_package_container_1 > /dev/null

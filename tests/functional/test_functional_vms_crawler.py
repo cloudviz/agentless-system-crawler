@@ -6,13 +6,12 @@ import time
 
 # Tests for crawlers in kraken crawlers configuration.
 
-import crawler.crawlutils
-import crawler.config_parser
+from crawler.vms_crawler import VirtualMachinesCrawler
 
 # Tests conducted with a single container running.
 
 
-class CrawlutilsVMTest(unittest.TestCase):
+class VirtualMachinesCrawlerTests(unittest.TestCase):
 
     SETUP_ONCE = False
 
@@ -73,54 +72,34 @@ class CrawlutilsVMTest(unittest.TestCase):
                 break
 
     def create_vms(self):
-        for vmID in CrawlutilsVMTest.vmIDs:
+        for vmID in VirtualMachinesCrawlerTests.vmIDs:
             self.create_vm_via_bash(vmID)
 
     @classmethod
     def teardown_class(cls):
-        for vmID in CrawlutilsVMTest.vmIDs:
+        for vmID in VirtualMachinesCrawlerTests.vmIDs:
             subprocess.call(["kill", "-9", vmID[4]])
 
     def setUp(self):
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
-        if CrawlutilsVMTest.SETUP_ONCE is False:
+        if VirtualMachinesCrawlerTests.SETUP_ONCE is False:
             self.create_vms()
-            CrawlutilsVMTest.SETUP_ONCE = True
+            VirtualMachinesCrawlerTests.SETUP_ONCE = True
 
     def testCrawlVM1(self):
-        os.makedirs(self.tempd + '/out')
-
-        options = {'vm_list': [
+        vm_list = [
             'vm2,4.0.3.x86_64,vanilla,x86_64',
             'vm3,3.2.0-101-generic_3.2.0-101.x86_64,ubuntu,x86_64',
-            'vm4,3.13.0-24-generic_3.13.0-24.x86_64,ubuntu,x86_64'],
-            'memory': {},
-            'interface': {}}
-
-        features = ['memory', 'interface']
-        crawler.config_parser.apply_user_args(
-            options=options, params={'features': features})
-        crawler.plugins_manager.reload_vm_crawl_plugins(
-            features=features
-        )
-
-        crawler.crawlutils.snapshot_vms(urls=[
-            'file://' + self.tempd + '/out/crawler'],
-            features=features,
-            format='graphite',
-            options=options)
-
-        subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
-
-        files = os.listdir(self.tempd + '/out')
-        assert len(files) == len(CrawlutilsVMTest.vmIDs)
-
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
+            'vm4,3.13.0-24-generic_3.13.0-24.x86_64,ubuntu,x86_64']
+        crawler = VirtualMachinesCrawler(features=['os', 'memory', 'interface', 'process'],
+                                         user_list=vm_list)
+        frames = list(crawler.crawl())
+        output = str(frames[0])
         print output  # only printed if the test fails
-        assert 'memory.memory-used' in output
-        assert 'interface-lo.if_octets.tx' in output
-        f.close()
+        assert 'interface-lo' in output
+        assert 'if_octets_tx=' in output
+        assert 'memory' in output
+        assert 'memory_buffered=' in output
 
     def testCrawlVM2(self):
         env = os.environ.copy()
@@ -148,7 +127,7 @@ class CrawlutilsVMTest(unittest.TestCase):
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
         files = os.listdir(self.tempd + '/out')
-        assert len(files) == len(CrawlutilsVMTest.vmIDs)
+        assert len(files) == len(VirtualMachinesCrawlerTests.vmIDs)
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()

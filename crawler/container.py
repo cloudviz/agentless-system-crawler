@@ -50,12 +50,7 @@ class Container(object):
     This class abstracts a running Linux container.
     """
 
-    def __init__(
-        self,
-        pid,
-        container_opts={},
-        process_namespace=None,
-    ):
+    def __init__(self, pid, process_namespace=None):
         self.pid = str(pid)
         self.short_id = str(hash(pid))
         self.long_id = str(hash(pid))
@@ -68,14 +63,17 @@ class Container(object):
         self.process_namespace = (process_namespace or
                                   namespace.get_pid_namespace(pid))
 
-        # XXX(kollerr): when running in alchemy environment, non-alchemy
-        # containres should be ignored
-
     def __eq__(self, other):
         """
         A container is equal to another if they have the same PID
         """
-        return self.pid == other.pid
+        if isinstance(other, Container):
+            return self.pid == other.pid
+        else:
+            return False
+
+    def __hash__(self):
+        return 1
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -85,6 +83,16 @@ class Container(object):
 
     def __str__(self):
         return str(self.__dict__)
+
+    def get_metadata_dict(self):
+        metadata = {
+            'namespace': self.namespace,
+            'container_long_id': self.long_id,
+            'container_short_id': self.short_id,
+            'container_name': self.name,
+            'container_image': self.image,
+        }
+        return metadata
 
     def get_memory_cgroup_path(self, node='memory.stat'):
         raise NotImplementedError()
@@ -96,7 +104,9 @@ class Container(object):
         return os.path.exists('/proc/' + self.pid)
 
     def link_logfiles(self):
-        raise NotImplementedError()
+        # no-op
+        pass
 
     def unlink_logfiles(self):
-        raise NotImplementedError()
+        # no-op
+        pass

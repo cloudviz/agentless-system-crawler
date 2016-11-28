@@ -23,7 +23,7 @@ IDS=`docker ps | grep test_crawl_cpu_many_containers | awk '{printf "%s,",  $1}'
 
 rm  -f *.log
 
-COUNT2=`python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
+COUNT2=`python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $IDS --numprocesses 2 \
         --logfile ${LOG_FILE}.log | grep -c cpu-0`
 

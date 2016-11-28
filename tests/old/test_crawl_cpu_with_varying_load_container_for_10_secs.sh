@@ -57,7 +57,7 @@ sleep 10
 # start crawling after sleeping 10 seconds, for another 15 seconds.  So, we
 # should collect this: 5 seconds of 0 network activity, followed by 5 seconds
 # of activity, and then no activity.
-timeout 15 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
+timeout 15 python2.7 ../../crawler/crawler.py --crawlmode OUTCONTAINER \
 	--features=cpu --crawlContainers $ID --frequency 1 | \
 	grep cpu-0 | awk '{print $3}' | python2.7 -c "${PARSE_CPU_FRAMES_PY}"
 

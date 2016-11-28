@@ -32,13 +32,10 @@ rm -f /tmp/$NAME*
 rm -rf /var/log/crawler_container_logs/$HOST_IP/$NAME/
 docker rm -f $NAME 2> /dev/null > /dev/null
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
-	--features=cpu,interface --url file:///tmp/`uuid` \
-	--linkContainerLogFiles --frequency 1 --numprocesses 4 \
-	--url file:///tmp/$NAME --format graphite & #2>/dev/null &
+python2.7  ../../crawler/containers_logs_linker.py --frequency 1 &
 PID=$!
 
-MSG=`uuid`
+MSG=`uuidgen`
 docker run -d --name $NAME ubuntu bash -c "echo $MSG >> /var/log/messages; sleep 5" 2> /dev/null > /dev/null
 ID1=`docker ps | grep $NAME | awk '{print $1}'`
 
@@ -47,14 +44,11 @@ sleep 2
 # By now the log should be there
 COUNT=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages`
 
-# Also, there should be cpu, and interface metrics for the container
-COUNT_METRICS=`grep -l eth0 /tmp/${NAME}.${ID1}.* | wc -l`
-
 # after this, the log will disappear
 sleep 5
 
 # By now the container should be dead, and the link should be deleted
-if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages ] && [ ${COUNT_METRICS} -gt "0" ]
+if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages ]
 then
 	:
 	#echo 1
@@ -68,7 +62,7 @@ fi
 sleep 3
 
 # Now start a container with the same name
-MSG=`uuid`
+MSG=`uuidgen`
 # As the --ephemeral option to docker might not be available, let's make sure
 # the container is removed (even if it already exited)
 docker rm -f $NAME 2> /dev/null > /dev/null
@@ -81,14 +75,11 @@ sleep 2
 # By now the log should be there
 COUNT=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages`
 
-# Also, there should be cpu, and interface metrics for the container
-COUNT_METRICS=`grep -l eth0 /tmp/${NAME}.${ID2}.* | wc -l`
-
 # after this, the log will disappear
 sleep 5
 
 # By now the container should be dead, and the link should be deleted
-if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages  ] && [ ${COUNT_METRICS} -gt "0" ]
+if [ $COUNT == "1" ] && [ ! -f /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages  ]
 then
 	echo 1
 else

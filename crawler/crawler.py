@@ -1,31 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#
-# Wrapper around the crawlutils module that provides:
-# (a) an autonomous push mode via command-line invocation, and
-# (b) a network pull mode via an HTTP REST interface (xxx CURRENTLY DISABLED)
-#
-
-import os
-import sys
-import logging
-import logging.handlers
-import time
-import multiprocessing
 import argparse
 import json
-from config_parser import (get_config,
-                           apply_user_args)
-
-
-# External dependencies that must be pip install'ed separately
+import os
 
 import misc
-import crawlutils
+from worker import Worker
 from crawlmodes import Modes
-
-CRAWLER_HOST = misc.get_host_ipaddr()
+from containers_crawler import ContainersCrawler
+from host_crawler import HostCrawler
+from vms_crawler import VirtualMachinesCrawler
 
 logger = None
 
@@ -38,107 +23,6 @@ def json_parser(string):
     return json.loads(string)
 
 
-def setup_logger(logger_name, logfile='crawler.log', process_id=None):
-    _logger = logging.getLogger(logger_name)
-    _logger.setLevel(logging.INFO)
-    (logfile_name, logfile_xtnsion) = os.path.splitext(logfile)
-    if process_id is None:
-        fname = logfile
-    else:
-        fname = '{0}-{1}{2}'.format(logfile_name, process_id,
-                                    logfile_xtnsion)
-    h = logging.handlers.RotatingFileHandler(filename=fname,
-                                             maxBytes=10e6, backupCount=1)
-    f = logging.Formatter(
-        '%(asctime)s %(processName)-10s %(levelname)-8s %(message)s')
-    h.setFormatter(f)
-    _logger.addHandler(h)
-    return _logger
-
-
-def crawler_worker(process_id, logfile, params):
-    logger = setup_logger('crawlutils', logfile, process_id)
-    setup_logger('yapsy', logfile, process_id)
-
-    # Starting message
-
-    logger.info('*' * 50)
-    logger.info('Crawler #%d started.' % (process_id))
-    logger.info('*' * 50)
-
-    crawlutils.snapshot(**params)
-
-
-def start_autonomous_crawler(num_processes, logfile, params, options):
-
-    setup_logger('crawler-main', logfile)
-    logger = logging.getLogger('crawler-main')
-    logger.info('Starting crawler at {0}'.format(CRAWLER_HOST))
-
-    if params['crawlmode'] == 'OUTCONTAINER':
-        jobs = []
-
-        for index in xrange(num_processes):
-            # XXX use options.get() instead
-            options['partition_strategy'] = {'args': {}}
-            options['partition_strategy']['name'] = 'equally_by_pid'
-            partition_args = options['partition_strategy']['args']
-            partition_args['process_id'] = index
-            partition_args['num_processes'] = num_processes
-
-            """
-            XXX(ricarkol): remember that when we finally get rid of these
-            worker processes in favor of a proper pool of working threads,
-            we have to move the caches of previous metrics somewhere out of
-            the FeaturesCrawler objects. And that cache has to be shared among
-            all the working threads.
-            """
-            p = multiprocessing.Process(
-                name='crawler-%s' %
-                index, target=crawler_worker, args=(
-                    index, logfile, params))
-            jobs.append((p, index))
-            p.start()
-            logger.info('Crawler %s (pid=%s) started', index, p.pid)
-
-        while jobs:
-            for (index, (job, process_id)) in enumerate(jobs):
-                if not job.is_alive():
-                    exitcode = job.exitcode
-                    pname = job.name
-                    pid = job.pid
-                    if job.exitcode:
-                        logger.info(
-                            '%s terminated unexpectedly with errorcode %s' %
-                            (pname, exitcode))
-                        for (other_job, process_id) in jobs:
-                            if other_job != job:
-                                logger.info(
-                                    'Terminating crawler %s (pid=%s)',
-                                    process_id,
-                                    other_job.pid)
-                                os.kill(other_job.pid, 9)
-                        logger.info('Exiting as all jobs were terminated.'
-                                    )
-                        raise RuntimeError(
-                            '%s terminated unexpectedly with errorcode %s' %
-                            (pname, exitcode))
-                    else:
-                        logger.info(
-                            'Crawler %s (pid=%s) exited normally.',
-                            process_id,
-                            pid)
-                    del jobs[index]
-            time.sleep(0.1)
-        logger.info('Exiting as there are no more processes running.')
-    else:
-
-        # INVM, OUTVM, and others
-
-        setup_logger('crawlutils', logfile, 0)
-        crawlutils.snapshot(**params)
-
-
 def main():
 
     euid = os.geteuid()
@@ -146,22 +30,21 @@ def main():
         print 'Need to run this as root.'
         exit(1)
 
-    get_config()
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--options',
         dest='options',
         type=json_parser,
         default={},
-        help='JSON dict of crawler options (see README for defaults)'
+        help='JSON dict of crawler options used to be passed as arguments'
+             'to the crawler plugins.'
     )
     parser.add_argument(
         '--url',
         dest='url',
         type=csv_list,
         default=['stdout://'],
-        help='Send the snapshot data to URL. Defaults to file://frame',
+        help='Send the snapshot data to URL. Defaults to the console.',
     )
     parser.add_argument(
         '--namespace',
@@ -178,7 +61,7 @@ def main():
         type=csv_list,
         default=['os', 'cpu'],
         help='Comma-separated list of feature-types to crawl. Defaults to '
-             'os, cpu',
+             'os,cpu',
     )
     parser.add_argument(
         '--frequency',
@@ -191,11 +74,8 @@ def main():
     parser.add_argument(
         '--compress',
         dest='compress',
-        type=str,
-        choices=[
-            'true',
-            'false'],
-        default='false',
+        action='store_true',
+        default=False,
         help='Whether to GZIP-compress the output frame data, must be one of '
              '{true,false}. Defaults to false',
     )
@@ -224,7 +104,8 @@ def main():
         dest='mountpoint',
         type=str,
         default='/',
-        help='Mountpoint location (required for --crawlmode MOUNTPOINT)'
+        help='Mountpoint location used as the / for features like packages,'
+             'files, config'
     )
     parser.add_argument(
         '--format',
@@ -240,16 +121,13 @@ def main():
         type=str,
         nargs='?',
         default='ALL',
-        help='List of containers to crawl as a list of Docker container IDs. '
-             'If this is not passed, then just the host is crawled. '
-             'Alternatively the word "ALL" can be used to crawl every '
-             'container. "ALL" will crawl all namespaces including the host '
-             'itself. This option is only valid for INVM crawl mode. Example: '
-             '--crawlContainers 5f3380d2319e,681be3e32661',
+        help='List of containers to crawl as a list of Docker container IDs'
+             '(only Docker is supported at the moment). ' 'Defaults to all '
+             'running containers. Example: --crawlContainers aaa,bbb',
     )
     parser.add_argument(
         '--crawlVMs',
-        dest='crawl_vm',
+        dest='vm_descs_list',
         nargs='+',
         default='ALL',
         help='List of VMs to crawl'
@@ -285,34 +163,18 @@ def main():
         '--numprocesses',
         dest='numprocesses',
         type=int,
-        default=multiprocessing.cpu_count(),
+        default=1,
         help='Number of processes used for container crawling. Defaults '
-             'to the number of cores.'
+             'to the number of cores. NOT SUPPORTED.'
     )
     parser.add_argument(
-        '--extraMetadataFile',
-        dest='extraMetadataFile',
-        type=str,
-        default=None,
-        help='Json file with data to be annotate all features. It can be used '
+        '--extraMetadata',
+        dest='extraMetadata',
+        type=json_parser,
+        default={},
+        help='Json with data to annotate all features. It can be used '
              'to append a set of system identifiers to the metadata feature '
              'and if the --extraMetadataForAll'
-    )
-    parser.add_argument(
-        '--extraMetadataForAll',
-        dest='extraMetadataForAll',
-        action='store_true',
-        default=False,
-        help='If specified all features are appended with extra metadata.'
-    )
-    parser.add_argument(
-        '--linkContainerLogFiles',
-        dest='linkContainerLogFiles',
-        action='store_true',
-        default=False,
-        help='Experimental feature. If specified and if running in '
-             'OUTCONTAINER mode, then the crawler maintains links to '
-             'container log files.'
     )
     parser.add_argument(
         '--avoidSetns',
@@ -325,41 +187,48 @@ def main():
     )
 
     args = parser.parse_args()
-    params = {}
-
-    params['options'] = args.options
-    params['urls'] = args.url
-    params['namespace'] = args.namespace
-    params['features'] = args.features
-    params['frequency'] = args.frequency
-    params['crawlmode'] = args.crawlmode
-    params['format'] = args.format
+    misc.setup_logger('crawlutils', args.logfile)
+    misc.setup_logger('yapsy', 'yapsy.log')
 
     options = args.options
-    options['compress'] = (args.compress in ['true', 'True'])
     options['avoid_setns'] = args.avoid_setns
     options['mountpoint'] = args.mountpoint
-    options['vm_list'] = args.crawl_vm
-    options['docker_containers_list'] = args.crawlContainers
-    options['environment'] = args.environment
-    options['plugin_places'] = args.plugin_places
-    options['link_container_log_files'] = args.linkContainerLogFiles
 
-    if args.extraMetadataFile:
-        options['metadata'] = {}
-        metadata = options['metadata']
-        metadata['extra_metadata_for_all'] = args.extraMetadataForAll
-        try:
-            with open(args.extraMetadataFile, 'r') as fp:
-                metadata['extra_metadata'] = fp.read()
-        except Exception as e:
-            print 'Could not read the feature metadata json file: %s' \
-                % e
-            sys.exit(1)
+    if args.crawlmode == 'OUTCONTAINER':
+        crawler = ContainersCrawler(
+            features=args.features,
+            environment=args.environment,
+            user_list=args.crawlContainers,
+            host_namespace=args.namespace,
+            plugin_places=args.plugin_places,
+            options=options)
+    elif args.crawlmode == 'INVM' or args.crawlmode == 'MOUNTPOINT':
+        crawler = HostCrawler(
+            features=args.features,
+            namespace=args.namespace,
+            plugin_places=args.plugin_places,
+            options=options)
+    elif args.crawlmode == 'OUTVM':
+        crawler = VirtualMachinesCrawler(
+            features=args.features,
+            user_list=args.vm_descs_list,
+            host_namespace=args.namespace,
+            plugin_places=args.plugin_places,
+            options=options)
+    else:
+        raise NotImplementedError('Invalid crawlmode')
 
-    apply_user_args(options=options, params=params)
+    emitter_args = {
+        'urls': args.url,
+        'format': args.format,
+        'compress': args.compress,
+        'extra_metadata': args.extraMetadata}
+    worker = Worker(emitter_args, args.frequency, crawler)
 
-    start_autonomous_crawler(args.numprocesses, args.logfile, params, options)
+    try:
+        worker.run()
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == '__main__':

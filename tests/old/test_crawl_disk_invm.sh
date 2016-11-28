@@ -8,5 +8,5 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode INVM \
+python2.7 ../../crawler/crawler.py --crawlmode INVM \
 	--features=disk --crawlContainers $ID | grep -c '"/"'

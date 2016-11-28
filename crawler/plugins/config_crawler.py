@@ -25,7 +25,8 @@ def crawl_config_files(
     saved_args = locals()
     logger.debug('Crawling config files: %s' % (saved_args))
 
-    assert os.path.isdir(root_dir)
+    if not os.path.isdir(root_dir):
+        return
 
     root_dir_alias = root_dir_alias or root_dir
     exclude_dirs = [misc.join_abs_paths(root_dir, d) for d in
@@ -45,26 +46,8 @@ def crawl_config_files(
                 config_file_set.add(fpath)
 
     if discover_config_files:
-
-        # Walk the directory hierarchy starting at 'root_dir' in BFS
-        # order looking for config files.
-
-        for (root_dirpath, dirs, files) in os.walk(root_dir):
-            dirs[:] = [os.path.join(root_dirpath, d) for d in
-                       dirs]
-            dirs[:] = [d for d in dirs
-                       if not re.match(exclude_regex, d)]
-            files = [os.path.join(root_dirpath, f) for f in
-                     files]
-            files = [f for f in files
-                     if not re.match(exclude_regex, f)]
-            for fpath in files:
-                if os.path.exists(fpath) \
-                        and _is_config_file(fpath):
-                    lstat = os.lstat(fpath)
-                    if lstat.st_atime > accessed_since \
-                            or lstat.st_ctime > accessed_since:
-                        config_file_set.add(fpath)
+        discover_config_file_paths(accessed_since, config_file_set,
+                                   exclude_regex, root_dir)
 
     for fpath in config_file_set:
         (_, fname) = os.path.split(fpath)
@@ -79,6 +62,28 @@ def crawl_config_files(
             yield (frelpath, ConfigFeature(fname,
                                            config_file.read(),
                                            frelpath), 'config')
+
+
+def discover_config_file_paths(accessed_since, config_file_set,
+                               exclude_regex, root_dir):
+    # Walk the directory hierarchy starting at 'root_dir' in BFS
+    # order looking for config files.
+    for (root_dirpath, dirs, files) in os.walk(root_dir):
+        dirs[:] = [os.path.join(root_dirpath, d) for d in
+                   dirs]
+        dirs[:] = [d for d in dirs
+                   if not re.match(exclude_regex, d)]
+        files = [os.path.join(root_dirpath, f) for f in
+                 files]
+        files = [f for f in files
+                 if not re.match(exclude_regex, f)]
+        for fpath in files:
+            if os.path.exists(fpath) \
+                    and _is_config_file(fpath):
+                lstat = os.lstat(fpath)
+                if lstat.st_atime > accessed_since \
+                        or lstat.st_ctime > accessed_since:
+                    config_file_set.add(fpath)
 
 
 def _is_config_file(fpath):

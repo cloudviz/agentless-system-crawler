@@ -29,19 +29,19 @@ print get_host_ipaddr()
 EOF
 
 read -d '' JSON_LOG_TYPES <<"EOF"
-[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "/var/log/good_log_path.log"}, {"type": null, "name": "docker.log"}]
+[{"type": null, "name": "/var/log/good_log_path.log"}, {"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "docker.log"}]
 EOF
 
 #[{"type": null, "name": "/var/log/messages"}, {"type": null, "name": "/etc/csf_env.properties"}, {"type": null, "name": "/var/log/input_file_name.log"}, {"type": null, "name": "docker.log"}]
 HOST_IP=`python2.7 -c "$GET_HOST_IP_PY" 2> /dev/null`
 
-MSG=`uuid`
+MSG=`uuidgen`
 NAME=test_crawl_cpu_container_log_links_1
 rm -rf /var/log/crawler_container_logs/$HOST_IP/$NAME/
 docker rm -f $NAME 2> /dev/null > /dev/null
 
-BAD_LOG_PATH_1=/var/log/../log/`uuid`.log
-BAD_LOG_PATH_2=../log/`uuid`.log
+BAD_LOG_PATH_1=/var/log/../log/`uuidgen`.log
+BAD_LOG_PATH_2=../log/`uuidgen`.log
 GOOD_LOG_PATH=/var/log/good_log_path.log
 
 docker run -d -e LOG_LOCATIONS=${BAD_LOG_PATH_1},${GOOD_LOG_PATH},${BAD_LOG_PATH_2} --name $NAME \
@@ -50,9 +50,7 @@ docker run -d -e LOG_LOCATIONS=${BAD_LOG_PATH_1},${GOOD_LOG_PATH},${BAD_LOG_PATH
                        echo $MSG >> ${BAD_LOG_PATH_1}; echo $MSG >> /var/log/messages; echo $MSG; echo $MSG >> ${GOOD_LOG_PATH}; \
                        sleep 6000 " 2> /dev/null > /dev/null
 
-timeout 10 python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode OUTCONTAINER \
-	--features=cpu --frequency 1 \
-	--linkContainerLogFiles --url file:///tmp/$NAME
+timeout 10 python2.7  ../../crawler/containers_logs_linker.py --frequency 1 2> /dev/null > /dev/null
 
 # should be 2
 LOG_COUNT_1=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/var/log/messages`
@@ -64,6 +62,7 @@ LOG_COUNT_3=`grep -c $MSG /var/log/crawler_container_logs/$HOST_IP/$NAME/${GOOD_
 printf "$JSON_LOG_TYPES" > /tmp/json_log_types
 # should be 0
 DIFF_COUNT=`diff -q /tmp/json_log_types /var/log/crawler_container_logs/$HOST_IP/$NAME/d464347c-3b99-11e5-b0e9-062dcffc249f.type-mapping | wc -l`
+diff /tmp/json_log_types /var/log/crawler_container_logs/$HOST_IP/$NAME/d464347c-3b99-11e5-b0e9-062dcffc249f.type-mapping
 
 # should be 2
 GREP_COUNT_1=`grep "User provided a log file path that is not absolute: $BAD_LOG_PATH_1" *.log | wc -l`

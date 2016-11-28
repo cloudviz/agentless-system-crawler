@@ -8,7 +8,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-python2.7 ../config_and_metrics_crawler/crawler.py --crawlmode MOUNTPOINT --features package,disk \
+python2.7 ../../crawler/crawler.py --crawlmode MOUNTPOINT --features package,disk \
 	--mountpoint '/' > /tmp/test_crawl_packages_disks_mountpoint
 
 COUNT_PACKAGE=`grep '^package' /tmp/test_crawl_packages_disks_mountpoint | wc -l`
