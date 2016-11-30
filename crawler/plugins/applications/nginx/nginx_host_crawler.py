@@ -21,7 +21,7 @@ class NginxHostCrawler(IHostCrawler):
 
     def crawl(self):
         metrics = nginx_crawler.retrieve_metrics(
-                host='localhost',
-                port=self.default_port
+            host='localhost',
+            port=self.default_port
         )
         return [(self.feature_key, metrics, self.feature_type)]

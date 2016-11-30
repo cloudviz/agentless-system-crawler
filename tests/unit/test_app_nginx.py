@@ -11,30 +11,36 @@ from crawler.crawler_exceptions import CrawlError
 
 
 # expected format from nginx status page
-def mocked_retrieve_status_page(host,port):
+def mocked_retrieve_status_page(host, port):
     return ('Active connections: 2\n'
             'server accepts handled requests\n'
             '2 2 1\n'
             'Reading: 0 Writing: 1 Waiting: 1'
             )
 
-def mocked_no_status_page(host,port):
+
+def mocked_no_status_page(host, port):
     #raise urllib2.HTTPError(1,2,3,4,5)
     raise Exception
 
-def mocked_wrong_status_page(host,port):
+
+def mocked_wrong_status_page(host, port):
     return ('No Acceptable status page format')
+
 
 def mocked_urllib2_open(request):
     return MockedURLResponse()
 
+
 class MockedURLResponse(object):
+
     def read(self):
         return ('Active connections: 2\n'
-            'server accepts handled requests\n'
-            '2 2 1\n'
-            'Reading: 0 Writing: 1 Waiting: 1'
-            )
+                'server accepts handled requests\n'
+                '2 2 1\n'
+                'Reading: 0 Writing: 1 Waiting: 1'
+                )
+
 
 class MockedNginxContainer(object):
 
@@ -51,6 +57,7 @@ class MockedNginxContainer(object):
         ports = [80, 443]
         return ports
 
+
 class MockedNoPortContainer(object):
 
     def __init__(
@@ -66,9 +73,12 @@ class MockedNoPortContainer(object):
         ports = []
         return ports
 
+
 class MockedNoNameContainer(object):
-    def __init__(self,container_id):
+
+    def __init__(self, container_id):
         self.image_name = 'dummy'
+
 
 class NginxCrawlTests(TestCase):
 
@@ -107,6 +117,7 @@ class NginxCrawlTests(TestCase):
 
 
 class NginxHostTest(TestCase):
+
     def setUp(self):
         pass
 
@@ -127,7 +138,9 @@ class NginxHostTest(TestCase):
         self.assertIsInstance(emitted[1], NginxFeature)
         self.assertEqual(emitted[2], 'application')
 
+
 class NginxContainerTest(TestCase):
+
     def setUp(self):
         pass
 
