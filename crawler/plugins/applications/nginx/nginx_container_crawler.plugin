@@ -2,7 +2,7 @@
 Name = application_nginx_container
 Module = nginx_container_crawler
 
-[Documentationtat
+[Documentation]
 Author = IBM
 Version = 0.1
 Description = "nginx httpd server"
