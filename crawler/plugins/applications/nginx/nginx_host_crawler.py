@@ -20,11 +20,8 @@ class NginxHostCrawler(IHostCrawler):
         return self.feature_key
 
     def crawl(self):
-        try:
-            metrics = nginx_crawler.retrieve_metrics(
+        metrics = nginx_crawler.retrieve_metrics(
                 host='localhost',
                 port=self.default_port
-            )
-        except CrawlError as e:
-            raise e
+        )
         return [(self.feature_key, metrics, self.feature_type)]
