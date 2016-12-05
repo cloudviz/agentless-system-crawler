@@ -2,6 +2,7 @@ import json
 import time
 from morph import flatten
 
+
 def write_in_csv_format(iostream, frame):
     """
     Writes frame data and metadata into iostream in csv format.

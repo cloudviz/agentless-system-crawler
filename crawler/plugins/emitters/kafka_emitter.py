@@ -63,6 +63,7 @@ class KafkaEmitter(BaseEmitter):
                                   max_retries=self.max_retries,
                                   _args=tuple([iostream]))
         else:
-            call_with_retries(lambda io: self.producer.produce([io.getvalue()]),
-                              max_retries=self.max_retries,
-                              _args=tuple([iostream]))
+            call_with_retries(
+                lambda io: self.producer.produce([io.getvalue()]),
+                max_retries=self.max_retries,
+                _args=tuple([iostream]))
