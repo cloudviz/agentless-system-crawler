@@ -109,11 +109,10 @@ if __name__ == '__main__':
     misc.setup_logger('crawlutils', 'linker.log')
     misc.setup_logger('yapsy', 'yapsy.log')
     args = parser.parse_args()
-    params = {'compress': None, 'format': None, 'urls': None}
     crawler = DockerContainersLogsLinker(environment=args.environment,
                                          user_list=args.crawlContainers,
                                          host_namespace=args.namespace)
-    worker = Worker(params, args.frequency, crawler)
+    worker = Worker(None, args.frequency, crawler)
     try:
         worker.run()
     except KeyboardInterrupt:

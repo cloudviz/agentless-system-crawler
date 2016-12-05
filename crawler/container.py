@@ -91,6 +91,7 @@ class Container(object):
             'container_short_id': self.short_id,
             'container_name': self.name,
             'container_image': self.image,
+            'emit_shortname': self.short_id,
         }
         return metadata
 

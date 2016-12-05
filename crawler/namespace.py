@@ -10,7 +10,7 @@ import signal
 import ctypes
 from crawler_exceptions import (CrawlTimeoutError,
                                 CrawlError,
-                                NamespaceFailedMntSetns)
+                                NamespaceFailedSetns)
 
 logger = logging.getLogger('crawlutils')
 
@@ -22,7 +22,7 @@ except Exception as e:
 
 
 ALL_NAMESPACES = 'user pid uts ipc net mnt'.split()
-IN_CONTAINER_TIMEOUT = 30
+IN_PROCESS_TIMEOUT = 30
 
 
 def get_errno_msg():
@@ -32,8 +32,8 @@ def get_errno_msg():
         errno_msg = os.strerror(errno)
         return errno_msg
     except (OSError, AttributeError):
-        pass
-    return 'unknown error'
+        # Getting an error while trying to get the errorno
+        return 'unknown error'
 
 
 def get_libc():
@@ -56,56 +56,33 @@ class ProcessContext:
     def __init__(self, pid, namespaces):
         self.namespaces = namespaces
         self.pid = pid
+        self.host_ns_fds = {}
+        self.container_ns_fds = {}
+        self.host_cwd = os.getcwd()
+        open_process_namespaces('self', self.host_ns_fds,
+                                self.namespaces)
+        open_process_namespaces(self.pid, self.container_ns_fds,
+                                self.namespaces)
 
     def attach(self):
-        # Just to be sure log rotation does not happen in the container
-
+        # Disable logging just to be sure log rotation does not happen in
+        # the container.
         logging.disable(logging.CRITICAL)
-        try:
-            self.host_ns_fds = {}
-            self.container_ns_fds = {}
-            self.host_cwd = os.getcwd()
-            open_process_namespaces('self', self.host_ns_fds,
-                                    self.namespaces)
-            open_process_namespaces(self.pid, self.container_ns_fds,
-                                    self.namespaces)
-        except Exception as e:
-            logging.disable(logging.NOTSET)
-            logger.exception(e)
-            raise
-
-        try:
-            attach_to_process_namespaces(self.container_ns_fds,
-                                         self.namespaces)
-        except Exception as e:
-            logging.disable(logging.NOTSET)
-            error_msg = (
-                'Could not attach to the pid=%s container mnt namespace. '
-                'Exception: %s' % (self.pid, e))
-            logger.error(error_msg)
-            self.detach()
-            raise
+        attach_to_process_namespaces(self.container_ns_fds, self.namespaces)
 
     def detach(self):
         try:
-            # Re-attach to the process original namespaces before attaching the
-            # first time to self.pid namespaces.
+            # Re-attach to the process original namespaces.
             attach_to_process_namespaces(self.host_ns_fds,
                                          self.namespaces)
-        except Exception as e:
+            # We are now in host context
+            os.chdir(self.host_cwd)
+            close_process_namespaces(self.container_ns_fds,
+                                     self.namespaces)
+            close_process_namespaces(self.host_ns_fds, self.namespaces)
+        finally:
+            # Enable logging again
             logging.disable(logging.NOTSET)
-            logger.error('Could not move back to the host: %s' % e)
-            # XXX can't recover from this one. But it would be better to
-            # bubble up the error.
-            sys.exit(1)
-
-        # We are now in host context
-        os.chdir(self.host_cwd)
-
-        logging.disable(logging.NOTSET)
-        close_process_namespaces(self.container_ns_fds,
-                                 self.namespaces)
-        close_process_namespaces(self.host_ns_fds, self.namespaces)
 
 
 def run_as_another_namespace(
@@ -117,8 +94,12 @@ def run_as_another_namespace(
 ):
     hack_to_pre_load_modules()
 
-    context = ProcessContext(pid, namespaces)
-    context.attach()
+    _args = (pid, namespaces, function)
+    _kwargs = {'_args': tuple(args), '_kwargs': dict(kwargs)}
+    return run_as_another_process(_run_as_another_namespace, _args, _kwargs)
+
+
+def run_as_another_process(function, _args=(), _kwargs={}):
     try:
         queue = multiprocessing.Queue(2 ** 15)
     except OSError:
@@ -126,23 +107,20 @@ def run_as_another_namespace(
         queue = multiprocessing.Queue(2 ** 14)
 
     child_process = multiprocessing.Process(
-        name='crawler-%s' %
-        pid, target=function_wrapper, args=(
-            queue, function, args), kwargs=kwargs)
+        target=_function_wrapper,
+        args=(queue, function),
+        kwargs={'_args': _args, '_kwargs': _kwargs})
     child_process.start()
 
-    child_exception = None
+    child_exception, result = None, None
     try:
-        (result, child_exception) = queue.get(timeout=IN_CONTAINER_TIMEOUT)
+        (result, child_exception) = queue.get(timeout=IN_PROCESS_TIMEOUT)
     except Queue.Empty:
         child_exception = CrawlTimeoutError()
-    except Exception:
-        result = None
+    except Exception as exc:
+        logger.warn(exc)
 
-    if child_exception:
-        result = None
-
-    child_process.join(IN_CONTAINER_TIMEOUT)
+    child_process.join(IN_PROCESS_TIMEOUT)
 
     # The join failed and the process might still be alive
 
@@ -151,11 +129,8 @@ def run_as_another_namespace(
                   child_process.pid)
         queue.close()
         os.kill(child_process.pid, 9)
-        context.detach()
         logger.error(errmsg)
         raise CrawlTimeoutError(errmsg)
-
-    context.detach()
 
     if result is None:
         if child_exception:
@@ -164,12 +139,22 @@ def run_as_another_namespace(
     return result
 
 
-def function_wrapper(
+def _function_wrapper(
     queue,
     function,
-    *args,
-    **kwargs
+    _args=(),
+    _kwargs={}
 ):
+    """
+    Function to be used by run_as_another_process to wrap `function`
+    and call it with _args and _kwargs. `queue` is used to get the result
+    and any exception raised.
+    :param queue:
+    :param function:
+    :param _args:
+    :param _kwargs:
+    :return:
+    """
 
     # Die if the parent dies
     PR_SET_PDEATHSIG = 1
@@ -182,10 +167,8 @@ def function_wrapper(
 
     signal.signal(signal.SIGHUP, signal_handler_sighup)
 
-    result = None
     try:
-        args = args[0]
-        result = function(*args)
+        result = function(*_args, **_kwargs)
 
         # if res is a generator (i.e. function uses yield)
 
@@ -198,6 +181,23 @@ def function_wrapper(
         queue.put((None, e))
         queue.close()
         sys.exit(1)
+
+
+def _run_as_another_namespace(
+        pid,
+        namespaces,
+        function,
+        _args=(),
+        _kwargs={}
+):
+
+    # os.closerange(1, 1000)
+    context = ProcessContext(pid, namespaces)
+    context.attach()
+    try:
+        return run_as_another_process(function, _args, _kwargs)
+    finally:
+        context.detach()
 
 
 def hack_to_pre_load_modules():
@@ -215,23 +215,15 @@ def hack_to_pre_load_modules():
 
 def open_process_namespaces(pid, namespace_fd, namespaces):
     for ct_ns in namespaces:
-        try:
-
-            # arg 0 means readonly
-            namespace_fd[ct_ns] = get_libc().open('/proc/' + pid + '/ns/' +
-                                                  ct_ns, 0)
-            if namespace_fd[ct_ns] == -1:
-                errno_msg = get_errno_msg()
-                error_msg = 'Opening the %s namespace file failed: %s' \
-                    % (ct_ns, errno_msg)
-                logger.warning(error_msg)
-                if ct_ns == 'mnt':
-                    raise NamespaceFailedMntSetns(error_msg)
-        except Exception as e:
-            error_msg = 'The open() syscall failed with: %s' % e
+        ns_path = os.path.join('/proc', pid, 'ns', ct_ns)
+        # arg 0 means readonly
+        namespace_fd[ct_ns] = get_libc().open(ns_path, 0)
+        if namespace_fd[ct_ns] == -1:
+            errno_msg = get_errno_msg()
+            error_msg = 'Opening the %s namespace file failed: %s' \
+                % (ct_ns, errno_msg)
             logger.warning(error_msg)
-            if ct_ns == 'mnt':
-                raise e
+            raise NamespaceFailedSetns(error_msg)
 
 
 def close_process_namespaces(namespace_fd, namespaces):
@@ -247,24 +239,18 @@ def close_process_namespaces(namespace_fd, namespaces):
 
 def attach_to_process_namespaces(namespace_fd, ct_namespaces):
     for ct_ns in ct_namespaces:
-        try:
-            if hasattr(get_libc(), 'setns'):
-                r = get_libc().setns(namespace_fd[ct_ns], 0)
-            else:
-                # The Linux kernel ABI should be stable enough
-                __NR_setns = 308
-                r = get_libc().syscall(__NR_setns, namespace_fd[ct_ns], 0)
-            if r == -1:
-                errno_msg = get_errno_msg()
-                error_msg = ('Could not attach to the container %s '
-                             'namespace (fd=%s): %s' %
-                             (ct_ns, namespace_fd[ct_ns], errno_msg))
-                logger.warning(error_msg)
-                if ct_ns == 'mnt':
-                    raise NamespaceFailedMntSetns(error_msg)
-        except Exception as e:
-            error_msg = 'The setns() syscall failed with: %s' % e
+        if hasattr(get_libc(), 'setns'):
+            r = get_libc().setns(namespace_fd[ct_ns], 0)
+        else:
+            # The Linux kernel ABI should be stable enough
+            __NR_setns = 308
+            r = get_libc().syscall(__NR_setns, namespace_fd[ct_ns], 0)
+        if r == -1:
+            errno_msg = get_errno_msg()
+            error_msg = ('Could not attach to the container %s '
+                         'namespace (fd=%s): %s' %
+                         (ct_ns, namespace_fd[ct_ns], errno_msg))
             logger.warning(error_msg)
-            if ct_ns == 'mnt':
-                logger.exception(e)
-                raise e
+            if ct_ns == 'user':
+                continue
+            raise NamespaceFailedSetns(error_msg)
