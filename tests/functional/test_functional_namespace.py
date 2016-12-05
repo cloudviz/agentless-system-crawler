@@ -60,7 +60,7 @@ class NamespaceLibTests(unittest.TestCase):
 
         self.docker.pull(repository='alpine', tag='latest')
         self.container = self.docker.create_container(
-            image=self.image_name, command='/bin/sleep 60')
+            image=self.image_name, command='/bin/sleep 300')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
         self.docker.start(container=self.container['Id'])
         inspect = self.docker.inspect_container(self.container['Id'])
