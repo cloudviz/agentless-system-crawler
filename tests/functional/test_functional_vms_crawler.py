@@ -91,8 +91,13 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
             'vm2,4.0.3.x86_64,vanilla,x86_64',
             'vm3,3.2.0-101-generic_3.2.0-101.x86_64,ubuntu,x86_64',
             'vm4,3.13.0-24-generic_3.13.0-24.x86_64,ubuntu,x86_64']
-        crawler = VirtualMachinesCrawler(features=['os', 'memory', 'interface', 'process'],
-                                         user_list=vm_list)
+        crawler = VirtualMachinesCrawler(
+            features=[
+                'os',
+                'memory',
+                'interface',
+                'process'],
+            user_list=vm_list)
         frames = list(crawler.crawl())
         output = str(frames[0])
         print output  # only printed if the test fails

@@ -21,19 +21,19 @@ python2.7 ../../crawler/crawler.py \
 	--url file:///tmp/test_crawl_all_features_invm --options \
 	'{"config": {"known_config_files":["etc/ric_config"]}, "file": {"root_dir": "/root/bla/"}}'
 
-COUNT_1=`grep  ^cpu /tmp/test_crawl_all_features_invm* | wc -l`
-COUNT_2=`grep  ^memory /tmp/test_crawl_all_features_invm* | wc -l`
-COUNT_3=`grep  ^os /tmp/test_crawl_all_features_invm* | wc -l`
+COUNT_1=`grep  ^cpu /tmp/test_crawl_all_features_invm.0 | wc -l`
+COUNT_2=`grep  ^memory /tmp/test_crawl_all_features_invm.0 | wc -l`
+COUNT_3=`grep  ^os /tmp/test_crawl_all_features_invm.0 | wc -l`
 
 # This sholuld be just and exactly 1, as ther eis only /etc/ric_config
-COUNT_4=`grep  ^config /tmp/test_crawl_all_features_invm* | wc -l`
+COUNT_4=`grep  ^config /tmp/test_crawl_all_features_invm.0 | wc -l`
 
 # This should be just and exactly 2, as there is only /bla and /bla/ble
-COUNT_5=`grep  ^file /tmp/test_crawl_all_features_invm* | wc -l`
-COUNT_6=`grep  ^package /tmp/test_crawl_all_features_invm* | wc -l`
-COUNT_7=`grep  ^dockerps /tmp/test_crawl_all_features_invm* | wc -l`
-COUNT_8=`grep  ^metric /tmp/test_crawl_all_features_invm* | wc -l`
-COUNT_9=`grep  ^load /tmp/test_crawl_all_features_invm* | wc -l`
+COUNT_5=`grep  ^file /tmp/test_crawl_all_features_invm.0 | wc -l`
+COUNT_6=`grep  ^package /tmp/test_crawl_all_features_invm.0 | wc -l`
+COUNT_7=`grep  ^dockerps /tmp/test_crawl_all_features_invm.0 | wc -l`
+COUNT_8=`grep  ^metric /tmp/test_crawl_all_features_invm.0 | wc -l`
+COUNT_9=`grep  ^load /tmp/test_crawl_all_features_invm.0 | wc -l`
 
 if [ $COUNT_1 -gt "0" ] && \
 	[ $COUNT_2 -eq "1" ] && \

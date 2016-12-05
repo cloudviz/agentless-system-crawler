@@ -23,7 +23,7 @@ class ContainerTests(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             c.get_cpu_cgroup_path()
 
-    @mock.patch('crawler.emitter.os.path.exists', side_effect=mocked_exists)
+    @mock.patch('crawler.container.os.path.exists', side_effect=mocked_exists)
     def test_is_running(self, mock_exists):
         c = Container(1)
         assert c.is_running()

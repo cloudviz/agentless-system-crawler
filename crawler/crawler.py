@@ -11,6 +11,7 @@ from crawlmodes import Modes
 from containers_crawler import ContainersCrawler
 from host_crawler import HostCrawler
 from vms_crawler import VirtualMachinesCrawler
+from emitters_manager import EmittersManager
 
 logger = None
 
@@ -218,12 +219,11 @@ def main():
     else:
         raise NotImplementedError('Invalid crawlmode')
 
-    emitter_args = {
-        'urls': args.url,
-        'format': args.format,
-        'compress': args.compress,
-        'extra_metadata': args.extraMetadata}
-    worker = Worker(emitter_args, args.frequency, crawler)
+    emitters = EmittersManager(urls=args.url,
+                               format=args.format,
+                               compress=args.compress,
+                               extra_metadata=args.extraMetadata)
+    worker = Worker(emitters, args.frequency, crawler)
 
     try:
         worker.run()

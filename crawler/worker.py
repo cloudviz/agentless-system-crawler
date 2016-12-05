@@ -1,32 +1,43 @@
 import time
-
-from emitter import Emitter
+from base_crawler import BaseCrawler
 
 
 class Worker:
+    """
+    Main scheduler class. This class is just one never ending loop in run()
+    that gets a list of frames from crawler.crawl() and sends them to
+    the emitters using emitters.emit().
+    """
 
-    def __init__(self, emitter_args, frequency, crawler):
+    def __init__(self, emitters, frequency, crawler):
+        """
+        Store and check the types of the arguments.
+
+        :param emitters: EmittersManager that holds the list of Emitters.
+        If it is None, then no emit is done.
+        :param frequency: Sleep seconds between iterations
+        :param crawler: Crawler object with a crawl() method. This object
+        maintains a list of crawler plugins, each with their own crawl()
+        method.
+        """
+        if not isinstance(crawler, BaseCrawler):
+            raise TypeError('crawler is not of type BaseCrawler')
         self.iter_count = 0
         self.frequency = frequency
         self.next_iteration_time = None
-        self.emitter_args = emitter_args
         self.crawler = crawler
+        self.emitters = emitters
 
     def iterate(self):
         """
         Function called at each iteration.
         Side effects: increments iter_count
+
         :return: None
         """
         for frame in self.crawler.crawl():
-            # TODO: Emitter(s) should be passed as an argument for this object
-            with Emitter(
-                    metadata=frame.metadata,
-                    snapshot_num=self.iter_count,
-                    **self.emitter_args
-            ) as emitter:
-                for (key, val, feature_type) in frame.data:
-                    emitter.emit(key, val, feature_type)
+            if self.emitters is not None:
+                self.emitters.emit(frame, snapshot_num=self.iter_count)
 
         # just used for output purposes
         self.iter_count += 1

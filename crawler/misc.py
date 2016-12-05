@@ -8,6 +8,8 @@ import subprocess
 import psutil
 import logging
 import logging.handlers
+import time
+import random
 
 # Additional modules
 
@@ -201,3 +203,35 @@ def btrfs_list_subvolumes(path):
             raise RuntimeError('Expecting the output of `btrfs subvolume` to'
                                ' have 9 columns. Received this: %s' % line)
         yield submodule
+
+
+def call_with_retries(function, max_retries=10,
+                      exception_types=(Exception),
+                      _args=(), _kwargs={}):
+    """
+    Call `function` with up to `max_retries` retries. A retry is only
+    performed if the exception thrown is in `exception_types`.
+
+    :param function: Function to be called.
+    :param max_retries: Max number of retries. For example if retries is 1,
+    then a failing function will be called twice before exiting with the
+    latest exception thrown.
+    :param exception_types: List of exceptions for which `function` will
+    be retried.
+    :param _args: List of args passed to the called function.
+    :param _kwargs: Key value arguments passed to the called function.
+    :return: Return value of `function`.
+    """
+    assert max_retries >= 0
+
+    retries = 0
+    last_exc = Exception('Unknown exception')
+    while retries <= max_retries:
+        try:
+            return function(*_args, **_kwargs)
+        except exception_types as exc:
+            retries += 1
+            wait = 2.0 ** retries * 0.1 + (random.randint(0, 1000) / 1000)
+            time.sleep(wait)
+            last_exc = exc
+    raise last_exc

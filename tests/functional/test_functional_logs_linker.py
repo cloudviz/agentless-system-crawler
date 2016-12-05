@@ -61,9 +61,10 @@ class LogsLinkerTests(unittest.TestCase):
         messages_log = os.path.join(HOST_LOG_BASEDIR, self.host_namespace,
                                     self.container_name, 'var/log/messages')
         params = {'compress': None, 'format': None, 'urls': None}
-        crawler = DockerContainersLogsLinker(environment='cloudsight',
-                                             user_list='ALL',
-                                             host_namespace=self.host_namespace)
+        crawler = DockerContainersLogsLinker(
+            environment='cloudsight',
+            user_list='ALL',
+            host_namespace=self.host_namespace)
         worker = Worker(params, -1, crawler)
 
         self.startContainer()
@@ -96,7 +97,6 @@ class LogsLinkerTests(unittest.TestCase):
         assert os.path.islink(messages_log)
 
         self.removeContainer()
-
 
     def testLinkUnlinkContainerCli(self):
         docker_log = os.path.join(HOST_LOG_BASEDIR, self.host_namespace,

@@ -48,7 +48,9 @@ class VirtualMachine():
         return str(self.pid), self.kernel, self.distro, self.arch
 
     def get_metadata_dict(self):
-        return {'namespace': self.namespace, 'name': self.name}
+        return {'namespace': self.namespace,
+                'name': self.name,
+                'emit_shortname': self.name}
 
 
 class QemuVirtualMachine(VirtualMachine):
