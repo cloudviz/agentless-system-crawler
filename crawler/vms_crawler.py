@@ -1,5 +1,5 @@
 import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
+from base_crawler import Crawler, BaseFrame
 from virtual_machine import get_virtual_machines
 
 
@@ -11,17 +11,21 @@ class VirtualMachineFrame(BaseFrame):
         self.metadata['system_type'] = 'vm'
 
 
-class VirtualMachinesCrawler(BaseCrawler):
+class VirtualMachinesCrawler(Crawler):
 
     def __init__(self,
+                 emitters=None,
+                 frequency=-1,
                  features=['os', 'cpu'],
                  user_list=[],
                  host_namespace='',
                  plugin_places=['plugins'],
                  options={}):
 
-        BaseCrawler.__init__(
+        Crawler.__init__(
             self,
+            emitters=emitters,
+            frequency=frequency,
             features=features,
             plugin_places=plugin_places,
             options=options)

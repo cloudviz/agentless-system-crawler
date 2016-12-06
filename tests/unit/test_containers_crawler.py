@@ -62,7 +62,7 @@ class ContainersCrawlerTests(unittest.TestCase):
         side_effect=lambda features: [(MockedOSCrawler(), {}),
                                       (MockedCPUCrawler(), {})])
     @mock.patch('crawler.containers_crawler.get_containers',
-                side_effect=lambda environment, host_namespace, user_list: [
+                side_effect=lambda host_namespace, user_list: [
                     MockedDockerContainer(
                         short_id='aaa',
                         pid=101),
@@ -89,7 +89,7 @@ class ContainersCrawlerTests(unittest.TestCase):
         side_effect=lambda features: [(MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
     @mock.patch('crawler.containers_crawler.get_containers',
-                side_effect=lambda environment, host_namespace, user_list: [
+                side_effect=lambda host_namespace, user_list: [
                     MockedDockerContainer(
                         short_id='aaa',
                         pid=101),
@@ -112,7 +112,7 @@ class ContainersCrawlerTests(unittest.TestCase):
                                       (MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
     @mock.patch('crawler.containers_crawler.get_containers',
-                side_effect=lambda environment, host_namespace, user_list: [
+                side_effect=lambda host_namespace, user_list: [
                     MockedDockerContainer(
                         short_id='aaa',
                         pid=101),

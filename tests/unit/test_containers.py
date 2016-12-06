@@ -26,7 +26,7 @@ class DockerContainer():
 DOCKER_IDS = ['101', '102', '103', '104', '105', '106']
 
 
-def mocked_list_docker_containers(host_namespace='', user_list='ALL'):
+def mocked_get_docker_containers(host_namespace='', user_list='ALL'):
     for long_id in DOCKER_IDS:
 
         if user_list not in ['ALL', 'all', 'All']:
@@ -53,9 +53,9 @@ class ContainersTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.containers.list_docker_containers',
+    @mock.patch('crawler.containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
-                mocked_list_docker_containers(host_namespace, user_list))
+                mocked_get_docker_containers(host_namespace, user_list))
     @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
     @mock.patch('crawler.containers.container.psutil.process_iter',
@@ -78,9 +78,9 @@ class ContainersTests(unittest.TestCase):
         assert args[2].call_count == 2
         assert args[3].call_count == 1
 
-    @mock.patch('crawler.containers.list_docker_containers',
+    @mock.patch('crawler.containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
-                mocked_list_docker_containers(host_namespace, user_list))
+                mocked_get_docker_containers(host_namespace, user_list))
     @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
     @mock.patch('crawler.containers.container.psutil.process_iter',
@@ -102,9 +102,9 @@ class ContainersTests(unittest.TestCase):
         assert '1' not in pids  # init process
         assert '5' not in pids  # crawler process
 
-    @mock.patch('crawler.containers.list_docker_containers',
+    @mock.patch('crawler.containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
-                mocked_list_docker_containers(host_namespace, user_list))
+                mocked_get_docker_containers(host_namespace, user_list))
     @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
     @mock.patch('crawler.containers.container.psutil.process_iter',
@@ -121,9 +121,9 @@ class ContainersTests(unittest.TestCase):
         assert '1' not in pids  # init process
         assert '5' not in pids  # crawler process
 
-    @mock.patch('crawler.containers.list_docker_containers',
+    @mock.patch('crawler.containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
-                mocked_list_docker_containers(host_namespace, user_list))
+                mocked_get_docker_containers(host_namespace, user_list))
     @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
     @mock.patch('crawler.containers.container.psutil.process_iter',
@@ -135,7 +135,7 @@ class ContainersTests(unittest.TestCase):
     def test_get_filtered_list_with_input_list(self, *args):
         pids = [
             c.pid for c in get_containers(ignore_raw_containers=False,
-                                          user_list='102')]
+                                           user_list='102')]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(['102'])
@@ -144,9 +144,9 @@ class ContainersTests(unittest.TestCase):
         assert '1' not in pids  # init process
         assert '5' not in pids  # crawler process
 
-    @mock.patch('crawler.containers.list_docker_containers',
+    @mock.patch('crawler.containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
-                mocked_list_docker_containers(host_namespace, user_list))
+                mocked_get_docker_containers(host_namespace, user_list))
     @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
     @mock.patch('crawler.containers.container.psutil.process_iter',
@@ -158,14 +158,14 @@ class ContainersTests(unittest.TestCase):
     def test_get_filtered_list_with_input_list_ALL(self, *args):
         pids = [
             c.pid for c in get_containers(ignore_raw_containers=False,
-                                          user_list='ALL')]
+                                           user_list='ALL')]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(DOCKER_IDS + ['4'])
 
-    @mock.patch('crawler.containers.list_docker_containers',
+    @mock.patch('crawler.containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
-                mocked_list_docker_containers(host_namespace, user_list))
+                mocked_get_docker_containers(host_namespace, user_list))
     @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
     @mock.patch('crawler.containers.container.psutil.process_iter',

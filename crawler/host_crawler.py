@@ -1,5 +1,5 @@
 import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
+from base_crawler import Crawler, BaseFrame
 
 
 class HostFrame(BaseFrame):
@@ -10,12 +10,15 @@ class HostFrame(BaseFrame):
         self.metadata['system_type'] = 'host'
 
 
-class HostCrawler(BaseCrawler):
+class HostCrawler(Crawler):
 
-    def __init__(self, features=['os', 'cpu'], namespace='',
+    def __init__(self, emitters=None, frequency=-1,
+                 features=['os', 'cpu'], namespace='',
                  plugin_places=['plugins'], options={}):
-        BaseCrawler.__init__(
+        Crawler.__init__(
             self,
+            emitters=emitters,
+            frequency=frequency,
             features=features,
             plugin_places=plugin_places)
         plugins_manager.reload_host_crawl_plugins(

@@ -1,6 +1,6 @@
-from containers import get_containers
+from containers import poll_containers, get_containers
 import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
+from base_crawler import Crawler, BaseFrame
 
 
 class ContainerFrame(BaseFrame):
@@ -11,9 +11,11 @@ class ContainerFrame(BaseFrame):
         self.metadata['system_type'] = 'container'
 
 
-class ContainersCrawler(BaseCrawler):
+class ContainersCrawler(Crawler):
 
     def __init__(self,
+                 emitters=None,
+                 frequency=-1,
                  features=['os', 'cpu'],
                  environment='cloudsight',
                  user_list='ALL',
@@ -21,12 +23,13 @@ class ContainersCrawler(BaseCrawler):
                  plugin_places=['plugins'],
                  options={}):
 
-        BaseCrawler.__init__(
+        Crawler.__init__(
             self,
+            emitters=emitters,
+            frequency=frequency,
             features=features,
             plugin_places=plugin_places,
             options=options)
-        self.containers_list = []
         plugins_manager.reload_env_plugin(environment, plugin_places)
         plugins_manager.reload_container_crawl_plugins(
             features, plugin_places, options)
@@ -34,17 +37,6 @@ class ContainersCrawler(BaseCrawler):
         self.environment = environment
         self.host_namespace = host_namespace
         self.user_list = user_list
-
-    def update_containers_list(self):
-        """
-        Updates the self.containers_list.
-
-        :return: None
-        """
-        self.containers_list = get_containers(
-            environment=self.environment,
-            user_list=self.user_list,
-            host_namespace=self.host_namespace)
 
     def crawl_container(self, container, ignore_plugin_exception=True):
         """
@@ -68,22 +60,29 @@ class ContainersCrawler(BaseCrawler):
                     raise exc
         return frame
 
-    def crawl_containers(self, ignore_plugin_exception=True):
+    def polling_crawl(self, timeout, ignore_plugin_exception=True):
         """
-        Crawl all containers stored in self.containers_list
+        Crawls any container created before `timeout` seconds have elapsed.
 
+        :param timeout: seconds to wait for new containers
         :param ignore_plugin_exception: just ignore exceptions in a plugin
-        :return: a list generator of Frame objects
+        :return: a Frame object
         """
-        for container in self.containers_list:
-            yield self.crawl_container(container, ignore_plugin_exception)
+        container = poll_containers(
+            timeout,
+            user_list=self.user_list,
+            host_namespace=self.host_namespace)
+        container and self.crawl_container(container, ignore_plugin_exception)
 
     def crawl(self, ignore_plugin_exception=True):
         """
-        Crawl all containers running in the system.
+        Crawls all containers.
 
         :param ignore_plugin_exception: just ignore exceptions in a plugin
         :return: a list generator of Frame objects
         """
-        self.update_containers_list()
-        return self.crawl_containers(ignore_plugin_exception)
+        containers_list = get_containers(
+            user_list=self.user_list,
+            host_namespace=self.host_namespace)
+        for container in containers_list:
+            yield self.crawl_container(container, ignore_plugin_exception)
