@@ -135,7 +135,7 @@ class ContainersTests(unittest.TestCase):
     def test_get_filtered_list_with_input_list(self, *args):
         pids = [
             c.pid for c in get_containers(ignore_raw_containers=False,
-                                           user_list='102')]
+                                          user_list='102')]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(['102'])
@@ -158,7 +158,7 @@ class ContainersTests(unittest.TestCase):
     def test_get_filtered_list_with_input_list_ALL(self, *args):
         pids = [
             c.pid for c in get_containers(ignore_raw_containers=False,
-                                           user_list='ALL')]
+                                          user_list='ALL')]
         # pid 1 is the init process, which is not a container
         # according to the definition in container.py
         assert set(pids) == set(DOCKER_IDS + ['4'])
