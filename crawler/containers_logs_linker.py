@@ -14,7 +14,7 @@ class DockerContainersLogsLinker(Crawler):
     """
 
     def __init__(self,
-                 emitters,
+                 emitters=None,
                  frequency=-1,
                  environment='cloudsight',
                  user_list='ALL',

@@ -77,13 +77,14 @@ class Crawler:
             time.sleep(timeout)
         return None
 
-    def iterate(self, timeout):
+    def iterate(self, timeout=0):
         """
         Function called at each iteration.
 
         Side effects: increments iter_count
 
-        :param timeout: seconds to wait for polling crawls.
+        :param timeout: seconds to wait for polling crawls. If 0, then
+        just use the regular crawl() method and do not poll.
         :return: None
         """
 
