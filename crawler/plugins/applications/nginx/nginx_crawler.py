@@ -1,11 +1,8 @@
-try:
-    from plugins.applications.nginx import feature
-    from crawler_exceptions import CrawlError
-except ImportError:
-    from crawler.plugins.applications.nginx import feature
-    from crawler.crawler_exceptions import CrawlError
-import urllib2
 import re
+import urllib2
+
+from plugins.applications.nginx import feature
+from utils.crawler_exceptions import CrawlError
 
 
 def retrieve_status_page(host, port):

@@ -5,8 +5,8 @@ import os
 import shutil
 import mock
 
-import crawler.dockerutils
-import crawler.dockercontainer
+import utils.dockerutils
+import dockercontainer
 
 # Tests dockercontainer._get_logfiles_list
 # the log file, test1.log is in a host directory
@@ -17,7 +17,7 @@ def get_container_log_files(path, options):
     pass
 
 
-@mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+@mock.patch('dockercontainer.get_docker_container_rootfs_path',
             side_effect=lambda id: 'rootfs')
 class DockerContainerTests(unittest.TestCase):
 
@@ -67,11 +67,11 @@ class DockerContainerTests(unittest.TestCase):
             "owner_namespace": "owner_namespace",
             "NetworkSettings": {}}
 
-        self.docker_container = crawler.dockercontainer.\
-            DockerContainer(inspect['Id'], inspect)
+        self.docker_container = \
+            dockercontainer.DockerContainer(inspect['Id'], inspect)
 
-        self.docker_container.\
-            _get_container_log_files = get_container_log_files
+        self.docker_container._get_container_log_files = \
+            get_container_log_files
         self.docker_container.log_file_list = [
             {'name': '/data/test1.log', 'type': None}]
 

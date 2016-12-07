@@ -3,15 +3,13 @@ import time
 
 import requests
 
-try:
-    from plugins.emitters.base_emitter import BaseEmitter
-except ImportError:
-    from crawler.plugins.emitters.base_emitter import BaseEmitter
+from plugins.emitters.base_emitter import BaseEmitter
 
 logger = logging.getLogger('crawlutils')
 
 
 class HttpEmitter(BaseEmitter):
+
     def __init__(self, url, timeout=1, max_retries=5,
                  emit_per_line=False):
         BaseEmitter.__init__(self, url,

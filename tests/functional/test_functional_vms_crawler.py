@@ -6,7 +6,7 @@ import time
 
 # Tests for crawlers in kraken crawlers configuration.
 
-from crawler.vms_crawler import VirtualMachinesCrawler
+from vms_crawler import VirtualMachinesCrawler
 
 # Tests conducted with a single container running.
 

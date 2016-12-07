@@ -1,9 +1,9 @@
 import mock
 from unittest import TestCase
-from crawler.plugins.applications.redis.feature import RedisFeature
-from crawler.plugins.applications.redis.redis_host_crawler \
+from plugins.applications.redis.feature import RedisFeature
+from plugins.applications.redis.redis_host_crawler \
     import RedisHostCrawler
-from crawler.plugins.applications.redis.redis_container_crawler \
+from plugins.applications.redis.redis_container_crawler \
     import RedisContainerCrawler
 from requests.exceptions import ConnectionError
 
@@ -199,7 +199,7 @@ class RedisContainerCrawlTests(TestCase):
         c = RedisContainerCrawler()
         self.assertEqual(c.get_feature(), "application")
 
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer1)
     @mock.patch('redis.Redis', MockedRedisClient)
     def test_redis_container_crawler(self):
@@ -211,14 +211,14 @@ class RedisContainerCrawlTests(TestCase):
         self.assertEqual(emitted_tuple[2], "application",
                          "feature type must be equal to application")
 
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer2)
     def test_none_redis_container_crawler(self):
         c = RedisContainerCrawler()
         with self.assertRaises(NameError):
             c.crawl("mockcontainerid")
 
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer4)
     @mock.patch('redis.Redis', MockedRedisClient2)
     def test_no_available_ports(self):
@@ -226,7 +226,7 @@ class RedisContainerCrawlTests(TestCase):
         with self.assertRaises(ConnectionError):
             c.crawl("mockcontainerid")
 
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer3)
     @mock.patch('redis.Redis', MockedRedisClient)
     def test_set_default_port(self):

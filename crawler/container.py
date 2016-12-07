@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import os
 import logging
+import os
+
 import psutil
-import misc
-import namespace
+
+from utils import misc, namespace
 
 logger = logging.getLogger('crawlutils')
 

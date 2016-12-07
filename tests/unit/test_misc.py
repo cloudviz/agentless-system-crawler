@@ -1,9 +1,10 @@
-import unittest
 import os
-import mock
 import socket
+import unittest
 
-import crawler.misc
+import mock
+
+import utils.misc
 
 
 class MockedSocket1():
@@ -38,57 +39,57 @@ class MockedSocket2():
 class MiscTests(unittest.TestCase):
 
     def test_find_mount_point(self, tmpdir='/'):
-        assert crawler.misc.find_mount_point(str(tmpdir)) == '/'
+        assert utils.misc.find_mount_point(str(tmpdir)) == '/'
 
     def test_subprocess_run(self):
-        assert crawler.misc.subprocess_run(
+        assert utils.misc.subprocess_run(
             'echo abc', shell=True).strip() == 'abc'
-        assert crawler.misc.subprocess_run('exit 0', shell=True).strip() == ''
+        assert utils.misc.subprocess_run('exit 0', shell=True).strip() == ''
         with self.assertRaises(RuntimeError):
-            crawler.misc.subprocess_run('exit 1', shell=True)
+            utils.misc.subprocess_run('exit 1', shell=True)
         with self.assertRaises(RuntimeError):
             # There should not be a /a/b/c/d/e file
-            crawler.misc.subprocess_run('/a/b/c/d/e', shell=False)
+            utils.misc.subprocess_run('/a/b/c/d/e', shell=False)
 
-    @mock.patch('crawler.misc.open')
+    @mock.patch('utils.misc.open')
     def test_get_process_env(self, mock_open):
         mock_open.return_value = open('tests/unit/mock_environ_file')
-        env = crawler.misc.get_process_env(pid=os.getpid())
+        env = utils.misc.get_process_env(pid=os.getpid())
         assert 'HOME' in env
         with self.assertRaises(TypeError):
-            crawler.misc.get_process_env('asdf')
+            utils.misc.get_process_env('asdf')
 
     def test_process_is_crawler(self):
-        assert crawler.misc.process_is_crawler(os.getpid())
-        assert crawler.misc.process_is_crawler(1) is False
+        assert utils.misc.process_is_crawler(os.getpid())
+        assert utils.misc.process_is_crawler(1) is False
         # make sure 1123... does not actually exist
-        assert crawler.misc.process_is_crawler(1123234325123235) is False
+        assert utils.misc.process_is_crawler(1123234325123235) is False
         with self.assertRaises(TypeError):
-            crawler.misc.process_is_crawler('asdf')
+            utils.misc.process_is_crawler('asdf')
 
     def test_get_host_ip4_addresses(self):
-        assert '127.0.0.1' in crawler.misc.get_host_ip4_addresses()
+        assert '127.0.0.1' in utils.misc.get_host_ip4_addresses()
 
     def test_is_process_running(self):
-        assert crawler.misc.is_process_running(os.getpid())
-        assert crawler.misc.is_process_running(1)
+        assert utils.misc.is_process_running(os.getpid())
+        assert utils.misc.is_process_running(1)
         # make sure 1123... does not actually exist
-        assert crawler.misc.is_process_running(1123234325) is False
+        assert utils.misc.is_process_running(1123234325) is False
         with self.assertRaises(TypeError):
-            crawler.misc.is_process_running('asdf')
+            utils.misc.is_process_running('asdf')
 
-    @mock.patch('crawler.misc.socket.socket', side_effect=MockedSocket1)
+    @mock.patch('utils.misc.socket.socket', side_effect=MockedSocket1)
     def test_get_host_ipaddr1(self, mock_socket):
-        assert crawler.misc.get_host_ipaddr() == '1.2.3.4'
+        assert utils.misc.get_host_ipaddr() == '1.2.3.4'
 
-    @mock.patch('crawler.misc.socket.socket', side_effect=MockedSocket2)
-    @mock.patch('crawler.misc.socket.gethostname',
+    @mock.patch('utils.misc.socket.socket', side_effect=MockedSocket2)
+    @mock.patch('utils.misc.socket.gethostname',
                 side_effect=lambda: '4.3.2.1')
     def test_get_host_ipaddr2(self, *args):
-        assert crawler.misc.get_host_ipaddr() == '4.3.2.1'
+        assert utils.misc.get_host_ipaddr() == '4.3.2.1'
 
     def test_execution_path(self):
-        assert crawler.misc.execution_path('abc').endswith('/abc')
+        assert utils.misc.execution_path('abc').endswith('/abc')
 
     # XXX this is more of a functional test
     def test_btrfs_list_subvolumes(self):
@@ -96,10 +97,10 @@ class MiscTests(unittest.TestCase):
         # the path provided does not exist or it is not and it will raise a
         # RuntimeError.
         with self.assertRaises(RuntimeError):
-            for submodule in crawler.misc.btrfs_list_subvolumes('asd'):
+            for submodule in utils.misc.btrfs_list_subvolumes('asd'):
                 pass
 
-    @mock.patch('crawler.misc.subprocess_run')
+    @mock.patch('utils.misc.subprocess_run')
     def test_btrfs_list_subvolumes_with_list(self, mock_run):
         mock_run.return_value = (
             ("ID 257 gen 7 top level 5 path btrfs/subvolumes/a60a763cbaaedd3ac"
@@ -110,7 +111,7 @@ class MiscTests(unittest.TestCase):
              "82ddbd8437c9b2a0220aff40bbfd6734503bcd58e5afa28426\n"))
 
         assert list(
-            crawler.misc.btrfs_list_subvolumes('asd')) == [
+            utils.misc.btrfs_list_subvolumes('asd')) == [
             [
                 'ID',
                 '257',

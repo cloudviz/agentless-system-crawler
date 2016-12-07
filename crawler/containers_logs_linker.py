@@ -1,8 +1,9 @@
-from containers import get_containers
-from base_crawler import Crawler
 import argparse
 import os
-import misc
+
+from base_crawler import Crawler
+from containers import get_containers
+from utils import misc
 
 
 class DockerContainersLogsLinker(Crawler):

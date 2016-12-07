@@ -1,10 +1,11 @@
-import mock
-import unittest
-import requests
 import copy
+import unittest
 
-from crawler import crawler_exceptions
-from crawler.dockercontainer import DockerContainer, get_docker_containers
+import mock
+import requests
+
+from dockercontainer import DockerContainer, get_docker_containers
+from utils import crawler_exceptions
 
 
 def mocked_exists(pid):
@@ -199,14 +200,13 @@ class DockerDockerContainerTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_list_docker_containers(self, mock_get_rootfs, mock_inspect,
                                     mocked_get_runtime_env, mocked_dockerps):
@@ -217,14 +217,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert mocked_get_runtime_env.call_count == 3
         assert n == 2
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps_long)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_list_docker_containers_with_input(
             self,
@@ -238,14 +237,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         ids = [c.long_id for c in get_docker_containers(user_list='5,3')]
         assert set(ids) == set(['3', '5'])
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_list_docker_containers_with_opts(self, mock_get_rootfs,
                                               mock_inspect,
@@ -258,14 +256,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert mocked_get_runtime_env.call_count == 3
         assert n == 2
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_init(
             self,
@@ -278,14 +275,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert not c.root_fs
         assert mocked_get_runtime_env.call_count == 1
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_init_from_inspect(self, mock_get_rootfs, mock_inspect,
                                mocked_get_runtime_env, mocked_dockerps):
@@ -314,14 +310,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert not c.root_fs
         assert mocked_get_runtime_env.call_count == 1
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_init_from_inspect_w_repotags(self, mock_get_rootfs, mock_inspect,
                                           mocked_get_runtime_env,
@@ -357,14 +352,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert c.docker_image_registry == 'registry.com:123'
         assert c.owner_namespace == 'ric'
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_init_from_inspect_w_repotags2(self, mock_get_rootfs, mock_inspect,
                                            mocked_get_runtime_env,
@@ -400,14 +394,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert c.docker_image_registry == 'registry.com:123'
         assert c.owner_namespace == ''
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_init_failed(self, mock_get_rootfs, mock_inspect,
                          mocked_get_runtime_env, mocked_dockerps):
@@ -415,14 +408,13 @@ class DockerDockerContainerTests(unittest.TestCase):
             DockerContainer("no_container_id")
         assert mocked_get_runtime_env.call_count == 0
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_init_wrong_environment(
             self,
@@ -439,14 +431,13 @@ class DockerDockerContainerTests(unittest.TestCase):
         with self.assertRaises(crawler_exceptions.ContainerInvalidEnvironment):
             DockerContainer("throw_value_error_id")
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def test_is_docker(
             self,
@@ -458,16 +449,15 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert c.is_docker_container()
         print(c)
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.path.ismount',
+    @mock.patch('dockercontainer.os.path.ismount',
                 side_effect=lambda x: True if x == '/cgroup/memory' else False)
     def test_memory_cgroup(
             self,
@@ -480,19 +470,17 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert c.get_memory_cgroup_path(
             'abc') == '/cgroup/memory/docker/good_id/abc'
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch(
-        'crawler.dockercontainer.os.path.ismount',
-        side_effect=lambda x:
-            True if x == '/cgroup/cpuacct' or '/cgroup/cpu,cpuacct' else False)
+    @mock.patch('dockercontainer.os.path.ismount',
+                side_effect=lambda x:
+                True if x == '/cgroup/cpuacct' or '/cgroup/cpu,cpuacct' else False)
     def test_cpu_cgroup(
             self,
             mocked_ismount,
@@ -505,17 +493,16 @@ class DockerDockerContainerTests(unittest.TestCase):
             'abc') == ("/cgroup/cpuacct/docker/good_id/"
                        "abc") or ("cgroup/cpu,cpuacct/docker/good_id/abc")
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
     def test_link_logfiles(
             self,
             mock_symlink,
@@ -531,21 +518,19 @@ class DockerDockerContainerTests(unittest.TestCase):
             '/var/log/crawler_container_logs/random_prefix/var/log/2')
         assert mock_symlink.call_count == 4
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch(
-        'crawler.dockercontainer.misc.get_process_env',
-        side_effect=lambda x: {
-            'LOG_LOCATIONS': '/var/env/1,/var/env/2'})
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.misc.get_process_env',
+                side_effect=lambda x: {
+                    'LOG_LOCATIONS': '/var/env/1,/var/env/2'})
     def test_link_logfiles_env_variable(
             self,
             mock_get_env,
@@ -562,17 +547,16 @@ class DockerDockerContainerTests(unittest.TestCase):
             '/var/log/crawler_container_logs/random_prefix/var/log/2')
         assert mock_symlink.call_count == 6
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink',
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink',
                 side_effect=mocked_symlink_oserror)
     def test_link_logfiles_symlink_oserror(
             self,
@@ -586,17 +570,16 @@ class DockerDockerContainerTests(unittest.TestCase):
         c.link_logfiles()
         # no exceptoin should be thrown
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
-    @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
-        side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.plugins_manager.get_runtime_env_plugin',
+                side_effect=mocked_get_runtime_env)
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink',
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink',
                 side_effect=mocked_symlink_exception)
     def test_link_logfiles_symlink_exception(
             self,
@@ -610,18 +593,18 @@ class DockerDockerContainerTests(unittest.TestCase):
         c.link_logfiles()
         # no exceptoin should be thrown
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.shutil.rmtree')
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.shutil.rmtree')
     def test_link_and_unlink_logfiles(
             self,
             mock_rmtree,
@@ -640,19 +623,19 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert mock_symlink.call_count == 4
         assert mock_rmtree.call_count == 1
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.shutil.rmtree')
-    @mock.patch('crawler.dockercontainer.get_docker_container_json_logs_path',
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.shutil.rmtree')
+    @mock.patch('dockercontainer.get_docker_container_json_logs_path',
                 side_effect=mocked_get_container_json_logs_path)
     def test_link_and_unlink_docker_json_logfile(
             self,
@@ -673,18 +656,18 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert mock_symlink.call_count == 5
         assert mock_rmtree.call_count == 1
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.shutil.rmtree',
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.shutil.rmtree',
                 side_effect=mocked_rmtree_exception)
     def test_link_and_unlink_logfiles_failed_rmtree(
             self,
@@ -704,18 +687,18 @@ class DockerDockerContainerTests(unittest.TestCase):
         assert mock_symlink.call_count == 4
         assert mock_rmtree.call_count == 1
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.shutil.rmtree',
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.shutil.rmtree',
                 side_effect=mocked_rmtree_exception)
     def test_links_with_mounts(
             self,
@@ -757,18 +740,18 @@ class DockerDockerContainerTests(unittest.TestCase):
         c.unlink_logfiles()
         assert mock_symlink.call_count == 4
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.dockercontainer.os.makedirs')
-    @mock.patch('crawler.dockercontainer.os.symlink')
-    @mock.patch('crawler.dockercontainer.shutil.rmtree',
+    @mock.patch('dockercontainer.os.makedirs')
+    @mock.patch('dockercontainer.os.symlink')
+    @mock.patch('dockercontainer.shutil.rmtree',
                 side_effect=mocked_rmtree_exception)
     # In older docker versions, the inspect field for Mounts was called Volumes
     def test_links_with_volumes(
@@ -812,14 +795,14 @@ class DockerDockerContainerTests(unittest.TestCase):
 
     # TODO test _get_cgroup_dir when ismount fails
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     def _test_non_implemented_methods(self):
         c = DockerContainer("some_id")
@@ -832,16 +815,16 @@ class DockerDockerContainerTests(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             c.unlink_logfiles()
 
-    @mock.patch('crawler.dockercontainer.exec_dockerps',
+    @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
     @mock.patch(
-        'crawler.dockercontainer.plugins_manager.get_runtime_env_plugin',
+        'dockercontainer.plugins_manager.get_runtime_env_plugin',
         side_effect=mocked_get_runtime_env)
-    @mock.patch('crawler.dockercontainer.exec_dockerinspect',
+    @mock.patch('dockercontainer.exec_dockerinspect',
                 side_effect=mocked_docker_inspect)
-    @mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+    @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
-    @mock.patch('crawler.emitter.os.path.exists', side_effect=mocked_exists)
+    @mock.patch('emitter.os.path.exists', side_effect=mocked_exists)
     def _test_is_running(self, mock_exists):
         c = DockerContainer("good_id")
         assert c.is_running()

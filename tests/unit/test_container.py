@@ -1,7 +1,7 @@
 import mock
 import unittest
 
-from crawler.container import Container
+from container import Container
 
 
 def mocked_exists(pid):

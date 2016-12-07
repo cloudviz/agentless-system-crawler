@@ -1,26 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import os
+import glob
+import json
 import logging
+import os
 import shutil
 import time
 
-from container import Container
-import misc
-import json
-import glob
-from dockerutils import (exec_dockerps,
-                         get_docker_container_json_logs_path,
-                         get_docker_container_rootfs_path,
-                         exec_dockerinspect)
-import plugins_manager
-from crawler_exceptions import (ContainerInvalidEnvironment,
-                                ContainerNonExistent,
-                                DockerutilsNoJsonLog,
-                                DockerutilsException,
-                                ContainerWithoutCgroups)
 from requests.exceptions import HTTPError
-import namespace
+
+import plugins_manager
+from container import Container
+from utils import misc, namespace
+from utils.crawler_exceptions import (ContainerInvalidEnvironment,
+                                      ContainerNonExistent,
+                                      DockerutilsNoJsonLog,
+                                      DockerutilsException,
+                                      ContainerWithoutCgroups)
+from utils.dockerutils import (exec_dockerps,
+                               get_docker_container_json_logs_path,
+                               get_docker_container_rootfs_path,
+                               exec_dockerinspect)
 
 logger = logging.getLogger('crawlutils')
 

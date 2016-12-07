@@ -1,16 +1,16 @@
+import shutil
+import tempfile
 import unittest
+
 import docker
 import requests.exceptions
-import tempfile
-import shutil
+from plugins.systems.cpu_container_crawler import CpuContainerCrawler
+from plugins.systems.cpu_host_crawler import CpuHostCrawler
+from plugins.systems.memory_container_crawler import MemoryContainerCrawler
+from plugins.systems.memory_host_crawler import MemoryHostCrawler
+from plugins.systems.os_container_crawler import OSContainerCrawler
+from plugins.systems.process_container_crawler import ProcessContainerCrawler
 
-from crawler.plugins.cpu_host_crawler import CpuHostCrawler
-from crawler.plugins.memory_host_crawler import MemoryHostCrawler
-
-from crawler.plugins.cpu_container_crawler import CpuContainerCrawler
-from crawler.plugins.memory_container_crawler import MemoryContainerCrawler
-from crawler.plugins.os_container_crawler import OSContainerCrawler
-from crawler.plugins.process_container_crawler import ProcessContainerCrawler
 
 # Tests the FeaturesCrawler class
 # Throws an AssertionError if any test fails

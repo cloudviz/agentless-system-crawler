@@ -1,10 +1,7 @@
 import gzip
 import shutil
 
-try:
-    from plugins.emitters.base_emitter import BaseEmitter
-except ImportError:
-    from crawler.plugins.emitters.base_emitter import BaseEmitter
+from plugins.emitters.base_emitter import BaseEmitter
 
 
 class FileEmitter(BaseEmitter):

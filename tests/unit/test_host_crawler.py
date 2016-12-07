@@ -1,6 +1,6 @@
 import mock
 import unittest
-from crawler.host_crawler import HostCrawler
+from host_crawler import HostCrawler
 
 
 class MockedOSCrawler:
@@ -24,7 +24,7 @@ class MockedOSCrawlerFailure:
 class HostCrawlerTests(unittest.TestCase):
 
     @mock.patch(
-        'crawler.host_crawler.plugins_manager.get_host_crawl_plugins',
+        'host_crawler.plugins_manager.get_host_crawl_plugins',
         side_effect=lambda features: [(MockedOSCrawler(), {}),
                                       (MockedCPUCrawler(), {})])
     def test_host_crawler(self, *args):
@@ -39,7 +39,7 @@ class HostCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
 
     @mock.patch(
-        'crawler.host_crawler.plugins_manager.get_host_crawl_plugins',
+        'host_crawler.plugins_manager.get_host_crawl_plugins',
         side_effect=lambda features: [(MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
     def test_failed_host_crawler(self, *args):
@@ -49,7 +49,7 @@ class HostCrawlerTests(unittest.TestCase):
         assert args[0].call_count == 1
 
     @mock.patch(
-        'crawler.host_crawler.plugins_manager.get_host_crawl_plugins',
+        'host_crawler.plugins_manager.get_host_crawl_plugins',
         side_effect=lambda features: [(MockedCPUCrawler(), {}),
                                       (MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])

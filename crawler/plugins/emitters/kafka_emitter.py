@@ -1,13 +1,10 @@
 import logging
+
 import kafka as kafka_python
 import pykafka
 
-try:
-    from plugins.emitters.base_emitter import BaseEmitter
-    from misc import (NullHandler, call_with_retries)
-except ImportError:
-    from crawler.plugins.emitters.base_emitter import BaseEmitter
-    from crawler.misc import (NullHandler, call_with_retries)
+from plugins.emitters.base_emitter import BaseEmitter
+from utils.misc import (NullHandler, call_with_retries)
 
 logger = logging.getLogger('crawlutils')
 # Kafka logs too much

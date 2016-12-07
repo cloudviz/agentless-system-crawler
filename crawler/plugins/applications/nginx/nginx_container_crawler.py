@@ -1,14 +1,9 @@
-try:
-    from icrawl_plugin import IContainerCrawler
-    from plugins.applications.nginx import nginx_crawler
-    from crawler_exceptions import CrawlError
-    import dockercontainer
-except ImportError:
-    from crawler.icrawl_plugin import IContainerCrawler
-    from crawler.plugins.applications.nginx import nginx_crawler
-    from crawler.crawler_exceptions import CrawlError
-    from crawler import dockercontainer
 import logging
+
+import dockercontainer
+from icrawl_plugin import IContainerCrawler
+from plugins.applications.nginx import nginx_crawler
+from utils.crawler_exceptions import CrawlError
 
 logger = logging.getLogger('crawlutils')
 

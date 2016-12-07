@@ -5,7 +5,7 @@ import requests.exceptions
 import tempfile
 import shutil
 
-from crawler.dockerutils import (
+from utils.dockerutils import (
     exec_dockerps,
     exec_docker_history,
     exec_dockerinspect,

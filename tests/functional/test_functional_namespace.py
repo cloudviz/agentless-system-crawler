@@ -1,14 +1,15 @@
 import logging
-import unittest
-import docker
-import requests.exceptions
-import tempfile
 import shutil
 import sys
+import tempfile
 import time
+import unittest
 
-from crawler.namespace import run_as_another_namespace
-from crawler.crawler_exceptions import CrawlTimeoutError
+import docker
+import requests.exceptions
+
+from utils.crawler_exceptions import CrawlTimeoutError
+from utils.namespace import run_as_another_namespace
 
 all_namespaces = ["user", "pid", "uts", "ipc", "net", "mnt"]
 

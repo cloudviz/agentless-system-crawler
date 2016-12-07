@@ -1,15 +1,17 @@
-from unittest import TestCase
 import unittest
+from unittest import TestCase
+
 import mock
-from crawler.osinfo import (_get_file_name,
-                            parse_lsb_release,
-                            parse_os_release,
-                            parse_redhat_release,
-                            parse_centos_release,
-                            get_osinfo_from_lsb_release,
-                            get_osinfo_from_os_release,
-                            get_osinfo_from_redhat_centos
-                            )
+
+from utils.osinfo import (_get_file_name,
+                          parse_lsb_release,
+                          parse_os_release,
+                          parse_redhat_release,
+                          parse_centos_release,
+                          get_osinfo_from_lsb_release,
+                          get_osinfo_from_os_release,
+                          get_osinfo_from_redhat_centos
+                          )
 
 
 class Test_osinfo(TestCase):

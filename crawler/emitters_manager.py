@@ -8,13 +8,13 @@ from base_crawler import BaseFrame
 from formatters import (write_in_csv_format,
                         write_in_json_format,
                         write_in_graphite_format)
-from crawler_exceptions import (EmitterUnsupportedFormat,
-                                EmitterUnsupportedProtocol)
 from plugins.emitters.file_emitter import FileEmitter
 from plugins.emitters.http_emitter import HttpEmitter
 from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
 from plugins.emitters.stdout_emitter import StdoutEmitter
+from utils.crawler_exceptions import (EmitterUnsupportedFormat,
+                                      EmitterUnsupportedProtocol)
 
 logger = logging.getLogger('crawlutils')
 

@@ -1,12 +1,12 @@
-import mock
-import unittest
-from collections import namedtuple
 import Queue
 import time
+import unittest
+from collections import namedtuple
 
-import crawler.namespace
+import mock
 
-import crawler.crawler_exceptions
+import utils.namespace
+from utils import crawler_exceptions
 
 os_stat = namedtuple(
     'os_stat',
@@ -160,96 +160,96 @@ class NamespaceTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.namespace.os.stat',
+    @mock.patch('utils.namespace.os.stat',
                 side_effect=lambda p: os_stat(1, 2, 3, 4, 5, 6, 7, 8))
     def test_pid_namespace(self, *args):
-        assert crawler.namespace.get_pid_namespace(1) == 8
+        assert utils.namespace.get_pid_namespace(1) == 8
 
-    @mock.patch('crawler.namespace.os.stat',
+    @mock.patch('utils.namespace.os.stat',
                 side_effect=throw_os_error)
     def test_pid_namespace_no_process(self, *args):
-        assert crawler.namespace.get_pid_namespace(1) is None
+        assert utils.namespace.get_pid_namespace(1) is None
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibc())
     def test_run_as_another_namespace(self, *args):
-        assert crawler.namespace.run_as_another_namespace(
-            '1', crawler.namespace.ALL_NAMESPACES, fun_add, 1) == 2
+        assert utils.namespace.run_as_another_namespace(
+            '1', utils.namespace.ALL_NAMESPACES, fun_add, 1) == 2
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibcFailedOpen())
     def test_run_as_another_namespace_failed_mnt_open(self, *args):
         with self.assertRaises(
-                crawler.crawler_exceptions.NamespaceFailedSetns):
-            crawler.namespace.run_as_another_namespace(
-                '1', crawler.namespace.ALL_NAMESPACES, fun_add, 1)
+                crawler_exceptions.NamespaceFailedSetns):
+            utils.namespace.run_as_another_namespace(
+                '1', utils.namespace.ALL_NAMESPACES, fun_add, 1)
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibcFailedOpen())
     def test_run_as_another_namespace_failed_non_mnt_open(self, *args):
         with self.assertRaises(
-                crawler.crawler_exceptions.NamespaceFailedSetns):
-            crawler.namespace.run_as_another_namespace(
+                crawler_exceptions.NamespaceFailedSetns):
+            utils.namespace.run_as_another_namespace(
                 '1', ['pid', 'net'], fun_add, 1)
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibcFailedSetns())
     def test_run_as_another_namespace_failed_setns(self, *args):
-        with self.assertRaises(crawler.crawler_exceptions.NamespaceFailedSetns):
-            crawler.namespace.run_as_another_namespace(
-                '1', crawler.namespace.ALL_NAMESPACES, fun_add, 1)
+        with self.assertRaises(crawler_exceptions.NamespaceFailedSetns):
+            utils.namespace.run_as_another_namespace(
+                '1', utils.namespace.ALL_NAMESPACES, fun_add, 1)
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibcFailedSetns())
     def test_run_as_another_namespace_failed_non_mnt_setns(self, *args):
-        with self.assertRaises(crawler.crawler_exceptions.NamespaceFailedSetns):
-            crawler.namespace.run_as_another_namespace(
+        with self.assertRaises(crawler_exceptions.NamespaceFailedSetns):
+            utils.namespace.run_as_another_namespace(
                 '1', ['pid', 'net'], fun_add, 1)
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibcFailedClose())
     def test_run_as_another_namespace_failed_close(self, *args):
-        assert crawler.namespace.run_as_another_namespace(
-            '1', crawler.namespace.ALL_NAMESPACES, fun_add, 1) == 2
+        assert utils.namespace.run_as_another_namespace(
+            '1', utils.namespace.ALL_NAMESPACES, fun_add, 1) == 2
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibcNoSetns())
     def test_run_as_another_namespace_no_setns(self, *args):
-        assert crawler.namespace.run_as_another_namespace(
-            '1', crawler.namespace.ALL_NAMESPACES, fun_add, 1) == 2
+        assert utils.namespace.run_as_another_namespace(
+            '1', utils.namespace.ALL_NAMESPACES, fun_add, 1) == 2
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibc())
     def test_run_as_another_namespace_failed_fun(self, *args):
         with self.assertRaises(AssertionError):
-            crawler.namespace.run_as_another_namespace(
-                '1', crawler.namespace.ALL_NAMESPACES, fun_failed, 1)
+            utils.namespace.run_as_another_namespace(
+                '1', utils.namespace.ALL_NAMESPACES, fun_failed, 1)
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibc())
-    @mock.patch('crawler.namespace.multiprocessing.Queue',
+    @mock.patch('utils.namespace.multiprocessing.Queue',
                 side_effect=MockedQueue)
     def test_run_as_another_namespace_with_mocked_queue(self, *args):
-        assert crawler.namespace.run_as_another_namespace(
-            '1', crawler.namespace.ALL_NAMESPACES, fun_failed, 1) == 123
+        assert utils.namespace.run_as_another_namespace(
+            '1', utils.namespace.ALL_NAMESPACES, fun_failed, 1) == 123
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibc())
-    @mock.patch('crawler.namespace.multiprocessing.Queue',
+    @mock.patch('utils.namespace.multiprocessing.Queue',
                 side_effect=MockedQueueGetTimeout)
     def test_run_as_another_namespace_get_timeout(self, *args):
-        with self.assertRaises(crawler.crawler_exceptions.CrawlTimeoutError):
-            crawler.namespace.run_as_another_namespace(
-                '1', crawler.namespace.ALL_NAMESPACES, fun_add, 1)
+        with self.assertRaises(crawler_exceptions.CrawlTimeoutError):
+            utils.namespace.run_as_another_namespace(
+                '1', utils.namespace.ALL_NAMESPACES, fun_add, 1)
 
-    @mock.patch('crawler.namespace.get_libc',
+    @mock.patch('utils.namespace.get_libc',
                 side_effect=lambda: MockedLibc())
-    @mock.patch('crawler.namespace.multiprocessing.Queue',
+    @mock.patch('utils.namespace.multiprocessing.Queue',
                 side_effect=MockedQueue)
     def test_run_as_another_namespace_fun_not_exiting_failure(self, *args):
-        _old_timeout = crawler.namespace.IN_PROCESS_TIMEOUT
-        crawler.namespace.IN_PROCESS_TIMEOUT = 0
-        with self.assertRaises(crawler.crawler_exceptions.CrawlTimeoutError):
-            crawler.namespace.run_as_another_namespace(
-                '1', crawler.namespace.ALL_NAMESPACES, fun_not_exiting, 1)
-        crawler.namespace.IN_PROCESS_TIMEOUT = _old_timeout
+        _old_timeout = utils.namespace.IN_PROCESS_TIMEOUT
+        utils.namespace.IN_PROCESS_TIMEOUT = 0
+        with self.assertRaises(crawler_exceptions.CrawlTimeoutError):
+            utils.namespace.run_as_another_namespace(
+                '1', utils.namespace.ALL_NAMESPACES, fun_not_exiting, 1)
+        utils.namespace.IN_PROCESS_TIMEOUT = _old_timeout

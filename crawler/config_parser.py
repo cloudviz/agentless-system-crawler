@@ -1,7 +1,9 @@
+import logging
+
 from configobj import ConfigObj
 from validate import Validator
-import logging
-import misc
+
+from utils import misc
 
 CONFIG_SPEC_PATH = 'config_spec_and_defaults.conf'
 

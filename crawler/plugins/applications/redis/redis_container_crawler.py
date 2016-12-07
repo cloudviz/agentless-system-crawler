@@ -1,11 +1,6 @@
-try:
-    from icrawl_plugin import IContainerCrawler
-    from plugins.applications.redis import feature
-    import dockercontainer
-except ImportError:
-    from crawler.icrawl_plugin import IContainerCrawler
-    from crawler.plugins.applications.redis import feature
-    from crawler import dockercontainer
+from icrawl_plugin import IContainerCrawler
+from plugins.applications.redis import feature
+import dockercontainer
 from requests.exceptions import ConnectionError
 import redis
 import logging

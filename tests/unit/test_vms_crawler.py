@@ -1,6 +1,6 @@
 import mock
 import unittest
-from crawler.vms_crawler import VirtualMachinesCrawler
+from vms_crawler import VirtualMachinesCrawler
 
 
 class MockedOSCrawler:
@@ -45,10 +45,10 @@ class MockedQemuVirtualMachine:
 class VirtualMachinesCrawlerTests(unittest.TestCase):
 
     @mock.patch(
-        'crawler.vms_crawler.plugins_manager.get_vm_crawl_plugins',
+        'vms_crawler.plugins_manager.get_vm_crawl_plugins',
         side_effect=lambda features: [(MockedOSCrawler(), {}),
                                       (MockedCPUCrawler(), {})])
-    @mock.patch('crawler.vms_crawler.get_virtual_machines',
+    @mock.patch('vms_crawler.get_virtual_machines',
                 side_effect=lambda user_list, host_namespace: [
                     MockedQemuVirtualMachine(
                         name='aaa',
@@ -72,10 +72,10 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
         assert args[1].call_count == 1
 
     @mock.patch(
-        'crawler.vms_crawler.plugins_manager.get_vm_crawl_plugins',
+        'vms_crawler.plugins_manager.get_vm_crawl_plugins',
         side_effect=lambda features: [(MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
-    @mock.patch('crawler.vms_crawler.get_virtual_machines',
+    @mock.patch('vms_crawler.get_virtual_machines',
                 side_effect=lambda user_list, host_namespace: [
                     MockedQemuVirtualMachine(
                         name='aaa',
@@ -94,11 +94,11 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
         assert args[1].call_count == 1
 
     @mock.patch(
-        'crawler.vms_crawler.plugins_manager.get_vm_crawl_plugins',
+        'vms_crawler.plugins_manager.get_vm_crawl_plugins',
         side_effect=lambda features: [(MockedCPUCrawler(), {}),
                                       (MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
-    @mock.patch('crawler.vms_crawler.get_virtual_machines',
+    @mock.patch('vms_crawler.get_virtual_machines',
                 side_effect=lambda user_list, host_namespace: [
                     MockedQemuVirtualMachine(
                         name='aaa',
