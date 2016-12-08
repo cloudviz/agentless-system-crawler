@@ -6,7 +6,7 @@ import logging
 
 import container
 import misc
-from dockercontainer import list_docker_containers
+from dockercontainer import get_docker_containers, poll_docker_containers
 
 logger = logging.getLogger('crawlutils')
 
@@ -24,7 +24,8 @@ def list_all_containers(user_list='ALL', host_namespace='',
     """
     visited_ns = set()  # visited PID namespaces
 
-    for _container in list_docker_containers(host_namespace, user_list):
+    for _container in get_docker_containers(host_namespace=host_namespace,
+                                            user_list=user_list):
         curr_ns = _container.process_namespace
         if curr_ns not in visited_ns:
             visited_ns.add(curr_ns)
@@ -40,6 +41,22 @@ def list_all_containers(user_list='ALL', host_namespace='',
         if curr_ns not in visited_ns:
             visited_ns.add(curr_ns)
             yield _container
+
+
+def poll_containers(timeout, user_list='ALL', host_namespace='',
+                    ignore_raw_containers=True):
+    """
+    Returns a list of all running containers in the host.
+
+    :param timeout: seconds to wait for a new container
+    :param user_list: list of Docker container IDs. TODO: include rkt Ids.
+    :param host_namespace: string representing the host name (e.g. host IP)
+    :param ignore_raw_containers: if True, only include Docker or rkt.
+    An example of a non-docker container is a chromium-browser process.
+    :return: a list of Container objects
+    """
+    # XXX: we only support polling docker containers
+    return poll_docker_containers(timeout, host_namespace, user_list)
 
 
 def get_containers(

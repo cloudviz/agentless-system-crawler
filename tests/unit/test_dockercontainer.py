@@ -4,7 +4,7 @@ import requests
 import copy
 
 from crawler import crawler_exceptions
-from crawler.dockercontainer import DockerContainer, list_docker_containers
+from crawler.dockercontainer import DockerContainer, get_docker_containers
 
 
 def mocked_exists(pid):
@@ -211,7 +211,7 @@ class DockerDockerContainerTests(unittest.TestCase):
     def test_list_docker_containers(self, mock_get_rootfs, mock_inspect,
                                     mocked_get_runtime_env, mocked_dockerps):
         n = 0
-        for c in list_docker_containers():
+        for c in get_docker_containers():
             assert c.long_id == 'good_id'
             n += 1
         assert mocked_get_runtime_env.call_count == 3
@@ -232,10 +232,10 @@ class DockerDockerContainerTests(unittest.TestCase):
             mock_inspect,
             mocked_get_runtime_env,
             mocked_dockerps):
-        ids = [c.short_id for c in list_docker_containers(user_list='1,2,8')]
+        ids = [c.short_id for c in get_docker_containers(user_list='1,2,8')]
         assert set(ids) == set(['1', '2', '8'])
         assert mocked_get_runtime_env.call_count == 3
-        ids = [c.long_id for c in list_docker_containers(user_list='5,3')]
+        ids = [c.long_id for c in get_docker_containers(user_list='5,3')]
         assert set(ids) == set(['3', '5'])
 
     @mock.patch('crawler.dockercontainer.exec_dockerps',
@@ -252,7 +252,7 @@ class DockerDockerContainerTests(unittest.TestCase):
                                               mocked_get_runtime_env,
                                               mocked_dockerps):
         n = 0
-        for c in list_docker_containers():
+        for c in get_docker_containers():
             assert c.long_id == 'good_id'
             n += 1
         assert mocked_get_runtime_env.call_count == 3

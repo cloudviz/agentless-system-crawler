@@ -1,12 +1,11 @@
 from containers import get_containers
-from base_crawler import BaseCrawler
-from worker import Worker
+from base_crawler import Crawler
 import argparse
 import os
 import misc
 
 
-class DockerContainersLogsLinker(BaseCrawler):
+class DockerContainersLogsLinker(Crawler):
     """
     Class used to maintain symlinks to container log files. The idea with this
     is to symlink all log files of interest (from all containers of interest)
@@ -15,10 +14,15 @@ class DockerContainersLogsLinker(BaseCrawler):
     """
 
     def __init__(self,
+                 emitters=None,
+                 frequency=-1,
                  environment='cloudsight',
                  user_list='ALL',
                  host_namespace=''):
-
+        Crawler.__init__(
+            self,
+            emitters,
+            frequency=frequency)
         self.containers_list = set()
         self.new = set()
         self.deleted = set()
@@ -109,11 +113,11 @@ if __name__ == '__main__':
     misc.setup_logger('crawlutils', 'linker.log')
     misc.setup_logger('yapsy', 'yapsy.log')
     args = parser.parse_args()
-    crawler = DockerContainersLogsLinker(environment=args.environment,
+    crawler = DockerContainersLogsLinker(None, args.frequency,
+                                         environment=args.environment,
                                          user_list=args.crawlContainers,
                                          host_namespace=args.namespace)
-    worker = Worker(None, args.frequency, crawler)
     try:
-        worker.run()
+        crawler.run()
     except KeyboardInterrupt:
         pass

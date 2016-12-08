@@ -6,7 +6,6 @@ import json
 import os
 
 import misc
-from worker import Worker
 from crawlmodes import Modes
 from containers_crawler import ContainersCrawler
 from host_crawler import HostCrawler
@@ -195,8 +194,15 @@ def main():
     options['avoid_setns'] = args.avoid_setns
     options['mountpoint'] = args.mountpoint
 
+    emitters = EmittersManager(urls=args.url,
+                               format=args.format,
+                               compress=args.compress,
+                               extra_metadata=args.extraMetadata)
+
     if args.crawlmode == 'OUTCONTAINER':
         crawler = ContainersCrawler(
+            emitters,
+            frequency=args.frequency,
             features=args.features,
             environment=args.environment,
             user_list=args.crawlContainers,
@@ -205,12 +211,16 @@ def main():
             options=options)
     elif args.crawlmode == 'INVM' or args.crawlmode == 'MOUNTPOINT':
         crawler = HostCrawler(
+            emitters,
+            frequency=args.frequency,
             features=args.features,
             namespace=args.namespace,
             plugin_places=args.plugin_places,
             options=options)
     elif args.crawlmode == 'OUTVM':
         crawler = VirtualMachinesCrawler(
+            emitters=emitters,
+            frequency=args.frequency,
             features=args.features,
             user_list=args.vm_descs_list,
             host_namespace=args.namespace,
@@ -219,14 +229,8 @@ def main():
     else:
         raise NotImplementedError('Invalid crawlmode')
 
-    emitters = EmittersManager(urls=args.url,
-                               format=args.format,
-                               compress=args.compress,
-                               extra_metadata=args.extraMetadata)
-    worker = Worker(emitters, args.frequency, crawler)
-
     try:
-        worker.run()
+        crawler.run()
     except KeyboardInterrupt:
         pass
 

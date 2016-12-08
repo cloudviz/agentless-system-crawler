@@ -3,6 +3,7 @@
 import os
 import logging
 import shutil
+import time
 
 from container import Container
 import misc
@@ -31,7 +32,7 @@ DEFAULT_LOG_FILES = [{'name': '/var/log/messages',
                       'type': None}, ]
 
 
-def list_docker_containers(host_namespace='', user_list=None):
+def get_docker_containers(user_list=None, host_namespace=''):
     """
     Get the list of running Docker containers, as `DockerContainer` objects.
     This is basically polling. Ideally, we should subscribe to Docker
@@ -59,6 +60,26 @@ def list_docker_containers(host_namespace='', user_list=None):
                 yield c
         except ContainerInvalidEnvironment as e:
             logger.exception(e)
+
+
+def poll_docker_containers(timeout, user_list=None, host_namespace=''):
+    """
+    Get the first container created before `timeout` seconds have elapsed.
+
+    :param timeout: seconds to wait for a new container.
+    :param host_namespace: string representing the host name (e.g. host IP)
+    :param user_list: list of Docker container IDs. `None` means all
+    containers.
+    :return: a DockerContainer object (just the first container created).
+    """
+
+    """
+    TODO: implement this function. For now, just emulate a failed poll:
+    no containers were created before timeout seconds.
+    """
+    if timeout > 0:
+        time.sleep(timeout)
+    return None
 
 
 class LogFileLink():
