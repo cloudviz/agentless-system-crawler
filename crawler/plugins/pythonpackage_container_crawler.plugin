@@ -1,6 +1,6 @@
 [Core]
 Name = python_pkg
-Module = python_package_container_crawler
+Module = pythonpackage_container_crawler
 
 [Documentation]
 Author = IBM
