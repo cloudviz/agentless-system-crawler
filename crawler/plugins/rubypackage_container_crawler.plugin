@@ -1,6 +1,6 @@
 [Core]
 Name = ruby_pkg
-Module = ruby_package_container_crawler
+Module = rubypackage_container_crawler
 
 [Documentation]
 Author = IBM
