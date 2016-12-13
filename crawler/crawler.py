@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 
+from worker import Worker
 from containers_crawler import ContainersCrawler
 from utils import misc
 from crawlmodes import Modes
@@ -201,8 +202,6 @@ def main():
 
     if args.crawlmode == 'OUTCONTAINER':
         crawler = ContainersCrawler(
-            emitters,
-            frequency=args.frequency,
             features=args.features,
             environment=args.environment,
             user_list=args.crawlContainers,
@@ -211,16 +210,12 @@ def main():
             options=options)
     elif args.crawlmode == 'INVM' or args.crawlmode == 'MOUNTPOINT':
         crawler = HostCrawler(
-            emitters,
-            frequency=args.frequency,
             features=args.features,
             namespace=args.namespace,
             plugin_places=args.plugin_places,
             options=options)
     elif args.crawlmode == 'OUTVM':
         crawler = VirtualMachinesCrawler(
-            emitters=emitters,
-            frequency=args.frequency,
             features=args.features,
             user_list=args.vm_descs_list,
             host_namespace=args.namespace,
@@ -229,8 +224,12 @@ def main():
     else:
         raise NotImplementedError('Invalid crawlmode')
 
+    worker = Worker(emitters=emitters,
+                    frequency=args.frequency,
+                    crawler=crawler)
+
     try:
-        crawler.run()
+        worker.run()
     except KeyboardInterrupt:
         pass
 

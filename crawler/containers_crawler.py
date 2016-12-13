@@ -1,6 +1,6 @@
 from containers import poll_containers, get_containers
 import plugins_manager
-from base_crawler import Crawler, BaseFrame
+from base_crawler import BaseCrawler, BaseFrame
 
 
 class ContainerFrame(BaseFrame):
@@ -11,11 +11,9 @@ class ContainerFrame(BaseFrame):
         self.metadata['system_type'] = 'container'
 
 
-class ContainersCrawler(Crawler):
+class ContainersCrawler(BaseCrawler):
 
     def __init__(self,
-                 emitters=None,
-                 frequency=-1,
                  features=['os', 'cpu'],
                  environment='cloudsight',
                  user_list='ALL',
@@ -23,10 +21,8 @@ class ContainersCrawler(Crawler):
                  plugin_places=['plugins'],
                  options={}):
 
-        Crawler.__init__(
+        BaseCrawler.__init__(
             self,
-            emitters=emitters,
-            frequency=frequency,
             features=features,
             plugin_places=plugin_places,
             options=options)
