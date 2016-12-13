@@ -1,9 +1,5 @@
-try:
-    from icrawl_plugin import IHostCrawler
-    from plugins.applications.nginx import nginx_crawler
-except ImportError:
-    from crawler.icrawl_plugin import IHostCrawler
-    from crawler.plugins.applications.nginx import nginx_crawler
+from icrawl_plugin import IHostCrawler
+from plugins.applications.nginx import nginx_crawler
 import logging
 
 logger = logging.getLogger('crawlutils')

@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
-# External dependencies that must be pip install'ed separately
-
 import container
-import misc
+from utils import misc
 from dockercontainer import get_docker_containers, poll_docker_containers
 
 logger = logging.getLogger('crawlutils')

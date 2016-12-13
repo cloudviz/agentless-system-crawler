@@ -1,19 +1,17 @@
 import cStringIO
 import gzip
-import os
-import tempfile
 import unittest
 
 import mock
 import requests.exceptions
 
-import crawler.crawler_exceptions
+from base_crawler import BaseFrame
 from capturing import Capturing
-from crawler.base_crawler import BaseFrame
-from crawler.emitters_manager import EmittersManager
-from crawler.plugins.emitters.http_emitter import HttpEmitter
-from crawler.plugins.emitters.kafka_emitter import KafkaEmitter
-from crawler.plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
+from emitters_manager import EmittersManager
+from plugins.emitters.http_emitter import HttpEmitter
+from plugins.emitters.kafka_emitter import KafkaEmitter
+from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
+from utils import crawler_exceptions
 
 
 def mock_call_with_retries(function, max_retries=10,
@@ -228,11 +226,11 @@ class EmitterTests(unittest.TestCase):
         metadata = {}
         metadata['namespace'] = 'namespace777'
         with self.assertRaises(
-                crawler.crawler_exceptions.EmitterUnsupportedFormat):
+                crawler_exceptions.EmitterUnsupportedFormat):
             _ = EmittersManager(urls=['file:///tmp/test_emitter'],
                                 format='unsupported')
 
-    @mock.patch('crawler.emitters_manager.FileEmitter.emit',
+    @mock.patch('emitters_manager.FileEmitter.emit',
                 side_effect=raise_value_error)
     def test_emitter_failed_emit(self, *args):
         with self.assertRaises(ValueError):
@@ -245,7 +243,7 @@ class EmitterTests(unittest.TestCase):
 
     def test_emitter_unsuported_protocol(self):
         with self.assertRaises(
-                crawler.crawler_exceptions.EmitterUnsupportedProtocol):
+                crawler_exceptions.EmitterUnsupportedProtocol):
             _ = EmittersManager(urls=['error:///tmp/test_emitter'],
                                 format='graphite')
 
@@ -345,9 +343,9 @@ class EmitterTests(unittest.TestCase):
             assert float(_output[1].split(' ')[1]) == 12345.0
             assert float(_output[2].split(' ')[1]) == 12345.0
 
-    @mock.patch('crawler.plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    @mock.patch('crawler.plugins.emitters.http_emitter.time.sleep')
+    @mock.patch('plugins.emitters.http_emitter.time.sleep')
     def test_emitter_http(self, mock_sleep, mock_post):
         emitter = HttpEmitter(url='http://1.1.1.1/good')
         iostream = cStringIO.StringIO()
@@ -356,9 +354,9 @@ class EmitterTests(unittest.TestCase):
         emitter.emit(iostream)
         self.assertEqual(mock_post.call_count, 1)
 
-    @mock.patch('crawler.plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    @mock.patch('crawler.plugins.emitters.http_emitter.time.sleep')
+    @mock.patch('plugins.emitters.http_emitter.time.sleep')
     def test_emitter_http_server_error(self, mock_sleep, mock_post):
         emitter = HttpEmitter(url='http://1.1.1.1/bad')
         iostream = cStringIO.StringIO()
@@ -367,9 +365,9 @@ class EmitterTests(unittest.TestCase):
         emitter.emit(iostream)
         self.assertEqual(mock_post.call_count, 5)
 
-    @mock.patch('crawler.plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    @mock.patch('crawler.plugins.emitters.http_emitter.time.sleep')
+    @mock.patch('plugins.emitters.http_emitter.time.sleep')
     def test_emitter_http_request_exception(self, mock_sleep, mock_post):
         emitter = HttpEmitter(url='http://1.1.1.1/exception')
         iostream = cStringIO.StringIO()
@@ -378,7 +376,7 @@ class EmitterTests(unittest.TestCase):
         emitter.emit(iostream)
         self.assertEqual(mock_post.call_count, 5)
 
-    @mock.patch('crawler.plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
     def test_emitter_http_encoding_error(self, mock_post):
         emitter = HttpEmitter(url='http://1.1.1.1/encoding_error')
@@ -389,7 +387,7 @@ class EmitterTests(unittest.TestCase):
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
 
-    @mock.patch('crawler.plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
+    @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)
     def test_emitter_kafka(self, *args):
         emitter = KafkaEmitter(url='kafka://1.1.1.1:123/topic1')
@@ -399,7 +397,7 @@ class EmitterTests(unittest.TestCase):
         emitter.emit(iostream)
         assert emitter.producer._produced == ['abc\r\ndef\r\n']
 
-    @mock.patch('crawler.plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
+    @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)
     def test_emitter_kafka_one_per_line(self, *args):
         emitter = KafkaEmitter(url='kafka://1.1.1.1:123/topic1',
@@ -410,7 +408,7 @@ class EmitterTests(unittest.TestCase):
         emitter.emit(iostream)
         assert set(emitter.producer._produced) == set(['abc\r\n', 'def\r\n'])
 
-    @mock.patch('crawler.plugins.emitters.mtgraphite_emitter.MTGraphiteClient',
+    @mock.patch('plugins.emitters.mtgraphite_emitter.MTGraphiteClient',
                 side_effect=MockedMTGraphiteClient, autospec=True)
     def test_emitter_mtgraphite(self, MockMTGraphiteClient):
         emitter = MtGraphiteEmitter(url='mtgraphite://1.1.1.1:123/topic1',

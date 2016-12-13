@@ -1,16 +1,13 @@
 import logging
 
-try:
-    from plugins.emitters.base_emitter import BaseEmitter
-    from mtgraphite import MTGraphiteClient
-except ImportError:
-    from crawler.plugins.emitters.base_emitter import BaseEmitter
-    from crawler.mtgraphite import MTGraphiteClient
+from plugins.emitters.base_emitter import BaseEmitter
+from utils.mtgraphite import MTGraphiteClient
 
 logger = logging.getLogger('crawlutils')
 
 
 class MtGraphiteEmitter(BaseEmitter):
+
     def __init__(self, url, timeout=1, max_retries=5,
                  emit_per_line=True):
         BaseEmitter.__init__(self, url,

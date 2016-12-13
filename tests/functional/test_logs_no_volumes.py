@@ -5,8 +5,8 @@ import os
 import shutil
 import mock
 
-import crawler.dockerutils
-import crawler.dockercontainer
+import utils.dockerutils
+import dockercontainer
 
 
 # Tests dockercontainer._get_logfiles_list
@@ -17,7 +17,7 @@ def get_container_log_files(path, options):
     pass
 
 
-@mock.patch('crawler.dockercontainer.get_docker_container_rootfs_path',
+@mock.patch('dockercontainer.get_docker_container_rootfs_path',
             side_effect=lambda id: 'rootfs')
 class DockerContainerTests(unittest.TestCase):
 
@@ -63,7 +63,7 @@ class DockerContainerTests(unittest.TestCase):
             "docker_image_registry": "image_registry",
             "owner_namespace": "owner_namespace",
             "NetworkSettings": {}}
-        self.docker_container = crawler.dockercontainer.\
+        self.docker_container = dockercontainer.\
             DockerContainer(inspect['Id'], inspect)
 
         self.docker_container.\

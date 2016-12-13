@@ -5,9 +5,9 @@ import shutil
 import sys
 import subprocess
 
-from crawler.containers_logs_linker import DockerContainersLogsLinker
-from crawler.dockercontainer import HOST_LOG_BASEDIR
-from crawler.misc import get_host_ipaddr
+from containers_logs_linker import DockerContainersLogsLinker
+from dockercontainer import HOST_LOG_BASEDIR
+from utils.misc import get_host_ipaddr
 
 import logging
 

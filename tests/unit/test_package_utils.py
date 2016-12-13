@@ -1,8 +1,9 @@
-import mock
 import unittest
 
-import crawler.package_utils
-from crawler.features import PackageFeature
+import mock
+
+from utils import package_utils
+from utils.features import PackageFeature
 
 
 def mocked_subprocess_run(cmd, shell=False, ignore_failure=False):
@@ -22,10 +23,10 @@ class PackageUtilsTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.package_utils.subprocess_run',
+    @mock.patch('utils.package_utils.subprocess_run',
                 side_effect=mocked_subprocess_run)
     def test_get_dpkg_packages(self, mock_subprocess_run):
-        pkgs = list(crawler.package_utils.get_dpkg_packages())
+        pkgs = list(package_utils.get_dpkg_packages())
         print pkgs
         assert pkgs == [
             ('pkg1',
@@ -43,10 +44,10 @@ class PackageUtilsTests(unittest.TestCase):
                  pkgversion='v2',
                  pkgarchitecture='x86'))]
 
-    @mock.patch('crawler.package_utils.subprocess_run',
+    @mock.patch('utils.package_utils.subprocess_run',
                 side_effect=mocked_subprocess_run)
     def test_get_rpm_packages(self, mock_subprocess_run):
-        pkgs = list(crawler.package_utils.get_rpm_packages())
+        pkgs = list(package_utils.get_rpm_packages())
         print pkgs
         assert pkgs == [
             ('pkg1',
@@ -64,10 +65,10 @@ class PackageUtilsTests(unittest.TestCase):
                  pkgversion='v1',
                  pkgarchitecture='x86'))]
 
-    @mock.patch('crawler.package_utils.subprocess_run',
+    @mock.patch('utils.package_utils.subprocess_run',
                 side_effect=mocked_subprocess_run)
     def test_get_rpm_packages_with_db_reload(self, mock_subprocess_run):
-        pkgs = list(crawler.package_utils.get_rpm_packages(reload_needed=True))
+        pkgs = list(package_utils.get_rpm_packages(reload_needed=True))
         print pkgs
         assert pkgs == [
             ('pkg1',

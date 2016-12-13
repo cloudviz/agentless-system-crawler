@@ -1,8 +1,7 @@
 import mock
 import unittest
 
-from crawler.containers import (list_all_containers,
-                                get_containers)
+from containers import (list_all_containers, get_containers)
 
 
 def mocked_exists(pid):
@@ -53,16 +52,16 @@ class ContainersTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('crawler.containers.get_docker_containers',
+    @mock.patch('containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
                 mocked_get_docker_containers(host_namespace, user_list))
-    @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
+    @mock.patch('containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
-    @mock.patch('crawler.containers.container.psutil.process_iter',
+    @mock.patch('containers.container.psutil.process_iter',
                 side_effect=lambda: [PsUtilProcess('4'),  # container
                                      PsUtilProcess('1'),  # init
                                      PsUtilProcess('5')])  # crawler
-    @mock.patch('crawler.containers.container.misc.process_is_crawler',
+    @mock.patch('containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_list_all_containers(self, *args):
         pids = [
@@ -78,16 +77,16 @@ class ContainersTests(unittest.TestCase):
         assert args[2].call_count == 2
         assert args[3].call_count == 1
 
-    @mock.patch('crawler.containers.get_docker_containers',
+    @mock.patch('containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
                 mocked_get_docker_containers(host_namespace, user_list))
-    @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
+    @mock.patch('containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
-    @mock.patch('crawler.containers.container.psutil.process_iter',
+    @mock.patch('containers.container.psutil.process_iter',
                 side_effect=lambda: [PsUtilProcess('4'),  # container
                                      PsUtilProcess('1'),  # init
                                      PsUtilProcess('5')])  # crawler
-    @mock.patch('crawler.containers.container.misc.process_is_crawler',
+    @mock.patch('containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_list_all_containers_input_list(self, *args):
         pids = [
@@ -102,16 +101,16 @@ class ContainersTests(unittest.TestCase):
         assert '1' not in pids  # init process
         assert '5' not in pids  # crawler process
 
-    @mock.patch('crawler.containers.get_docker_containers',
+    @mock.patch('containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
                 mocked_get_docker_containers(host_namespace, user_list))
-    @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
+    @mock.patch('containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
-    @mock.patch('crawler.containers.container.psutil.process_iter',
+    @mock.patch('containers.container.psutil.process_iter',
                 side_effect=lambda: [PsUtilProcess('4'),  # container
                                      PsUtilProcess('1'),  # init
                                      PsUtilProcess('5')])  # crawler
-    @mock.patch('crawler.containers.container.misc.process_is_crawler',
+    @mock.patch('containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list(self, *args):
         pids = [c.pid for c in get_containers(ignore_raw_containers=False)]
@@ -121,16 +120,16 @@ class ContainersTests(unittest.TestCase):
         assert '1' not in pids  # init process
         assert '5' not in pids  # crawler process
 
-    @mock.patch('crawler.containers.get_docker_containers',
+    @mock.patch('containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
                 mocked_get_docker_containers(host_namespace, user_list))
-    @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
+    @mock.patch('containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
-    @mock.patch('crawler.containers.container.psutil.process_iter',
+    @mock.patch('containers.container.psutil.process_iter',
                 side_effect=lambda: [PsUtilProcess('4'),  # container
                                      PsUtilProcess('1'),  # init
                                      PsUtilProcess('5')])  # crawler
-    @mock.patch('crawler.containers.container.misc.process_is_crawler',
+    @mock.patch('containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list_with_input_list(self, *args):
         pids = [
@@ -144,16 +143,16 @@ class ContainersTests(unittest.TestCase):
         assert '1' not in pids  # init process
         assert '5' not in pids  # crawler process
 
-    @mock.patch('crawler.containers.get_docker_containers',
+    @mock.patch('containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
                 mocked_get_docker_containers(host_namespace, user_list))
-    @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
+    @mock.patch('containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
-    @mock.patch('crawler.containers.container.psutil.process_iter',
+    @mock.patch('containers.container.psutil.process_iter',
                 side_effect=lambda: [PsUtilProcess('4'),  # container
                                      PsUtilProcess('1'),  # init
                                      PsUtilProcess('5')])  # crawler
-    @mock.patch('crawler.containers.container.misc.process_is_crawler',
+    @mock.patch('containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list_with_input_list_ALL(self, *args):
         pids = [
@@ -163,16 +162,16 @@ class ContainersTests(unittest.TestCase):
         # according to the definition in container.py
         assert set(pids) == set(DOCKER_IDS + ['4'])
 
-    @mock.patch('crawler.containers.get_docker_containers',
+    @mock.patch('containers.get_docker_containers',
                 side_effect=lambda host_namespace, user_list='ALL':
                 mocked_get_docker_containers(host_namespace, user_list))
-    @mock.patch('crawler.containers.container.namespace.get_pid_namespace',
+    @mock.patch('containers.container.namespace.get_pid_namespace',
                 side_effect=lambda pid: pid)
-    @mock.patch('crawler.containers.container.psutil.process_iter',
+    @mock.patch('containers.container.psutil.process_iter',
                 side_effect=lambda: [PsUtilProcess('4'),  # container
                                      PsUtilProcess('1'),  # init
                                      PsUtilProcess('5')])  # crawler
-    @mock.patch('crawler.containers.container.misc.process_is_crawler',
+    @mock.patch('containers.container.misc.process_is_crawler',
                 side_effect=lambda pid: True if pid == '5' else False)
     def test_get_filtered_list_non_default_env(self, *args):
         opts = {'environment': 'alchemy',

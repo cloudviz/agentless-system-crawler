@@ -10,8 +10,8 @@ import pykafka
 
 # Tests for crawlers in kraken crawlers configuration.
 
-from crawler.containers_crawler import ContainersCrawler
-from crawler.emitters_manager import EmittersManager
+from containers_crawler import ContainersCrawler
+from emitters_manager import EmittersManager
 
 import logging
 

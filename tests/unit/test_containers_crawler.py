@@ -1,6 +1,6 @@
 import mock
 import unittest
-from crawler.containers_crawler import ContainersCrawler
+from containers_crawler import ContainersCrawler
 
 
 class MockedOSCrawler:
@@ -58,10 +58,10 @@ class MockedDockerContainer:
 class ContainersCrawlerTests(unittest.TestCase):
 
     @mock.patch(
-        'crawler.containers_crawler.plugins_manager.get_container_crawl_plugins',
+        'containers_crawler.plugins_manager.get_container_crawl_plugins',
         side_effect=lambda features: [(MockedOSCrawler(), {}),
                                       (MockedCPUCrawler(), {})])
-    @mock.patch('crawler.containers_crawler.get_containers',
+    @mock.patch('containers_crawler.get_containers',
                 side_effect=lambda host_namespace, user_list: [
                     MockedDockerContainer(
                         short_id='aaa',
@@ -85,10 +85,10 @@ class ContainersCrawlerTests(unittest.TestCase):
         assert args[1].call_count == 1
 
     @mock.patch(
-        'crawler.containers_crawler.plugins_manager.get_container_crawl_plugins',
+        'containers_crawler.plugins_manager.get_container_crawl_plugins',
         side_effect=lambda features: [(MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
-    @mock.patch('crawler.containers_crawler.get_containers',
+    @mock.patch('containers_crawler.get_containers',
                 side_effect=lambda host_namespace, user_list: [
                     MockedDockerContainer(
                         short_id='aaa',
@@ -107,11 +107,11 @@ class ContainersCrawlerTests(unittest.TestCase):
         assert args[1].call_count == 1
 
     @mock.patch(
-        'crawler.containers_crawler.plugins_manager.get_container_crawl_plugins',
+        'containers_crawler.plugins_manager.get_container_crawl_plugins',
         side_effect=lambda features: [(MockedCPUCrawler(), {}),
                                       (MockedOSCrawlerFailure(), {}),
                                       (MockedCPUCrawler(), {})])
-    @mock.patch('crawler.containers_crawler.get_containers',
+    @mock.patch('containers_crawler.get_containers',
                 side_effect=lambda host_namespace, user_list: [
                     MockedDockerContainer(
                         short_id='aaa',

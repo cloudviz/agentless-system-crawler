@@ -1,13 +1,14 @@
-import mock
-import urllib2
 from unittest import TestCase
-from crawler.plugins.applications.nginx import nginx_crawler
-from crawler.plugins.applications.nginx.feature import NginxFeature
-from crawler.plugins.applications.nginx.nginx_host_crawler \
-    import NginxHostCrawler
-from crawler.plugins.applications.nginx.nginx_container_crawler \
+
+import mock
+
+from plugins.applications.nginx import nginx_crawler
+from plugins.applications.nginx.feature import NginxFeature
+from plugins.applications.nginx.nginx_container_crawler \
     import NginxContainerCrawler
-from crawler.crawler_exceptions import CrawlError
+from plugins.applications.nginx.nginx_host_crawler \
+    import NginxHostCrawler
+from utils.crawler_exceptions import CrawlError
 
 
 # expected format from nginx status page
@@ -94,21 +95,21 @@ class NginxCrawlTests(TestCase):
                               NginxFeature)
 
     '''
-    @mock.patch('crawler.plugins.applications.nginx.'
+    @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_retrieve_status_page)
     def test_successful_crawling(self):
         self.assertIsInstance(nginx_crawler.retrieve_metrics(),
                               NginxFeature)
     '''
-    @mock.patch('crawler.plugins.applications.nginx.'
+    @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_no_status_page)
     def test_hundle_ioerror(self):
         with self.assertRaises(CrawlError):
             nginx_crawler.retrieve_metrics()
 
-    @mock.patch('crawler.plugins.applications.nginx.'
+    @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_wrong_status_page)
     def test_hundle_parseerror(self):
@@ -128,7 +129,7 @@ class NginxHostTest(TestCase):
         c = NginxHostCrawler()
         self.assertEqual(c.get_feature(), 'nginx')
 
-    @mock.patch('crawler.plugins.applications.nginx.'
+    @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_retrieve_status_page)
     def test_get_metrics(self):
@@ -151,10 +152,10 @@ class NginxContainerTest(TestCase):
         c = NginxContainerCrawler()
         self.assertEqual(c.get_feature(), 'nginx')
 
-    @mock.patch('crawler.plugins.applications.nginx.'
+    @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_retrieve_status_page)
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedNginxContainer)
     def test_get_metrics(self):
         c = NginxContainerCrawler()
@@ -163,24 +164,24 @@ class NginxContainerTest(TestCase):
         self.assertIsInstance(emitted[1], NginxFeature)
         self.assertEqual(emitted[2], 'application')
 
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedNoPortContainer)
     def test_no_available_port(self):
         c = NginxContainerCrawler()
         with self.assertRaises(CrawlError):
             c.crawl("mockcontainer")
 
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedNoNameContainer)
     def test_none_nginx_container(self):
         c = NginxContainerCrawler()
         with self.assertRaises(CrawlError):
             c.crawl("mockcontainer")
 
-    @mock.patch('crawler.plugins.applications.nginx.'
+    @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_no_status_page)
-    @mock.patch('crawler.dockercontainer.DockerContainer',
+    @mock.patch('dockercontainer.DockerContainer',
                 MockedNginxContainer)
     def test_no_accessible_endpoint(self):
         c = NginxContainerCrawler()

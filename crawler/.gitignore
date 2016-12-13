@@ -1,6 +1,5 @@
 deprecated/
 *.pyc
-utils/
 binaries/
 kafka-producer.py
 timeout.py

@@ -1,9 +1,5 @@
-try:
-    from icrawl_plugin import IHostCrawler
-    from plugins.applications.redis import feature
-except ImportError:
-    from crawler.icrawl_plugin import IHostCrawler
-    from crawler.plugins.applications.redis import feature
+from icrawl_plugin import IHostCrawler
+from plugins.applications.redis import feature
 from requests.exceptions import ConnectionError
 import redis
 import logging

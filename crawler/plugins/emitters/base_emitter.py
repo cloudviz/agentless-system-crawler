@@ -6,6 +6,7 @@ class BaseEmitter:
     implement an emit() function given an iostream (a buffer with the features
     to emit).
     """
+
     def __init__(self, url, timeout=1, max_retries=5,
                  emit_per_line=False):
         self.url = url

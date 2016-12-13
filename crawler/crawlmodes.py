@@ -1,4 +1,4 @@
-from misc import enum
+from utils.misc import enum
 
 Modes = enum(INVM='INVM',
              OUTVM='OUTVM',
