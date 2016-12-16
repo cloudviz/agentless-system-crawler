@@ -11,6 +11,7 @@ import pykafka
 # Tests for crawlers in kraken crawlers configuration.
 
 from containers_crawler import ContainersCrawler
+from worker import Worker
 from emitters_manager import EmittersManager
 
 import logging
@@ -168,12 +169,11 @@ class ContainersCrawlerTests(unittest.TestCase):
     def testCrawlContainerKafka2(self):
         emitters = EmittersManager(urls=['kafka://localhost:9092/test'])
         crawler = ContainersCrawler(
-            emitters=emitters,
-            frequency=-1,
             features=['os', 'process'],
             user_list=self.container['Id'])
-
-        crawler.iterate()
+        worker = Worker(emitters=emitters, frequency=-1,
+                        crawler=crawler)
+        worker.iterate()
         kafka = pykafka.KafkaClient(hosts='localhost:9092')
         topic = kafka.topics['test']
         consumer = topic.get_simple_consumer()
@@ -181,7 +181,7 @@ class ContainersCrawlerTests(unittest.TestCase):
         assert '"cmd":"/bin/sleep 60"' in message.value
 
         for i in range(1, 5):
-            crawler.iterate()
+            worker.iterate()
             message = consumer.consume()
             assert '"cmd":"/bin/sleep 60"' in message.value
 

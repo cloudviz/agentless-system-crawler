@@ -6,6 +6,7 @@ import sys
 import subprocess
 
 from containers_logs_linker import DockerContainersLogsLinker
+from worker import Worker
 from dockercontainer import HOST_LOG_BASEDIR
 from utils.misc import get_host_ipaddr
 
@@ -59,14 +60,14 @@ class LogsLinkerTests(unittest.TestCase):
                                   self.container_name, 'docker.log')
         messages_log = os.path.join(HOST_LOG_BASEDIR, self.host_namespace,
                                     self.container_name, 'var/log/messages')
-        params = {'compress': None, 'format': None, 'urls': None}
         crawler = DockerContainersLogsLinker(
             environment='cloudsight',
             user_list='ALL',
             host_namespace=self.host_namespace)
+        worker = Worker(crawler=crawler)
 
         self.startContainer()
-        crawler.iterate()
+        worker.iterate()
         with open(docker_log, 'r') as log:
             assert 'hi' in log.read()
         with open(messages_log, 'r') as log:
@@ -77,14 +78,14 @@ class LogsLinkerTests(unittest.TestCase):
         assert os.path.islink(messages_log)
 
         self.removeContainer()
-        crawler.iterate()
+        worker.iterate()
         assert not os.path.exists(docker_log)
         assert not os.path.exists(messages_log)
         assert not os.path.islink(docker_log)
         assert not os.path.islink(messages_log)
 
         self.startContainer()
-        crawler.iterate()
+        worker.iterate()
         assert os.path.exists(docker_log)
         with open(docker_log, 'r') as log:
             assert 'hi' in log.read()
