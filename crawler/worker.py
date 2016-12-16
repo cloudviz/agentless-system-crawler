@@ -7,18 +7,18 @@ class Worker:
                  emitters=None,
                  frequency=-1,
                  crawler=None):
-            """
-            Store and check the types of the arguments.
+        """
+        Store and check the types of the arguments.
 
-            :param emitters: EmittersManager that holds the list of Emitters.
-            If it is None, then no emit is done.
-            :param frequency: Sleep seconds between iterations
-            """
-            self.iter_count = 0
-            self.frequency = frequency
-            self.next_iteration_time = None
-            self.emitters = emitters
-            self.crawler = crawler
+        :param emitters: EmittersManager that holds the list of Emitters.
+        If it is None, then no emit is done.
+        :param frequency: Sleep seconds between iterations
+        """
+        self.iter_count = 0
+        self.frequency = frequency
+        self.next_iteration_time = None
+        self.emitters = emitters
+        self.crawler = crawler
 
     def iterate(self, timeout=0):
         """
