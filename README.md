@@ -14,10 +14,9 @@ The current state of this project is in the middle of "make it right".
 To run the crawler you'll need to do the following steps in the environment
 in which you want it to run:
 
- * apt-get update
- * apt-get upgrade
+ * Install Python 2.7.5
  * apt-get install python-dev
- * python -m ensurepip --upgrade
+ * apt-get install python-pip
  * pip install psutil
  * pip install netifaces
  * pip install requests
