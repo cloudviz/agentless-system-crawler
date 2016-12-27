@@ -78,7 +78,10 @@ def write_feature_in_graphite_format(iostream, namespace,
     """
     timestamp = time.time()
     items = flatten(feature_val).items()
-    namespace = namespace.replace('/', '.')
+    if isinstance(namespace, dict):
+        namespace = json.dumps(namespace)
+    else:
+        namespace = namespace.replace('/', '.')
 
     for (metric, value) in items:
         try:
