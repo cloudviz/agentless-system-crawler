@@ -1,31 +1,40 @@
 import logging
 
-from plugins.emitters.base_emitter import BaseEmitter
+from iemit_plugin import IEmitter
 from utils.mtgraphite import MTGraphiteClient
+from formatters import write_in_graphite_format
+from utils.crawler_exceptions import EmitterUnsupportedFormat
 
 logger = logging.getLogger('crawlutils')
 
 
-class MtGraphiteEmitter(BaseEmitter):
+class MtGraphiteEmitter(IEmitter):
 
-    def __init__(self, url, timeout=1, max_retries=5,
-                 emit_per_line=True):
-        BaseEmitter.__init__(self, url,
-                             timeout=timeout,
-                             max_retries=max_retries,
-                             emit_per_line=emit_per_line)
+    def get_emitter_protocol(self):
+        return 'mtgraphite'
+
+    def init(self, url, timeout=1, max_retries=5, emit_format='graphite'):
+        self.url = url
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.emit_per_line = True
+
+        if emit_format != 'graphite':
+            raise EmitterUnsupportedFormat('Not supported: %s' % emit_format)
+
+        self.formatter = write_in_graphite_format
         self.mtgraphite_client = MTGraphiteClient(self.url)
 
-    def emit(self, iostream, compress=False,
+    def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0):
         """
 
-        :param iostream: a CStringIO used to buffer the formatted features.
         :param compress:
         :param metadata:
         :param snapshot_num:
         :return:
         """
+        iostream = self.format(frame)
         if self.emit_per_line:
             iostream.seek(0)
             num = self.mtgraphite_client.send_messages(iostream.readlines())

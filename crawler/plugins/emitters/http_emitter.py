@@ -3,30 +3,35 @@ import time
 
 import requests
 
-from plugins.emitters.base_emitter import BaseEmitter
+from iemit_plugin import IEmitter
 
 logger = logging.getLogger('crawlutils')
 
 
-class HttpEmitter(BaseEmitter):
+class HttpEmitter(IEmitter):
 
-    def __init__(self, url, timeout=1, max_retries=5,
-                 emit_per_line=False):
-        BaseEmitter.__init__(self, url,
-                             timeout=timeout,
-                             max_retries=max_retries,
-                             emit_per_line=emit_per_line)
+    def get_emitter_protocol(self):
+        return 'http'
 
-    def emit(self, iostream, compress=False,
+    def init(self, url, timeout=1, max_retries=5, emit_format='csv'):
+        IEmitter.init(self, url,
+                      timeout=timeout,
+                      max_retries=max_retries,
+                      emit_format=emit_format)
+        if emit_format == 'json':
+            self.emit_per_line = True
+
+    def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0):
         """
 
-        :param iostream: a CStringIO used to buffer the formatted features.
+        :param frame: a frame containing extracted features
         :param compress:
         :param metadata:
         :param snapshot_num:
         :return: None
         """
+        iostream = self.format(frame)
         if compress:
             raise NotImplementedError('http emitter does not support gzip.')
         if self.emit_per_line:

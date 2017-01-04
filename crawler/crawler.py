@@ -198,7 +198,8 @@ def main():
     emitters = EmittersManager(urls=args.url,
                                format=args.format,
                                compress=args.compress,
-                               extra_metadata=args.extraMetadata)
+                               extra_metadata=args.extraMetadata,
+                               plugin_places=args.plugin_places)
 
     if args.crawlmode == 'OUTCONTAINER':
         crawler = ContainersCrawler(
