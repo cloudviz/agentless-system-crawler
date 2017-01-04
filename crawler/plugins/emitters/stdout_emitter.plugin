@@ -1,0 +1,8 @@
+[Core]
+Name = Stdout Emitter
+Module = stdout_emitter
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Plugin to emit frame to console

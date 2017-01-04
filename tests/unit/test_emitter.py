@@ -8,10 +8,24 @@ import requests.exceptions
 from base_crawler import BaseFrame
 from capturing import Capturing
 from emitters_manager import EmittersManager
+from plugins.emitters.file_emitter import FileEmitter
 from plugins.emitters.http_emitter import HttpEmitter
 from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
 from utils import crawler_exceptions
+
+def mocked_formatter(frame):
+    iostream = cStringIO.StringIO()
+    iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
+    iostream.write('namespace777.dummy-feature.test2 12345 14805\r\n')
+    return iostream
+
+
+def mocked_formatter1(frame):
+    iostream = cStringIO.StringIO()
+    iostream.write('abc\r\n')
+    iostream.write('def\r\n')
+    return iostream
 
 
 def mock_call_with_retries(function, max_retries=10,
@@ -230,9 +244,9 @@ class EmitterTests(unittest.TestCase):
             _ = EmittersManager(urls=['file:///tmp/test_emitter'],
                                 format='unsupported')
 
-    @mock.patch('emitters_manager.FileEmitter.emit',
+    @mock.patch('plugins.emitters.file_emitter.FileEmitter.emit',
                 side_effect=raise_value_error)
-    def test_emitter_failed_emit(self, *args):
+    def _test_emitter_failed_emit(self, *args):
         with self.assertRaises(ValueError):
             emitter = EmittersManager(urls=['file:///tmp/test_emitter'],
                                       format='csv')
@@ -343,78 +357,78 @@ class EmitterTests(unittest.TestCase):
             assert float(_output[1].split(' ')[1]) == 12345.0
             assert float(_output[2].split(' ')[1]) == 12345.0
 
+    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+                side_effect=mocked_formatter)
     @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
     @mock.patch('plugins.emitters.http_emitter.time.sleep')
-    def test_emitter_http(self, mock_sleep, mock_post):
-        emitter = HttpEmitter(url='http://1.1.1.1/good')
-        iostream = cStringIO.StringIO()
-        iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
-        iostream.write('namespace777.dummy-feature.test2 12345 14805\r\n')
-        emitter.emit(iostream)
+    def test_emitter_http(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpEmitter()
+        emitter.init(url='http://1.1.1.1/good')
+        emitter.emit('frame')
         self.assertEqual(mock_post.call_count, 1)
 
+    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+                side_effect=mocked_formatter)
     @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
     @mock.patch('plugins.emitters.http_emitter.time.sleep')
-    def test_emitter_http_server_error(self, mock_sleep, mock_post):
-        emitter = HttpEmitter(url='http://1.1.1.1/bad')
-        iostream = cStringIO.StringIO()
-        iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
-        iostream.write('namespace777.dummy-feature.test2 12345 14805\r\n')
-        emitter.emit(iostream)
+    def test_emitter_http_server_error(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpEmitter()
+        emitter.init(url='http://1.1.1.1/bad')
+        emitter.emit('frame')
         self.assertEqual(mock_post.call_count, 5)
 
+    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+                side_effect=mocked_formatter)
     @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
     @mock.patch('plugins.emitters.http_emitter.time.sleep')
-    def test_emitter_http_request_exception(self, mock_sleep, mock_post):
-        emitter = HttpEmitter(url='http://1.1.1.1/exception')
-        iostream = cStringIO.StringIO()
-        iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
-        iostream.write('namespace777.dummy-feature.test2 12345 14805\r\n')
-        emitter.emit(iostream)
+    def test_emitter_http_request_exception(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpEmitter()
+        emitter.init(url='http://1.1.1.1/exception')
+        emitter.emit('frame')
         self.assertEqual(mock_post.call_count, 5)
 
+    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+                side_effect=mocked_formatter)
     @mock.patch('plugins.emitters.http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    def test_emitter_http_encoding_error(self, mock_post):
-        emitter = HttpEmitter(url='http://1.1.1.1/encoding_error')
-        iostream = cStringIO.StringIO()
-        iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
-        iostream.write('namespace777.dummy-feature.test2 12345 14805\r\n')
-        emitter.emit(iostream)
+    def test_emitter_http_encoding_error(self, mock_post, mock_format):
+        emitter = HttpEmitter()
+        emitter.init(url='http://1.1.1.1/encoding_error')
+        emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
-
+    
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)
+    @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.format',
+                side_effect=mocked_formatter1)
     def test_emitter_kafka(self, *args):
-        emitter = KafkaEmitter(url='kafka://1.1.1.1:123/topic1')
-        iostream = cStringIO.StringIO()
-        iostream.write('abc\r\n')
-        iostream.write('def\r\n')
-        emitter.emit(iostream)
+        emitter = KafkaEmitter()
+        emitter.init(url='kafka://1.1.1.1:123/topic1')
+        emitter.emit('frame')
         assert emitter.producer._produced == ['abc\r\ndef\r\n']
 
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)
+    @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.format',
+                side_effect=mocked_formatter1)
     def test_emitter_kafka_one_per_line(self, *args):
-        emitter = KafkaEmitter(url='kafka://1.1.1.1:123/topic1',
-                               emit_per_line=True)
-        iostream = cStringIO.StringIO()
-        iostream.write('abc\r\n')
-        iostream.write('def\r\n')
-        emitter.emit(iostream)
+        emitter = KafkaEmitter()
+        emitter.init(url='kafka://1.1.1.1:123/topic1')
+        emitter.emit_per_line = True
+        emitter.emit('frame')
         assert set(emitter.producer._produced) == set(['abc\r\n', 'def\r\n'])
 
     @mock.patch('plugins.emitters.mtgraphite_emitter.MTGraphiteClient',
                 side_effect=MockedMTGraphiteClient, autospec=True)
-    def test_emitter_mtgraphite(self, MockMTGraphiteClient):
-        emitter = MtGraphiteEmitter(url='mtgraphite://1.1.1.1:123/topic1',
-                                    max_retries=0)
-        iostream = cStringIO.StringIO()
-        iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
-        iostream.write('namespace777.dummy-feature.test2 12345 14805\r\n')
-        emitter.emit(iostream)
+    @mock.patch('plugins.emitters.mtgraphite_emitter.MtGraphiteEmitter.format',
+                side_effect=mocked_formatter)
+    def test_emitter_mtgraphite(self, MockMTGraphiteClient, mocked_formatter):
+        emitter = MtGraphiteEmitter()
+        emitter.init(url='mtgraphite://1.1.1.1:123/topic1',
+                     max_retries=0)
+        emitter.emit('frame')
         assert MockMTGraphiteClient.call_count == 1

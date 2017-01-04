@@ -2,19 +2,15 @@ import cStringIO
 import gzip
 import sys
 
-from plugins.emitters.base_emitter import BaseEmitter
+from iemit_plugin import IEmitter
 
 
-class StdoutEmitter(BaseEmitter):
+class StdoutEmitter(IEmitter):
 
-    def __init__(self, url, timeout=1, max_retries=5,
-                 emit_per_line=False):
-        BaseEmitter.__init__(self, url,
-                             timeout=timeout,
-                             max_retries=max_retries,
-                             emit_per_line=emit_per_line)
+    def get_emitter_protocol(self):
+        return 'stdout'
 
-    def emit(self, iostream, compress=False,
+    def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0):
         """
 
@@ -24,6 +20,7 @@ class StdoutEmitter(BaseEmitter):
         :param snapshot_num:
         :return:
         """
+        iostream = self.format(frame)
         if self.emit_per_line:
             iostream.seek(0)
             for line in iostream.readlines():
