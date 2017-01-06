@@ -14,9 +14,6 @@ class IEmitter(IPlugin):
     implement an emit() function given an iostream (a buffer with the features
     to emit).
     """
-    # def __init__(self):
-    #    IPlugin.__init__(self)
-
     def init(self, url, timeout=1, max_retries=5, emit_format='csv'):
         self.url = url
         self.timeout = timeout
