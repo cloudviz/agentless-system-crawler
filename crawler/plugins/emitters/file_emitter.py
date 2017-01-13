@@ -1,10 +1,11 @@
 import gzip
 import shutil
 
-from plugins.emitters.base_emitter import BaseEmitter
+from iemit_plugin import IEmitter
 
 
-class FileEmitter(BaseEmitter):
+class FileEmitter(IEmitter):
+
     """
     Emitter to file. This creates one file per frame. The file names
     are the ones in the url. For example: for file:///tmp/a the file for
@@ -12,7 +13,10 @@ class FileEmitter(BaseEmitter):
     container with id xyz.
     """
 
-    def emit(self, iostream, compress=False,
+    def get_emitter_protocol(self):
+        return 'file'
+
+    def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0):
         """
 
@@ -22,6 +26,7 @@ class FileEmitter(BaseEmitter):
         :param snapshot_num:
         :return:
         """
+        iostream = self.format(frame)
         output_path = self.url[len('file://'):]
         short_name = metadata.get('emit_shortname', None)
         if not short_name:

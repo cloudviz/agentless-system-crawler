@@ -1,0 +1,8 @@
+[Core]
+Name = File Emitter
+Module = file_emitter
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Plugin to emit frame to file

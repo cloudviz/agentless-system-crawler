@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 
-import dockerutils
+import utils.dockerutils
 
 from icrawl_plugin import IContainerCrawler
 from utils.namespace import run_as_another_namespace, ALL_NAMESPACES
@@ -68,7 +68,8 @@ class RubyPackageCrawler(IContainerCrawler):
                             'ruby-package')
 
     def _crawl_without_setns(self, container_id):
-        mountpoint = dockerutils.get_docker_container_rootfs_path(container_id)
+        mountpoint = utils.dockerutils.get_docker_container_rootfs_path(
+            container_id)
         return self._get_packages_by_extension(mountpoint)
 
     def _crawl_in_system(self):
@@ -79,7 +80,7 @@ class RubyPackageCrawler(IContainerCrawler):
             return self._get_packages_by_cmd()
 
     def crawl(self, container_id, avoid_setns=False, **kwargs):
-        inspect = dockerutils.exec_dockerinspect(container_id)
+        inspect = utils.dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
         pid = str(state['Pid'])
         logger.debug('Crawling OS for container %s' % container_id)
