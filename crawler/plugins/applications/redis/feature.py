@@ -1,11 +1,12 @@
 from collections import namedtuple
 
+
 def create_feature(metrics):
     fields = RedisFeature._fields
 
     for field_name in fields:
-	if not metrics.has_key(field_name):
-	    metrics[field_name] = ""
+        if field_name not in metrics:
+            metrics[field_name] = ""
 
     feature_attributes = RedisFeature(
         metrics['aof_current_rewrite_time_sec'],
