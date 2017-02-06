@@ -6,10 +6,13 @@ import os
 import dateutil.parser as dp
 import docker
 import semantic_version
+import itertools
 
 from utils import misc
 from crawler_exceptions import (DockerutilsNoJsonLog,
                                 DockerutilsException)
+from timeout_utils import (Timeout, TimeoutError)
+from dockerevent import DockerContainerEvent
 
 # version at which docker image layer organization changed
 VERSION_SPEC = semantic_version.Spec('>=1.10.0')
@@ -360,3 +363,31 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
         raise DockerutilsException('Not supported docker storage driver.')
 
     return rootfs_path
+
+
+def poll_container_create_events(timeout=0.1):
+    try:
+        client = docker.Client(base_url='unix://var/run/docker.sock',
+                               version='auto')
+        filters = dict()
+        filters['type'] = 'container'
+        filters['event'] = 'start'
+        events = client.events(filters=filters, decode=True)
+        with Timeout(seconds=timeout):
+            # we are expecting a single event
+            event = list(itertools.islice(events, 1))[0]
+
+        containerid = event['id']
+        imageid = event['from']
+        epochtime = event['time']
+        cEvent = DockerContainerEvent(containerid, imageid,
+                                      event['Action'], epochtime)
+        return cEvent
+    except docker.errors.DockerException as e:
+        logger.warning(str(e))
+        raise DockerutilsException('Failed to exec dockerhistory')
+    except TimeoutError:
+        logger.info("Container event timeout")
+        pass
+
+    return None
