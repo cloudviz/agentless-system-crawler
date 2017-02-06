@@ -2,6 +2,12 @@ from collections import namedtuple
 
 
 def create_feature(metrics):
+    fields = RedisFeature._fields
+
+    for field_name in fields:
+        if field_name not in metrics:
+            metrics[field_name] = ""
+
     feature_attributes = RedisFeature(
         metrics['aof_current_rewrite_time_sec'],
         metrics['aof_enabled'],
@@ -84,7 +90,6 @@ def create_feature(metrics):
         metrics['used_memory_rss_human']
     )
     return feature_attributes
-
 
 RedisFeature = namedtuple('RedisFeature', [
     'aof_current_rewrite_time_sec',
