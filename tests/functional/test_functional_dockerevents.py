@@ -203,7 +203,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
         files = os.listdir(self.tempd + '/out')
         docker_server_version = self.docker.version()['Version']
         if VERSION_SPEC.match(semantic_version.Version(docker_server_version)):
-           assert len(files) == 2
+            assert len(files) == 2
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
