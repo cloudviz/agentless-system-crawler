@@ -48,14 +48,15 @@ def write_in_graphite_format(iostream, frame):
     :return: None
     """
     namespace = frame.metadata.get('namespace', '')
+    timestamp = frame.metadata.get('timestamp', '')
     for (key, val, feature_type) in frame.data:
         if not isinstance(val, dict):
             val = val._asdict()
-        write_feature_in_graphite_format(iostream, namespace,
+        write_feature_in_graphite_format(iostream, namespace, timestamp,
                                          key, val, feature_type)
 
 
-def write_feature_in_graphite_format(iostream, namespace,
+def write_feature_in_graphite_format(iostream, namespace, timestamp,
                                      feature_key, feature_val,
                                      feature_type):
     """
@@ -70,13 +71,22 @@ def write_feature_in_graphite_format(iostream, namespace,
     the iostream.
 
     :param namespace: Frame namespace for this feature
+    :param timestamp: From frame metadata, fmt: %Y-%m-%dT%H:%M:%S%z
     :param feature_type:
     :param feature_key:
     :param feature_val:
     :param iostream: a CStringIO used to buffer the formatted features.
     :return: None
     """
-    timestamp = time.time()
+    # to convert 2017-02-07T13:20:15-0500 to 1486491615 (=epoch)
+    # for python >=3.2, following works
+    # time.strptime(timestamp,'%Y-%m-%dT%H:%M:%S%z'),
+    # but previous pyhon versions don't respect %z timezone info,
+    # so skipping time zone conversion assuming
+    # timezone during str timestamp creation in metadata is same for reverse
+
+    timestamp = time.mktime(time.strptime(timestamp[:-5], '%Y-%m-%dT%H:%M:%S'))
+
     items = flatten(feature_val).items()
     if isinstance(namespace, dict):
         namespace = json.dumps(namespace)
