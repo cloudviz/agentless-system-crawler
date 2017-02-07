@@ -1,0 +1,9 @@
+[Core]
+Name = apache_host
+Module = apache_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Apache httpd server"
+
