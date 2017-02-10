@@ -79,12 +79,13 @@ def retrieve_metrics(host='localhost', port=80):
             stats['Total_Accesses'] = res[1]
 
     feature_attributes = feature.ApacheFeature
+
+    if len(stats) == 0:
+        raise CrawlError("failure to parse http://%s:%s", host, port)
+
     for name in feature_attributes._fields:
         if name not in stats:
             stats[name] = '0'
 
-    try:
-        feature_attributes = feature.get_feature(stats)
-        return feature_attributes
-    except Exception:
-        raise CrawlError("failure to parse http://%s:%s", host, port)
+    feature_attributes = feature.get_feature(stats)
+    return feature_attributes
