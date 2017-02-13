@@ -13,70 +13,59 @@ def retrieve_status_page(host, port):
     return response.read()
 
 
+def parse_score_board(line, stats):
+    switch = {
+        "_": 'waiting_for_connection',
+        "S": 'starting_up',
+        "R": 'reading_request',
+        "W": 'sending_reply',
+        "K": 'keepalive_read',
+        "D": 'dns_lookup',
+        "C": 'closing_connection',
+        "L": 'logging',
+        "G": 'graceful_finishing',
+        "I": 'idle_worker_cleanup',
+    }
+    res = line.split(': ')
+
+    workcounts = defaultdict(int)
+    for i in res[1]:
+        workcounts[i] += 1
+
+    for x, y in workcounts.iteritems():
+        stats[switch.get(x)] = str(y)
+
+
 def retrieve_metrics(host='localhost', port=80):
     try:
         status = retrieve_status_page(host, port).splitlines()
     except Exception:
         raise CrawlError("can't access to http://%s:%s",
                          host, port)
+    switch = {
+        "Total kBytes": 'Total_kBytes',
+        "Total Accesses": 'Total_Accesses',
+        "BusyWorkers": "BusyWorkers",
+        "IdleWorkers": "IdleWorkers",
+        "BytesPerSec": "BytesPerSec",
+        "BytesPerReq": "BytesPerReq",
+        "ReqPerSec": "ReqPerSec",
+        "Uptime": "Uptime"
+    }
+
     stats = {}
 
     line_num = 0
     for line in status:
         line_num += 1
 
-        if "BusyWorkers" in line:
-            res = line.split(': ')
-            stats[res[0]] = res[1]
-        elif "IdleWorkers" in line:
-            res = line.split(': ')
-            stats[res[0]] = res[1]
-        elif "Scoreboard" in line:
-            res = line.split(': ')
+        if "Scoreboard" in line:
+            parse_score_board(line, stats)
 
-            workcounts = defaultdict(int)
-            for i in res[1]:
-                workcounts[i] += 1
-
-            for x, y in workcounts.iteritems():
-                if x == "_":
-                    stats['waiting_for_connection'] = str(y)
-                elif x == "S":
-                    stats['starting_up'] = str(y)
-                elif x == "R":
-                    stats['reading_request'] = str(y)
-                elif x == "W":
-                    stats['sending_reply'] = str(y)
-                elif x == "K":
-                    stats['keepalive_read'] = str(y)
-                elif x == "D":
-                    stats['dns_lookup'] = str(y)
-                elif x == "C":
-                    stats['closing_connection'] = str(y)
-                elif x == "L":
-                    stats['logging'] = str(y)
-                elif x == "G":
-                    stats['graceful_finishing'] = str(y)
-                elif x == "I":
-                    stats['idle_worker_cleanup'] = str(y)
-        elif "BytesPerSec" in line:
+        else:
             res = line.split(': ')
-            stats[res[0]] = res[1]
-        elif "BytesPerReq" in line:
-            res = line.split(': ')
-            stats[res[0]] = res[1]
-        elif "ReqPerSec" in line:
-            res = line.split(': ')
-            stats[res[0]] = res[1]
-        elif "Uptime" in line:
-            res = line.split(': ')
-            stats[res[0]] = res[1]
-        elif "Total kBytes" in line:
-            res = line.split(': ')
-            stats['Total_kBytes'] = res[1]
-        elif "Total Accesses" in line:
-            res = line.split(': ')
-            stats['Total_Accesses'] = res[1]
+            if res[0] in switch:
+                stats[switch.get(res[0])] = res[1]
 
     feature_attributes = feature.ApacheFeature
 
