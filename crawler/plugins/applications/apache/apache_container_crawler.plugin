@@ -1,0 +1,9 @@
+[Core]
+Name = apache_container
+Module = apache_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Apache httpd server"
+
