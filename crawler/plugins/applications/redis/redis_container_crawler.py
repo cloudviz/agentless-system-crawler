@@ -19,7 +19,7 @@ class RedisContainerCrawler(IContainerCrawler):
     default_port = 6379
 
     def get_feature(self):
-        return self.feature_type
+        return self.feature_key
 
     def crawl(self, container_id=None, **kwargs):
 

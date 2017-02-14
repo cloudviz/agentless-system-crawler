@@ -215,7 +215,7 @@ class RedisContainerCrawlTests(TestCase):
 
     def test_get_feature(self):
         c = RedisContainerCrawler()
-        self.assertEqual(c.get_feature(), "application")
+        self.assertEqual(c.get_feature(), "redis")
 
     @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer1)
@@ -264,7 +264,7 @@ class RedisHostCrawlTests(TestCase):
 
     def test_get_feature(self):
         c = RedisHostCrawler()
-        self.assertEqual(c.get_feature(), "application")
+        self.assertEqual(c.get_feature(), "redis")
 
     @mock.patch('redis.Redis', MockedRedisClient3)
     def test_redis_host_crawler_dummy(self):
