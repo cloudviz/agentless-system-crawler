@@ -113,7 +113,7 @@ def main():
         dest='format',
         type=str,
         default='csv',
-        choices=['csv', 'graphite', 'json'],
+        choices=['csv', 'graphite', 'json', 'logstash'],
         help='Emitted data format.',
     )
     parser.add_argument(
