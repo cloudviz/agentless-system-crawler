@@ -432,3 +432,23 @@ class EmitterTests(unittest.TestCase):
                      max_retries=0)
         emitter.emit('frame')
         assert MockMTGraphiteClient.call_count == 1
+
+    def test_emitter_logstash_simple_file(self):
+        emitter = EmittersManager(urls=['file:///tmp/test_emitter'],
+                                  format='logstash')
+        frame = BaseFrame(feature_types=[])
+        frame.metadata['namespace'] = 'namespace777'
+        frame.add_features([("dummy_feature",
+                             {'test': 'dummy',
+                              'test2': 12345,
+                              'test3': 12345.0,
+                              'test4': 12345.00000},
+                             'dummy_feature')])
+        emitter.emit(frame)
+        import json
+        with open('/tmp/test_emitter.0') as f:
+            output = json.load(f)
+            assert len(output) == 2
+            assert output.has_key('metadata')
+            assert output.has_key('dummy_feature')
+            assert type(output.get('dummy_feature')) == dict
