@@ -450,6 +450,6 @@ class EmitterTests(unittest.TestCase):
         with open('/tmp/test_emitter.0') as f:
             output = json.load(f)
             assert len(output) == 2
-            assert 'meta_data' in output
+            assert 'metadata' in output
             assert 'dummy_feature' in output
             assert type(output.get('dummy_feature')) == dict
