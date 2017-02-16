@@ -14,6 +14,7 @@ from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
 from utils import crawler_exceptions
 
+
 def mocked_formatter(frame):
     iostream = cStringIO.StringIO()
     iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
@@ -400,7 +401,7 @@ class EmitterTests(unittest.TestCase):
         emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
-    
+
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.format',
@@ -449,6 +450,6 @@ class EmitterTests(unittest.TestCase):
         with open('/tmp/test_emitter.0') as f:
             output = json.load(f)
             assert len(output) == 2
-            assert output.has_key('metadata')
-            assert output.has_key('dummy_feature')
+            assert 'meta_data' in output
+            assert 'dummy_feature' in output
             assert type(output.get('dummy_feature')) == dict

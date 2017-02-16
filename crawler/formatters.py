@@ -38,6 +38,7 @@ def write_in_json_format(iostream, frame):
         val['namespace'] = frame.metadata.get('namespace', '')
         iostream.write('%s\n' % json.dumps(val))
 
+
 def write_in_logstash_format(iostream, frame):
     """
     Writes frame data and meta data in json format.
@@ -53,7 +54,7 @@ def write_in_logstash_format(iostream, frame):
     for (key, val, feature_type) in frame.data:
         if not isinstance(val, dict):
             val = val._asdict()
-        if not payload.has_key(feature_type):
+        if feature_type not in payload:
             payload[feature_type] = {}
         payload[feature_type][key] = val
     iostream.write('%s\n' % json.dumps(payload))
