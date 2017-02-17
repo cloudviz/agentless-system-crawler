@@ -1,5 +1,5 @@
 [Core]
-Name = apache_container
+Name = application_apache_container
 Module = apache_container_crawler
 
 [Documentation]

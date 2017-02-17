@@ -1,5 +1,3 @@
-
-
 import urllib2
 from plugins.applications.apache import feature
 from collections import defaultdict
