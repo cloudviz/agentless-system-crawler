@@ -1,5 +1,3 @@
-
-
 import urllib2
 from plugins.applications.apache import feature
 from collections import defaultdict
@@ -55,10 +53,7 @@ def retrieve_metrics(host='localhost', port=80):
 
     stats = {}
 
-    line_num = 0
     for line in status:
-        line_num += 1
-
         if "Scoreboard" in line:
             parse_score_board(line, stats)
 
