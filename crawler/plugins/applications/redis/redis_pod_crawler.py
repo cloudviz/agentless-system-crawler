@@ -27,7 +27,6 @@ class RedisPodCrawler(IPodCrawler):
         see REST definition in the following link
         https://kubernetes.io/docs/api-reference/v1/definitions/#_v1_pod
         '''
-        print pod.metadata.labels
         if self.feature_key not in pod.metadata.labels['app']:
             raise NameError("not %s container" % self.feature_key)
 
