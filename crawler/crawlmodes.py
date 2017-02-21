@@ -4,4 +4,5 @@ Modes = enum(INVM='INVM',
              OUTVM='OUTVM',
              MOUNTPOINT='MOUNTPOINT',
              OUTCONTAINER='OUTCONTAINER',
-             MESOS='MESOS')
+             MESOS='MESOS',
+             K8S='K8S')

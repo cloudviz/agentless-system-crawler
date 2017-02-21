@@ -10,3 +10,4 @@ Yapsy==1.11.223
 configobj==4.7.0
 redis>=2.10.5
 morph==0.1.2
+kubernetes>=1.0.0b1
