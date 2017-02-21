@@ -4,6 +4,7 @@ from kubernetes import client, config
 
 logger = logging.getLogger('crawlutils')
 
+
 class KubernetesClient(object):
     '''
     Used for communicating with k8s API server.
