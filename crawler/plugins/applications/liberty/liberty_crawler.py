@@ -7,7 +7,13 @@ from utils.crawler_exceptions import CrawlError
 
 
 def retrieve_status_page(user, password, url):
-    ssl._create_default_https_context = ssl._create_unverified_context
+
+    try:
+        ssl._create_unverified_context
+    except AttributeError:
+        pass
+    else:
+        ssl._create_default_https_context = ssl._create_unverified_context
 
     password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
     password_mgr.add_password(None, url, user, password)
