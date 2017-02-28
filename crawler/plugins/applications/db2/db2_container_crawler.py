@@ -8,7 +8,7 @@ from utils.crawler_exceptions import CrawlError
 logger = logging.getLogger('crawlutils')
 
 
-class LibertyContainerCrawler(IContainerCrawler):
+class DB2ContainerCrawler(IContainerCrawler):
     feature_type = 'application'
     feature_key = 'db2'
 
