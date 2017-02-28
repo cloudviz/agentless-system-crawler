@@ -105,8 +105,9 @@ def retrieve_metrics(host='localhost',
                                      ";UID=" + user +
                                      ";PWD="+password+";", "", "")
         conn = ibm_db_dbi.Connection(ibm_db_conn)
-    except CrawlError:
-        logger.error("cannot connect to database, db: %s, host: %s ", db, host)
+    except:
+        raise CrawlError("cannot connect to database,"
+                         " db: %s, host: %s ", db, host)
 
     c = conn.cursor()
 
@@ -114,8 +115,8 @@ def retrieve_metrics(host='localhost',
     for sql in sql_list:
         try:
             c.execute(sql)
-        except CrawlError:
-            logger.error("cannot execute sql %s", sql)
+        except:
+            raise CrawlError("cannot execute sql %s", sql)
         sql_stats_list[sql_stats[i]] = str(c.fetchone()[0])
         i += 1
 

@@ -1,5 +1,6 @@
 from icrawl_plugin import IHostCrawler
 from plugins.applications.db2 import db2_crawler
+from utils.crawler_exceptions import CrawlError
 import logging
 
 logger = logging.getLogger('crawlutils')
@@ -26,11 +27,13 @@ class DB2HostCrawler(IHostCrawler):
         if "db" in options:
             db = options["db"]
 
-        metrics = db2_crawler.retrieve_metrics(
-            host="localhost",
-            user=user,
-            password=password,
-            db=db
-        )
-
-        return [(self.feature_key, metrics, self.feature_type)]
+        try:
+            metrics = db2_crawler.retrieve_metrics(
+                host="localhost",
+                user=user,
+                password=password,
+                db=db
+            )
+            return [(self.feature_key, metrics, self.feature_type)]
+        except:
+            raise CrawlError("cannot retrice metrics db %s", db)
