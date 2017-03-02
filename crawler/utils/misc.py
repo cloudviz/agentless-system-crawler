@@ -235,19 +235,3 @@ def call_with_retries(function, max_retries=10,
             time.sleep(wait)
             last_exc = exc
     raise last_exc
-
-
-def get_uint_arg(name, default, **kwargs):
-    """
-      Get an unsigned int argument. Return the default value
-      if no parameter with the given name can be found.
-    """
-    try:
-        val = int(kwargs.get(name, default))
-        if val < 0:
-            logger.error('Parameter %s must not be negative')
-            val = default
-        return val
-    except:
-        logger.error('Parameter %s is not an integer' % name)
-        return default
