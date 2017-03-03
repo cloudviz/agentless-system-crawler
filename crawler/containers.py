@@ -54,7 +54,8 @@ def poll_containers(timeout, user_list='ALL', host_namespace='',
     :return: a list of Container objects
     """
     # XXX: we only support polling docker containers
-    return poll_docker_containers(timeout, host_namespace, user_list)
+    return poll_docker_containers(timeout, user_list=user_list,
+                                  host_namespace=host_namespace)
 
 
 def get_containers(
