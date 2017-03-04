@@ -43,10 +43,11 @@ class HttpEmitter(IEmitter):
 
     def post(self, content='', metadata={}):
         headers = {'content-type': 'application/csv'}
+        params = {}  # optionally items from metadata can be passed as dict
         for attempt in range(self.max_retries):
             try:
                 response = requests.post(self.url, headers=headers,
-                                         params=metadata,
+                                         params=params,
                                          data=content)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
