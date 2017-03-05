@@ -17,6 +17,7 @@ def crawl_config_files(
     root_dir_alias=None,
     known_config_files=[],
     discover_config_files=False,
+    target_config_files=[],
     accessed_since=0
 ):
 
@@ -31,6 +32,8 @@ def crawl_config_files(
                     exclude_dirs]
     exclude_regex = r'|'.join([fnmatch.translate(d) for d in
                                exclude_dirs]) or r'$.'
+    target_regex = r'|'.join([fnmatch.translate(f) for f in
+                              target_config_files])
     known_config_files[:] = [utils.misc.join_abs_paths(root_dir, f) for f in
                              known_config_files]
     known_config_files[:] = [f for f in known_config_files
@@ -46,6 +49,10 @@ def crawl_config_files(
     if discover_config_files:
         discover_config_file_paths(accessed_since, config_file_set,
                                    exclude_regex, root_dir)
+
+    if target_config_files:
+        get_target_files(accessed_since, config_file_set, exclude_regex,
+                         target_regex, root_dir)
 
     for fpath in config_file_set:
         (_, fname) = os.path.split(fpath)
@@ -101,3 +108,18 @@ def _is_config_file(fpath):
     ] and os.path.getsize(fpath) <= 204800:
         return True
     return False
+
+def get_target_files(accessed_since, config_file_set, exclude_regex,
+                                   target_regex, root_dir):
+    for (root_dirpath, dirs, files) in os.walk(root_dir):
+        dirs[:] = [os.path.join(root_dirpath, d) for d in
+                   dirs]
+        dirs[:] = [d for d in dirs
+                   if not re.match(exclude_regex, d)]
+        for file in files:
+            if re.match(target_regex, file):
+                fpath = os.path.join(root_dirpath, file)
+                lstat = os.lstat(fpath)
+                if lstat.st_atime > accessed_since \
+                        or lstat.st_ctime > accessed_since:
+                    config_file_set.add(fpath)
