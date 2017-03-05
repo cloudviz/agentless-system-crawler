@@ -49,8 +49,6 @@ class ConfigContainerCrawler(IContainerCrawler):
         if avoid_setns:
             rootfs_dir = utils.dockerutils.get_docker_container_rootfs_path(
                 container_id)
-            exclude_dirs = [utils.misc.join_abs_paths(rootfs_dir, d)
-                            for d in exclude_dirs]
             return crawl_config_files(
                 root_dir=utils.misc.join_abs_paths(rootfs_dir, root_dir),
                 exclude_dirs=exclude_dirs,
