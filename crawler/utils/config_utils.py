@@ -1,5 +1,6 @@
 import codecs
 import fnmatch
+import glob
 import logging
 import os
 import re
@@ -35,8 +36,8 @@ def crawl_config_files(
     known_config_files[:] = [f for f in known_config_files
                              if not re.match(exclude_regex, f)]
     config_file_set = set()
-    for fpath in known_config_files:
-        if os.path.exists(fpath):
+    for fpathGlob in known_config_files:
+        for fpath in glob.glob(fpathGlob):
             lstat = os.lstat(fpath)
             if (lstat.st_atime > accessed_since or
                     lstat.st_ctime > accessed_since):
