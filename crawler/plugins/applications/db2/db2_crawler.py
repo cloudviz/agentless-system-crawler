@@ -1,9 +1,6 @@
-import ibm_db_dbi
-import ibm_db
 import logging
 from plugins.applications.db2 import feature
 from utils.crawler_exceptions import CrawlError
-
 
 logger = logging.getLogger('crawlutils')
 
@@ -11,6 +8,10 @@ logger = logging.getLogger('crawlutils')
 def retrieve_metrics(host='localhost',
                      user='db2inst1', password='db2inst1-pwd',
                      db='sample'):
+    import pip
+    pip.main(['install', 'ibm_db'])
+    import ibm_db_dbi
+    import ibm_db
 
     sql_list = ["SELECT db_size FROM systools.stmg_dbsize_info",
                 "SELECT db_capacity FROM systools.stmg_dbsize_info",

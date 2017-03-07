@@ -1,4 +1,5 @@
 import mock
+import pip
 from unittest import TestCase
 from plugins.applications.db2 import db2_crawler
 from plugins.applications.db2.feature import DB2Feature
@@ -7,6 +8,9 @@ from plugins.applications.db2.db2_container_crawler \
 from plugins.applications.db2.db2_host_crawler \
     import DB2HostCrawler
 from utils.crawler_exceptions import CrawlError
+
+
+pip.main(['install', 'ibm_db'])
 
 
 class MockedNoNameContainer(object):
@@ -128,6 +132,10 @@ class DB2CrawlTests(TestCase):
 
     def tearDown(self):
         pass
+
+    def test_noimport(self):
+        pip.main(['uninstall', '--yes', 'ibm_db'])
+        db2_crawler.retrieve_metrics()
 
     @mock.patch('ibm_db_dbi.Connection', mocked_dbi_conn_error)
     def test_conn_error(self):
