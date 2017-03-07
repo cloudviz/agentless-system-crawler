@@ -133,10 +133,6 @@ class DB2CrawlTests(TestCase):
     def tearDown(self):
         pass
 
-    def test_noimport(self):
-        pip.main(['uninstall', '--yes', 'ibm_db'])
-        db2_crawler.retrieve_metrics()
-
     @mock.patch('ibm_db_dbi.Connection', mocked_dbi_conn_error)
     def test_conn_error(self):
         with self.assertRaises(CrawlError):
