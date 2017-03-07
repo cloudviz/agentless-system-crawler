@@ -5,13 +5,13 @@ import json
 import logging
 import os
 import shutil
-import time
 
 from requests.exceptions import HTTPError
 
 import plugins_manager
 from container import Container
 from utils import misc, namespace
+
 from utils.crawler_exceptions import (ContainerInvalidEnvironment,
                                       ContainerNonExistent,
                                       DockerutilsNoJsonLog,
@@ -20,7 +20,8 @@ from utils.crawler_exceptions import (ContainerInvalidEnvironment,
 from utils.dockerutils import (exec_dockerps,
                                get_docker_container_json_logs_path,
                                get_docker_container_rootfs_path,
-                               exec_dockerinspect)
+                               exec_dockerinspect,
+                               poll_container_create_events)
 
 logger = logging.getLogger('crawlutils')
 
@@ -72,14 +73,20 @@ def poll_docker_containers(timeout, user_list=None, host_namespace=''):
     containers.
     :return: a DockerContainer object (just the first container created).
     """
+    if timeout <= 0:
+        return None
 
-    """
-    TODO: implement this function. For now, just emulate a failed poll:
-    no containers were created before timeout seconds.
-    """
-    if timeout > 0:
-        time.sleep(timeout)
-    return None
+    try:
+        cEvent = poll_container_create_events(timeout)
+
+        if not cEvent:
+            return None
+        c = DockerContainer(cEvent.get_containerid(), inspect=None,
+                            host_namespace=host_namespace)
+        if c.namespace:
+            return c
+    except ContainerInvalidEnvironment as e:
+        logger.exception(e)
 
 
 class LogFileLink():

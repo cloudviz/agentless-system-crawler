@@ -1,9 +1,10 @@
 import logging
 
 from yapsy.PluginManager import PluginManager
-
+import urlparse
 import config_parser
 from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
+from iemit_plugin import IEmitter
 from runtime_environment import IRuntimeEnvironment
 from utils import misc
 from utils.crawler_exceptions import RuntimeEnvironmentPluginNotFound
@@ -19,6 +20,66 @@ host_crawl_plugins = []
 
 
 # XXX make this a class
+
+def get_plugins(
+        category_filter={},
+        plugin_places=['plugins']):
+
+    pm = PluginManager(plugin_info_ext='plugin')
+
+    # Normalize the paths to the location of this file.
+    # XXX-ricarkol: there has to be a better way to do this.
+    plugin_places = [misc.execution_path(x) for x in plugin_places]
+
+    pm.setPluginPlaces(plugin_places)
+    pm.setCategoriesFilter(category_filter)
+    pm.collectPlugins()
+    return pm.getAllPlugins()
+
+
+def get_emitter_plugins(urls=['stdout://'],
+                        format='csv',
+                        plugin_places=['plugins']):
+    category_filter = {"emitter": IEmitter}
+    all_emitter_plugins = get_plugins(category_filter, plugin_places)
+    selected_emitter_plugins = []
+    for url in urls:
+        parsed = urlparse.urlparse(url)
+        proto = parsed.scheme
+        for plugin in all_emitter_plugins:
+            plugin_obj = plugin.plugin_object
+            if plugin_obj.get_emitter_protocol() == proto:
+                plugin_obj.init(url, emit_format=format)
+                selected_emitter_plugins.append(plugin_obj)
+
+        return selected_emitter_plugins
+
+
+def reload_env_plugin(environment='cloudsight', plugin_places=['plugins']):
+    global runtime_env
+
+    category_filter = {"env": IRuntimeEnvironment}
+    env_plugins = get_plugins(category_filter, plugin_places)
+
+    for plugin in env_plugins:
+        plugin_obj = plugin.plugin_object
+        if plugin_obj.get_environment_name() == environment:
+            runtime_env = plugin_obj
+            break
+
+    if runtime_env is None:
+        raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
+                                               'environment plugin at %s' %
+                                               (environment, plugin_places))
+    return runtime_env
+
+
+def get_runtime_env_plugin():
+    global runtime_env
+    if not runtime_env:
+        runtime_env = reload_env_plugin()
+    return runtime_env
+
 
 def get_plugin_args(plugin, config, options):
     plugin_args = {}
@@ -49,23 +110,13 @@ def get_plugin_args(plugin, config, options):
     return plugin_args
 
 
-def _load_plugins(
+def load_crawl_plugins(
         category_filter={},
-        filter_func=lambda *arg: True,
         features=['os', 'cpu'],
         plugin_places=['plugins'],
         options={}):
 
-    pm = PluginManager(plugin_info_ext='plugin')
-
-    # Normalize the paths to the location of this file.
-    # XXX-ricarkol: there has to be a better way to do this.
-    plugin_places = [misc.execution_path(x) for x in plugin_places]
-
-    pm.setPluginPlaces(plugin_places)
-    pm.setCategoriesFilter(category_filter)
-    pm.collectPlugins()
-
+    crawl_plugins = get_plugins(category_filter, plugin_places)
     config = config_parser.get_config()
 
     enabled_plugins = []
@@ -77,50 +128,11 @@ def _load_plugins(
             # Alternatively, 'ALL' can be made to signify
             # all crawlers in plugins/*
 
-    for plugin in pm.getAllPlugins():
-        if filter_func(
-                plugin.plugin_object,
-                plugin.name,
-                enabled_plugins,
-                features):
+    for plugin in crawl_plugins:
+        if ((plugin.name in enabled_plugins) or (
+                plugin.plugin_object.get_feature() in features)):
             plugin_args = get_plugin_args(plugin, config, options)
             yield (plugin.plugin_object, plugin_args)
-
-
-def reload_env_plugin(environment='cloudsight', plugin_places=['plugins']):
-    global runtime_env
-
-    _plugins = list(
-        _load_plugins(
-            category_filter={"env": IRuntimeEnvironment},
-            filter_func=lambda plugin, *unused:
-            plugin.get_environment_name() == environment))
-
-    try:
-        (runtime_env, unused_args) = _plugins[0]
-    except (TypeError, IndexError):
-        plugin_places = plugin_places
-        raise RuntimeEnvironmentPluginNotFound('Could not find a valid "%s" '
-                                               'environment plugin at %s' %
-                                               (environment, plugin_places))
-
-    return runtime_env
-
-
-def get_runtime_env_plugin():
-    global runtime_env
-    if not runtime_env:
-        runtime_env = reload_env_plugin()
-    return runtime_env
-
-
-def plugin_selection_filter(
-        plugin_obj,
-        plugin_name,
-        enabled_plugins,
-        features):
-    return ((plugin_name in enabled_plugins) or (
-        plugin_obj.get_feature() in features))
 
 
 def reload_container_crawl_plugins(
@@ -130,10 +142,9 @@ def reload_container_crawl_plugins(
     global container_crawl_plugins
 
     container_crawl_plugins = list(
-        _load_plugins(
+        load_crawl_plugins(
             category_filter={
                 "crawler": IContainerCrawler},
-            filter_func=plugin_selection_filter,
             features=features,
             plugin_places=plugin_places,
             options=options))
@@ -146,10 +157,9 @@ def reload_vm_crawl_plugins(
     global vm_crawl_plugins
 
     vm_crawl_plugins = list(
-        _load_plugins(
+        load_crawl_plugins(
             category_filter={
                 "crawler": IVMCrawler},
-            filter_func=plugin_selection_filter,
             features=features,
             plugin_places=plugin_places,
             options=options))
@@ -162,10 +172,9 @@ def reload_host_crawl_plugins(
     global host_crawl_plugins
 
     host_crawl_plugins = list(
-        _load_plugins(
+        load_crawl_plugins(
             category_filter={
                 "crawler": IHostCrawler},
-            filter_func=plugin_selection_filter,
             features=features,
             plugin_places=plugin_places,
             options=options))

@@ -1,0 +1,8 @@
+[Core]
+Name = fprobe_container
+Module = fprobe_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Crawling function for containers to start fprobe

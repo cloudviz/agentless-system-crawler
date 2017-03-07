@@ -18,7 +18,7 @@ class RedisHostCrawler(IHostCrawler):
     default_port = 6379
 
     def get_feature(self):
-        return self.feature_type
+        return self.feature_key
 
     # TODO: prepare an useful way to set host/port
     def crawl(self, root_dir='/', **kwargs):

@@ -1,11 +1,13 @@
 import mock
 from unittest import TestCase
 from plugins.applications.redis.feature import RedisFeature
+from plugins.applications.redis.feature import create_feature
 from plugins.applications.redis.redis_host_crawler \
     import RedisHostCrawler
 from plugins.applications.redis.redis_container_crawler \
     import RedisContainerCrawler
 from requests.exceptions import ConnectionError
+import redis
 
 
 class MockedRedisClient(object):
@@ -109,6 +111,22 @@ class MockedRedisClient2(object):
         raise ConnectionError()
 
 
+class MockedRedisClient3(object):
+
+    def __init__(self, host='localhost', port=6379):
+        self.host = host
+        self.port = port
+
+    def info(self):
+        metrics = {
+            "aof_current_rewrite_time_sec": -1,
+            "aof_enabled": 0,
+            "tcp_port": 6379,
+            "used_memory_rss_human": "6.69M"
+        }
+        return metrics
+
+
 class MockedRedisContainer1(object):
 
     def __init__(
@@ -197,7 +215,7 @@ class RedisContainerCrawlTests(TestCase):
 
     def test_get_feature(self):
         c = RedisContainerCrawler()
-        self.assertEqual(c.get_feature(), "application")
+        self.assertEqual(c.get_feature(), "redis")
 
     @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer1)
@@ -246,7 +264,13 @@ class RedisHostCrawlTests(TestCase):
 
     def test_get_feature(self):
         c = RedisHostCrawler()
-        self.assertEqual(c.get_feature(), "application")
+        self.assertEqual(c.get_feature(), "redis")
+
+    @mock.patch('redis.Redis', MockedRedisClient3)
+    def test_redis_host_crawler_dummy(self):
+        client = redis.Redis()
+        feature_attributes = create_feature(client.info())
+        self.assertEqual(feature_attributes[0], -1)
 
     def test_redis_host_crawler(self):
         with mock.patch('redis.Redis', MockedRedisClient):

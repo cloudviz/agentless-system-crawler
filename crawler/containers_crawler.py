@@ -68,7 +68,10 @@ class ContainersCrawler(BaseCrawler):
             timeout,
             user_list=self.user_list,
             host_namespace=self.host_namespace)
-        container and self.crawl_container(container, ignore_plugin_exception)
+        if container:
+            return self.crawl_container(container, ignore_plugin_exception)
+
+        return None
 
     def crawl(self, ignore_plugin_exception=True):
         """

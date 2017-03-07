@@ -1,0 +1,62 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: crawler
+  labels:
+    tier: monitoring
+    app: crawler
+    version: v1
+spec:
+  template:
+    metadata:
+      labels:
+        name: crawler
+    spec:
+      hostPID: true
+      hostIPC: true
+      hostNetwork: true
+      containers:
+        - resources:
+            requests:
+              cpu: 0.15
+          securityContext:
+            privileged: true
+          # crawler image path from image registry 
+          image: shri4u/crawler
+          name: crawler
+          command: ["python2.7", "crawler.py", 
+                    "--crawlmode", "OUTCONTAINER", 
+                    "--url", "file:///tmp/test.csv", 
+                    "--features", "os,disk", 
+                    "--frequency", "60", 
+                    "--environment", "kubernetes" ]
+          volumeMounts:
+            - name: crawler-cgroup
+              mountPath: /cgroup
+              readOnly: true
+            - name: crawler-fs-cgroup
+              mountPath: /sys/fs/cgroup
+              readOnly: true
+            - name: docker-home
+              mountPath: /var/lib/docker
+              readOnly: true
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+            - name: crawler-output
+              mountPath: /tmp
+      volumes:
+        - name: crawler-cgroup
+          hostPath:
+              path: /cgroup
+        - name: crawler-fs-cgroup
+          hostPath:
+              path: /sys/fs/cgroup
+        - name: docker-home
+          hostPath:
+              path: /var/lib/docker
+        - name: docker-sock
+          hostPath:
+              path: /var/run/docker.sock
+        - name: crawler-output
+          hostPath:
+              path: /tmp

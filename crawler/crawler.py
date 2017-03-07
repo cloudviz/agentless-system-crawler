@@ -113,7 +113,7 @@ def main():
         dest='format',
         type=str,
         default='csv',
-        choices=['csv', 'graphite', 'json'],
+        choices=['csv', 'graphite', 'json', 'logstash'],
         help='Emitted data format.',
     )
     parser.add_argument(
@@ -198,7 +198,8 @@ def main():
     emitters = EmittersManager(urls=args.url,
                                format=args.format,
                                compress=args.compress,
-                               extra_metadata=args.extraMetadata)
+                               extra_metadata=args.extraMetadata,
+                               plugin_places=args.plugin_places)
 
     if args.crawlmode == 'OUTCONTAINER':
         crawler = ContainersCrawler(

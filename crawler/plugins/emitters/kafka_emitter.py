@@ -3,7 +3,7 @@ import logging
 import kafka as kafka_python
 import pykafka
 
-from plugins.emitters.base_emitter import BaseEmitter
+from iemit_plugin import IEmitter
 from utils.misc import (NullHandler, call_with_retries)
 
 logger = logging.getLogger('crawlutils')
@@ -11,14 +11,19 @@ logger = logging.getLogger('crawlutils')
 logging.getLogger('kafka').addHandler(NullHandler())
 
 
-class KafkaEmitter(BaseEmitter):
+class KafkaEmitter(IEmitter):
 
-    def __init__(self, url, timeout=1, max_retries=10,
-                 emit_per_line=False):
-        BaseEmitter.__init__(self, url,
-                             timeout=timeout,
-                             max_retries=max_retries,
-                             emit_per_line=emit_per_line)
+    def get_emitter_protocol(self):
+        return 'kafka'
+
+    def init(self, url, timeout=1, max_retries=10, emit_format='csv'):
+        IEmitter.init(self, url,
+                      timeout=timeout,
+                      max_retries=max_retries,
+                      emit_format=emit_format)
+
+        if emit_format == 'json':
+            self.emit_per_line = True
 
         try:
             broker, topic = url[len('kafka://'):].split('/')
@@ -40,16 +45,16 @@ class KafkaEmitter(BaseEmitter):
         self.client = pykafka.KafkaClient(hosts=broker)
         self.producer = self.client.topics[topic].get_producer()
 
-    def emit(self, iostream, compress=False,
+    def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0):
         """
 
-        :param iostream: a CStringIO used to buffer the formatted features.
         :param compress:
         :param metadata:
         :param snapshot_num:
         :return:
         """
+        iostream = self.format(frame)
         if compress:
             raise NotImplementedError('Compress not implemented.')
 

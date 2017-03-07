@@ -1,0 +1,13 @@
+[Core]
+Name = application_liberty_host
+Module = liberty_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "WAS liberty server"
+
+[Options]
+user = administrator user name, Default is user
+password = administrator password, Default is password
+
