@@ -496,6 +496,6 @@ class EmitterTests(unittest.TestCase):
         assert emitted_json["feature1"]["feature_key"] == "dummy_feature_key"
         assert emitted_json["feature1"]["feature_type"] == "dummy_feature_type"
         assert emitted_json["feature1"]["feature_val"] == {'test': 'bla',
-                                               'test2': 12345,
-                                               'test3': 12345.0,
-                                               'test4': 12345.00000}
+                                                           'test2': 12345,
+                                                           'test3': 12345.0,
+                                                           'test4': 12345.00000}
