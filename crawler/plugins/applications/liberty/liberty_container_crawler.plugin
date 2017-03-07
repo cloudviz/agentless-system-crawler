@@ -1,0 +1,13 @@
+[Core]
+Name = application_liberty_container
+Module = liberty_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Liberty crawling function for containers on the host
+
+[Options]
+user = administrator user name, Default is user
+password = administrator password, Default is password
+

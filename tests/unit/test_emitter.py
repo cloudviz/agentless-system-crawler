@@ -16,6 +16,7 @@ from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
 from plugins.emitters.fluentd_emitter import FluentdEmitter
 from utils import crawler_exceptions
 
+
 def mocked_formatter(frame):
     iostream = cStringIO.StringIO()
     iostream.write('namespace777.dummy-feature.test2 12345 14804\r\n')
@@ -418,7 +419,7 @@ class EmitterTests(unittest.TestCase):
         emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
-    
+
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.format',
@@ -499,3 +500,23 @@ class EmitterTests(unittest.TestCase):
                                                            'test2': 12345,
                                                            'test3': 12345.0,
                                                            'test4': 12345.00000}
+
+    def test_emitter_logstash_simple_file(self):
+        emitter = EmittersManager(urls=['file:///tmp/test_emitter'],
+                                  format='logstash')
+        frame = BaseFrame(feature_types=[])
+        frame.metadata['namespace'] = 'namespace777'
+        frame.add_features([("dummy_feature",
+                             {'test': 'dummy',
+                              'test2': 12345,
+                              'test3': 12345.0,
+                              'test4': 12345.00000},
+                             'dummy_feature')])
+        emitter.emit(frame)
+        import json
+        with open('/tmp/test_emitter.0') as f:
+            output = json.load(f)
+            assert len(output) == 2
+            assert 'metadata' in output
+            assert 'dummy_feature' in output
+            assert type(output.get('dummy_feature')) == dict
