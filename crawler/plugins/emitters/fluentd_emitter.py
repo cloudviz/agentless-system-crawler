@@ -39,6 +39,8 @@ class FluentdEmitter(IEmitter):
     def connect_to_fluentd_engine(self, host, port):
         self.fluentd_sender = sender.FluentSender(
             'crawler', host=host, port=port)
+        if self.fluentd_sender.socket is None:
+            raise Exception
 
     def get_json_item(self, frame):
         yield frame.metadata
@@ -60,7 +62,13 @@ class FluentdEmitter(IEmitter):
             combined_dict[key] = json_item
             item_count += 1
 
-        self.fluentd_sender.emit_with_time(tag, timestamp, combined_dict)
+        self._emit(tag, timestamp, combined_dict)
+
+    def _emit(self, tag, timestamp, item):
+        self.fluentd_sender.emit_with_time(tag, timestamp, item)
+        if self.fluentd_sender.last_error is not None:
+            self.fluentd_sender.clear_last_error()
+            raise Exception
 
     def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0):
@@ -81,8 +89,10 @@ class FluentdEmitter(IEmitter):
 
         if self.emit_per_line:
             for json_item in self.get_json_item(frame):
-                self.fluentd_sender.emit_with_time(tag, timestamp, json_item)
+                call_with_retries(self._emit,
+                                  max_retries=self.max_retries,
+                                  _args=tuple((tag, timestamp, json_item)))
         else:
-            self.emit_frame_atonce(tag, timestamp, frame)
-
-        # TODO: call_with_retries / buffer_overflow_handler
+            call_with_retries(self.emit_frame_atonce,
+                              max_retries=self.max_retries,
+                              _args=tuple((tag, timestamp, frame)))

@@ -1,6 +1,7 @@
 import cStringIO
 import gzip
 import unittest
+import time
 
 import mock
 import requests.exceptions
@@ -12,6 +13,7 @@ from plugins.emitters.file_emitter import FileEmitter
 from plugins.emitters.http_emitter import HttpEmitter
 from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
+from plugins.emitters.fluentd_emitter import FluentdEmitter
 from utils import crawler_exceptions
 
 def mocked_formatter(frame):
@@ -81,6 +83,22 @@ class MockedMTGraphiteClient:
 
     def send_messages(self, messages):
         return 1
+
+
+class MockFluentdSender:
+    
+    def __init__(self):
+        self._emitted = dict()
+
+    def emit_with_time(self, tag, timestamp, item):
+        self._emitted.update(item)
+        self.last_error = None
+
+    def clear_last_error():
+        pass
+
+def mocked_fluentd_connect(self, host, port):
+    self.fluentd_sender = MockFluentdSender()
 
 
 class EmitterTests(unittest.TestCase):
@@ -432,3 +450,52 @@ class EmitterTests(unittest.TestCase):
                      max_retries=0)
         emitter.emit('frame')
         assert MockMTGraphiteClient.call_count == 1
+    
+    @mock.patch('plugins.emitters.fluentd_emitter.FluentdEmitter.connect_to_fluentd_engine',
+                side_effect=mocked_fluentd_connect, autospec=True)
+    def test_emitter_fluentd_one_per_line(self, *args):
+        frame = BaseFrame(feature_types=[])
+        frame.metadata['namespace'] = 'namespace777'
+        frame.metadata['timestamp'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        frame.add_features([("dummy_feature_key",
+                             {'test': 'bla',
+                              'test2': 12345,
+                              'test3': 12345.0,
+                              'test4': 12345.00000},
+                             'dummy_feature_type')])
+        emitter = FluentdEmitter()
+        emitter.init(url='fluentd://1.1.1.1:123',emit_format='json')
+        emitter.emit_per_line = True
+        emitter.emit(frame)
+        emitted_json = emitter.fluentd_sender._emitted
+        assert emitted_json["feature_key"] == "dummy_feature_key"
+        assert emitted_json["feature_type"] == "dummy_feature_type"
+        assert emitted_json["feature_val"] == {'test': 'bla',
+                                               'test2': 12345,
+                                               'test3': 12345.0,
+                                               'test4': 12345.00000}
+    
+    @mock.patch('plugins.emitters.fluentd_emitter.FluentdEmitter.connect_to_fluentd_engine',
+                side_effect=mocked_fluentd_connect, autospec=True)
+    def test_emitter_fluentd(self, *args):
+        frame = BaseFrame(feature_types=[])
+        frame.metadata['namespace'] = 'namespace777'
+        frame.metadata['timestamp'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        frame.add_features([("dummy_feature_key",
+                             {'test': 'bla',
+                              'test2': 12345,
+                              'test3': 12345.0,
+                              'test4': 12345.00000},
+                             'dummy_feature_type')])
+        emitter = FluentdEmitter()
+        emitter.init(url='fluentd://1.1.1.1:123',emit_format='json')
+        emitter.emit_per_line = False
+        emitter.emit(frame)
+        emitted_json = emitter.fluentd_sender._emitted
+        print emitted_json
+        assert emitted_json["feature1"]["feature_key"] == "dummy_feature_key"
+        assert emitted_json["feature1"]["feature_type"] == "dummy_feature_type"
+        assert emitted_json["feature1"]["feature_val"] == {'test': 'bla',
+                                               'test2': 12345,
+                                               'test3': 12345.0,
+                                               'test4': 12345.00000}
