@@ -12,6 +12,7 @@ from crawlmodes import Modes
 from emitters_manager import EmittersManager
 from host_crawler import HostCrawler
 from vms_crawler import VirtualMachinesCrawler
+from k8s_pods_crawler import PodsCrawler
 
 logger = None
 
@@ -94,10 +95,11 @@ def main():
             Modes.MOUNTPOINT,
             Modes.OUTCONTAINER,
             Modes.MESOS,
+            Modes.K8S
         ],
         default=Modes.INVM,
         help='The crawler mode: '
-             '{INVM,OUTVM,MOUNTPOINT,OUTCONTAINER}. '
+             '{INVM,OUTVM,MOUNTPOINT,OUTCONTAINER,K8S}. '
              'Defaults to INVM',
     )
     parser.add_argument(
@@ -219,6 +221,14 @@ def main():
         crawler = VirtualMachinesCrawler(
             features=args.features,
             user_list=args.vm_descs_list,
+            host_namespace=args.namespace,
+            plugin_places=args.plugin_places,
+            options=options)
+    elif args.crawlmode == 'K8S':
+        crawler = PodsCrawler(
+            features=args.features,
+            environment=args.environment,
+            user_list=args.crawlContainers,
             host_namespace=args.namespace,
             plugin_places=args.plugin_places,
             options=options)

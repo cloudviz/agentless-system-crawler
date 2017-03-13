@@ -3,7 +3,8 @@ import logging
 from yapsy.PluginManager import PluginManager
 import urlparse
 import config_parser
-from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
+from icrawl_plugin import IContainerCrawler, IVMCrawler, \
+    IHostCrawler, IPodCrawler
 from iemit_plugin import IEmitter
 from runtime_environment import IRuntimeEnvironment
 from utils import misc
@@ -14,6 +15,7 @@ logger = logging.getLogger('crawlutils')
 # default runtime environment: cloudsigth and plugins in 'plugins/'
 runtime_env = None
 
+pod_crawl_plugins = []
 container_crawl_plugins = []
 vm_crawl_plugins = []
 host_crawl_plugins = []
@@ -135,6 +137,21 @@ def load_crawl_plugins(
             yield (plugin.plugin_object, plugin_args)
 
 
+def reload_pod_crawl_plugins(
+        features=['os,' 'cpu'],
+        plugin_places=['plugins'],
+        options={}):
+    global pod_crawl_plugins
+
+    pod_crawl_plugins = list(
+        load_crawl_plugins(
+            category_filter={
+                "crawler": IPodCrawler},
+            features=features,
+            plugin_places=plugin_places,
+            options=options))
+
+
 def reload_container_crawl_plugins(
         features=['os', 'cpu'],
         plugin_places=['plugins'],
@@ -178,6 +195,17 @@ def reload_host_crawl_plugins(
             features=features,
             plugin_places=plugin_places,
             options=options))
+
+
+def get_pod_crawl_plugins(
+        features=[
+            'os',
+            'cpu'
+        ]):
+    global pod_crawl_plugins
+    if not pod_crawl_plugins:
+        reload_pod_crawl_plugins(features=features)
+    return pod_crawl_plugins
 
 
 def get_container_crawl_plugins(

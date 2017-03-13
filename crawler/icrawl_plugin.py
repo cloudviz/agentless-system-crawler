@@ -71,3 +71,22 @@ class IHostCrawler(IPlugin):
         Returns the feature type as a string.
         """
         raise NotImplementedError()
+
+
+class IPodCrawler(IPlugin):
+
+    """
+    Crawler plugin interface
+
+    subclasses of this class can be used to implement crawling functions
+    for pod managed in the host that crawler is working
+    """
+
+    def crawl(self, pod):
+        raise NotImplementedError()
+
+    def get_feature(self):
+        """
+        Return the feature type as a string
+        """
+        raise NotImplementedError()
