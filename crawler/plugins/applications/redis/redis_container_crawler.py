@@ -2,8 +2,8 @@ from icrawl_plugin import IContainerCrawler
 from plugins.applications.redis import feature
 import dockercontainer
 from requests.exceptions import ConnectionError
-import redis
 import logging
+
 
 logger = logging.getLogger('crawlutils')
 
@@ -22,6 +22,10 @@ class RedisContainerCrawler(IContainerCrawler):
         return self.feature_key
 
     def crawl(self, container_id=None, **kwargs):
+
+        import pip
+        pip.main(['install', 'redis'])
+        import redis
 
         # only crawl redis container. Otherwise, quit.
         c = dockercontainer.DockerContainer(container_id)
