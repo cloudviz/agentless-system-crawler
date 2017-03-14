@@ -28,6 +28,7 @@ NetflowFeature = namedtuple('NetflowFeature', ['data'])
 class FprobeContainerCrawler(IContainerCrawler):
 
     BIND_ADDRESS = '127.0.0.1'
+    STALE_FILE_TIMEOUT = 3600
 
     # Interface where fprobes were started on.
     fprobes_started = set()
@@ -235,6 +236,24 @@ class FprobeContainerCrawler(IContainerCrawler):
                 FprobeContainerCrawler.fprobes_started.remove(ifname)
                 self.remove_datafiles(ifname, **kwargs)
 
+    @classmethod
+    def remove_old_files(cls, **kwargs):
+        """
+          Remove all old files that the crawler would never pick up.
+        """
+        now = time.time()
+        output_dir = kwargs.get('fprobe_output_dir', '/tmp/crawler-fprobe')
+
+        for filename in glob.glob('%s/*' % output_dir):
+            try:
+                statbuf = os.stat(filename)
+                # files older than 1 hour are removed
+                if statbuf.st_mtime + \
+                        FprobeContainerCrawler.STALE_FILE_TIMEOUT < now:
+                    os.remove(filename)
+            except:
+                continue
+
     def crawl(self, container_id, avoid_setns=False, **kwargs):
         """
           Start fprobe + data collector pairs on the interfaces of
@@ -242,6 +261,12 @@ class FprobeContainerCrawler(IContainerCrawler):
           wrote and return their content.
         """
         if time.time() > FprobeContainerCrawler.next_cleanup:
+            # we won't run the cleanup of old files the first time
+            # but let the crawler do one full round of picking up
+            # relevant files and then only we do a proper cleaning
+            if FprobeContainerCrawler.next_cleanup > 0:
+                FprobeContainerCrawler.remove_old_files(**kwargs)
+
             self.cleanup(**kwargs)
             FprobeContainerCrawler.next_cleanup = time.time() + 30
 

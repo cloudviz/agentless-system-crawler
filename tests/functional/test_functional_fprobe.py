@@ -228,5 +228,52 @@ class FprobeFunctionalTests(unittest.TestCase):
         s = FprobeContainerCrawler.interfaces_with_fprobes()
         assert 'test.eth0' in s
 
+    @mock.patch('plugins.systems.fprobe_container_crawler.start_child',
+                mocked_start_child)
+    def test_remove_stale_files(self):
+        logger = logging.getLogger("crawlutils")
+        logger.info('>>> Testcase: stale file being removed')
+
+        fc = FprobeContainerCrawler()
+        assert fc.get_feature() == 'fprobe'
+
+        # we pretend that an interface test.eth0 existed
+        ifname = 'test.eth0'
+        FprobeContainerCrawler.fprobes_started[ifname] = 1234
+
+        self.params['output_filepattern'] = 'fprobe-{ifname}-{timestamp}'
+
+        # have the fake socket-datacollector write a file with the ifname in
+        # the filename
+        fc.setup_outputdir(self.output_dir, os.getuid(), os.getgid())
+
+        written_file = os.path.join(self.output_dir, 'test.output')
+        with open(written_file, 'a') as f:
+            f.write('hello')
+
+        assert os.path.isfile(written_file)
+
+        # mock the stale file timeout so that our file will get removed
+        # with in reasonable time
+        FprobeContainerCrawler.STALE_FILE_TIMEOUT = 5
+
+        # calling fc.crawl() will not trigger a cleanup of that file
+        # the first time
+        logger.info('1st crawl')
+        fc.crawl(self.container['Id'], avoid_setns=False, **self.params)
+
+        # file should still be here
+        assert os.path.isfile(written_file)
+
+        # the next time we will crawl, the file will be removed
+        FprobeContainerCrawler.next_cleanup = time.time()
+        time.sleep(FprobeContainerCrawler.STALE_FILE_TIMEOUT + 1)
+
+        logger.info('2nd crawl')
+        fc.crawl(self.container['Id'], avoid_setns=False, **self.params)
+
+        # file should be gone now
+        assert not os.path.isfile(written_file)
+
     if __name__ == '__main__':
         unittest.main()
