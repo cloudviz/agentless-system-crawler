@@ -1,4 +1,5 @@
 import mock
+import pip
 from unittest import TestCase
 from plugins.applications.db2 import db2_crawler
 from plugins.applications.db2.feature import DB2Feature
@@ -7,6 +8,9 @@ from plugins.applications.db2.db2_container_crawler \
 from plugins.applications.db2.db2_host_crawler \
     import DB2HostCrawler
 from utils.crawler_exceptions import CrawlError
+
+
+pip.main(['install', 'ibm_db'])
 
 
 class MockedNoNameContainer(object):

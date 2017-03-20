@@ -1,7 +1,6 @@
 from icrawl_plugin import IHostCrawler
 from plugins.applications.redis import feature
 from requests.exceptions import ConnectionError
-import redis
 import logging
 
 logger = logging.getLogger('crawlutils')
@@ -22,6 +21,10 @@ class RedisHostCrawler(IHostCrawler):
 
     # TODO: prepare an useful way to set host/port
     def crawl(self, root_dir='/', **kwargs):
+        import pip
+        pip.main(['install', 'redis'])
+        import redis
+
         try:
             client = redis.Redis(host='localhost', port=self.default_port)
             metrics = client.info()
