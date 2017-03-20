@@ -1,4 +1,5 @@
 import mock
+import pip
 from unittest import TestCase
 from plugins.applications.redis.feature import RedisFeature
 from plugins.applications.redis.feature import create_feature
@@ -7,7 +8,9 @@ from plugins.applications.redis.redis_host_crawler \
 from plugins.applications.redis.redis_container_crawler \
     import RedisContainerCrawler
 from requests.exceptions import ConnectionError
-import redis
+
+
+pip.main(['install', 'redis'])
 
 
 class MockedRedisClient(object):
@@ -268,6 +271,7 @@ class RedisHostCrawlTests(TestCase):
 
     @mock.patch('redis.Redis', MockedRedisClient3)
     def test_redis_host_crawler_dummy(self):
+        import redis
         client = redis.Redis()
         feature_attributes = create_feature(client.info())
         self.assertEqual(feature_attributes[0], -1)
