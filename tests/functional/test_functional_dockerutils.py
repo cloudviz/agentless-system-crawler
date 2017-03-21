@@ -10,6 +10,7 @@ from utils.dockerutils import (
     exec_docker_history,
     exec_dockerinspect,
     _get_docker_server_version,
+    _fix_version,
     get_docker_container_rootfs_path
 )
 
@@ -43,6 +44,14 @@ class DockerUtilsTests(unittest.TestCase):
         self.docker.remove_container(container=self.container['Id'])
 
         shutil.rmtree(self.tempd)
+
+    def test_fix_version(self):
+        import semantic_version
+        ver = u'17.03.01-ce'
+        fixed_ver = _fix_version(ver)
+        assert fixed_ver == u'17.3.1'
+        VERSION_SPEC = semantic_version.Spec('>=1.10.0')
+        assert VERSION_SPEC.match(semantic_version.Version(fixed_ver)) is True
 
     def test_docker_version(self):
         ver = _get_docker_server_version()
