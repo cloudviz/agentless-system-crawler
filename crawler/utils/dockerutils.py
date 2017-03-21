@@ -7,6 +7,7 @@ import dateutil.parser as dp
 import docker
 import semantic_version
 import itertools
+import re
 
 from utils import misc
 from crawler_exceptions import (DockerutilsNoJsonLog,
@@ -237,11 +238,25 @@ def _get_container_rootfs_path_dm(long_id, inspect=None):
     return rootfs_path + '/rootfs'
 
 
+def _fix_version(v):
+    # removing leading zeroes from docker version
+    # which are not liked by semantic_version
+    version_parts = re.match(r'(\d+).(\d+).(\d+)', v)
+    if version_parts is not None:
+        fixed_v = ''
+        for item in version_parts.groups():
+            if len(item) > 1 and item.startswith('0'):
+                item = item[1:]
+            fixed_v = fixed_v + item + '.'
+        return fixed_v[:-1]
+
+
 def _get_container_rootfs_path_btrfs(long_id, inspect=None):
 
     rootfs_path = None
 
-    if VERSION_SPEC.match(semantic_version.Version(server_version)):
+    if VERSION_SPEC.match(semantic_version.Version(_fix_version(
+                                                   server_version))):
         btrfs_path = None
         mountid_path = ('/var/lib/docker/image/btrfs/layerdb/mounts/' +
                         long_id + '/mount-id')
@@ -274,7 +289,8 @@ def _get_container_rootfs_path_aufs(long_id, inspect=None):
 
     rootfs_path = None
 
-    if VERSION_SPEC.match(semantic_version.Version(server_version)):
+    if VERSION_SPEC.match(semantic_version.Version(_fix_version(
+                                                   server_version))):
         aufs_path = None
         mountid_path = ('/var/lib/docker/image/aufs/layerdb/mounts/' +
                         long_id + '/mount-id')
