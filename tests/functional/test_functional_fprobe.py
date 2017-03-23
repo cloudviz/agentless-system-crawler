@@ -79,16 +79,17 @@ def mocked_start_child_collector_fail(params, pass_fds, null_fds, ign_sigs,
 
 def mocked_psutil_process_iter():
     class MyProcess(object):
-        def __init__(self, _name, _cmdline):
+        def __init__(self, _name, _cmdline, _pid):
             self._name = _name
             self._cmdline = _cmdline
+            self.pid = _pid
 
         def name(self):
             return self._name
 
         def cmdline(self):
             return self._cmdline
-    yield MyProcess('fprobe', ['-i', 'test.eth0', '127.0.0.1:1234'])
+    yield MyProcess('fprobe', ['-i', 'test.eth0', '127.0.0.1:1234'], 11111)
 
 
 # Tests conducted with a single container running.
@@ -190,7 +191,7 @@ class FprobeFunctionalTests(unittest.TestCase):
 
         # we pretend that an interface test.eth0 existed
         ifname = 'test.eth0'
-        FprobeContainerCrawler.fprobes_started.add(ifname)
+        FprobeContainerCrawler.fprobes_started[ifname] = 1234
 
         self.params['output_filepattern'] = 'fprobe-{ifname}-{timestamp}'
 
@@ -226,7 +227,7 @@ class FprobeFunctionalTests(unittest.TestCase):
         logger.info('>>> Testcase: determine interfaces on which fprobes '
                     'are running')
         s = FprobeContainerCrawler.interfaces_with_fprobes()
-        assert 'test.eth0' in s
+        assert 'test.eth0' in s.keys()
 
     @mock.patch('plugins.systems.fprobe_container_crawler.start_child',
                 mocked_start_child)
