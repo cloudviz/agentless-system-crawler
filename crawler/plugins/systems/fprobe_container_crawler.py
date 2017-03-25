@@ -28,9 +28,11 @@ NetflowFeature = namedtuple('NetflowFeature', ['data'])
 class FprobeContainerCrawler(IContainerCrawler):
 
     BIND_ADDRESS = '127.0.0.1'
+    STALE_FILE_TIMEOUT = 3600
 
     # Interface where fprobes were started on.
-    fprobes_started = set()
+    # This is a map with interface names and fprobe process IDs
+    fprobes_started = {}
 
     # Since we don't get notified when a container dies
     # we need to periodically check the interfaces on the host
@@ -41,30 +43,56 @@ class FprobeContainerCrawler(IContainerCrawler):
         return 'fprobe'
 
     @staticmethod
+    def is_my_fprobe(proc):
+        """
+          Check whether the given process is an fprobe that was started by
+          this plugin. We only recognize fprobes with target address for
+          the collector being 127.0.0.1.We determine the parameter passed
+          after '-i', which is the name of the interface.
+
+          Return the interface on which it is running on, None otherwise
+        """
+        if proc.name() == 'fprobe':
+            params = proc.cmdline()
+            targetaddress = params[-1].split(':')[0]
+            if targetaddress == FprobeContainerCrawler.BIND_ADDRESS:
+                try:
+                    i = params.index('-i')
+                    logger.info('fprobe running on iface %s (pid=%s)' %
+                                (params[i+1], proc.pid))
+                    return params[i+1]
+                except:
+                    pass
+        return None
+
+    @staticmethod
+    def is_my_fprobe_by_pid(pid):
+        """
+          Given a pid, check whether 'my' fprobe is running there. Return the
+          name of the interface for which the fprobe there is running, None
+          otherwise.
+        """
+        try:
+            proc = psutil.Process(pid=pid)
+            return FprobeContainerCrawler.is_my_fprobe(proc)
+        except:
+            return None
+
+    @staticmethod
     def interfaces_with_fprobes():
         """
           Get a set of interfaces for which fprobe is already running
           We walk the list of processes and check the 'fprobe' ones
-          and determine the parameter passed after '-i', which is the
-          name of the interface. We only recognize those with target
-          address for the collector being 127.0.0.1.
+          and record those that could have been started by this plugin.
         """
-        res = []
+        res = {}
 
         for proc in psutil.process_iter():
-            if proc.name() == 'fprobe':
-                params = proc.cmdline()
-                targetaddress = params[-1].split(':')[0]
-                if targetaddress == FprobeContainerCrawler.BIND_ADDRESS:
-                    try:
-                        i = params.index('-i')
-                        logger.debug('fprobe running on iface %s' %
-                                     params[i+1])
-                        res.append(params[i + 1])
-                    except:
-                        pass
+            ifname = FprobeContainerCrawler.is_my_fprobe(proc)
+            if ifname:
+                res[ifname] = proc.pid
 
-        return set(res)
+        return res
 
     def setup_outputdir(self, output_dir, uid, gid):
         """
@@ -160,8 +188,8 @@ class FprobeContainerCrawler(IContainerCrawler):
     def start_netflow_collection(self, ifname, ip_addresses, container_id,
                                  **kwargs):
         """
-          Start the collector and the fprobe. Return false in case of an
-          error.
+          Start the collector and the fprobe. Return None in case of an
+          error, the process ID of fprobe otherwise
 
           Note: Fprobe will terminate when the container ends. The collector
                 watches the fprobe via its PID and will terminate once fprobe
@@ -176,20 +204,20 @@ class FprobeContainerCrawler(IContainerCrawler):
         except Exception as ex:
             logger.error('Could not find user %s on this system: %s' %
                          (fprobe_user, str(ex)))
-            return False
+            return None
 
         fprobe_output_dir = kwargs.get('fprobe_output_dir',
                                        '/tmp/crawler-fprobe')
         if not self.setup_outputdir(fprobe_output_dir, passwd.pw_uid,
                                     passwd.pw_gid):
-            return False
+            return None
 
         # Find an open port; we pass the port number for fprobe and the
         # file descriptor of the listening socket to the collector
         bindaddr = FprobeContainerCrawler.BIND_ADDRESS
         sock, port = open_udp_port(bindaddr, 40000, 65535)
         if not sock:
-            return False
+            return None
 
         fprobe_pid, errcode = self.start_fprobe(ifname, fprobe_user,
                                                 bindaddr, port,
@@ -198,7 +226,7 @@ class FprobeContainerCrawler(IContainerCrawler):
         if fprobe_pid < 0:
             logger.error('Could not start fprobe: %s' % os.strerror(errcode))
             sock.close()
-            return False
+            return None
 
         metadata = {
             'ifname': ifname,
@@ -217,9 +245,9 @@ class FprobeContainerCrawler(IContainerCrawler):
             logger.error('Could not start collector: %s' %
                          os.strerror(errcode))
             os.kill(fprobe_pid, signal.SIGKILL)
-            return False
+            return None
 
-        return True
+        return fprobe_pid
 
     def cleanup(self, **kwargs):
         """
@@ -230,10 +258,28 @@ class FprobeContainerCrawler(IContainerCrawler):
         """
         devices = netifaces.interfaces()
 
-        for ifname in FprobeContainerCrawler.fprobes_started.copy():
+        for ifname in FprobeContainerCrawler.fprobes_started.keys():
             if ifname not in devices:
-                FprobeContainerCrawler.fprobes_started.remove(ifname)
+                del FprobeContainerCrawler.fprobes_started[ifname]
                 self.remove_datafiles(ifname, **kwargs)
+
+    @classmethod
+    def remove_old_files(cls, **kwargs):
+        """
+          Remove all old files that the crawler would never pick up.
+        """
+        now = time.time()
+        output_dir = kwargs.get('fprobe_output_dir', '/tmp/crawler-fprobe')
+
+        for filename in glob.glob('%s/*' % output_dir):
+            try:
+                statbuf = os.stat(filename)
+                # files older than 1 hour are removed
+                if statbuf.st_mtime + \
+                        FprobeContainerCrawler.STALE_FILE_TIMEOUT < now:
+                    os.remove(filename)
+            except:
+                continue
 
     def crawl(self, container_id, avoid_setns=False, **kwargs):
         """
@@ -242,6 +288,12 @@ class FprobeContainerCrawler(IContainerCrawler):
           wrote and return their content.
         """
         if time.time() > FprobeContainerCrawler.next_cleanup:
+            # we won't run the cleanup of old files the first time
+            # but let the crawler do one full round of picking up
+            # relevant files and then only we do a proper cleaning
+            if FprobeContainerCrawler.next_cleanup > 0:
+                FprobeContainerCrawler.remove_old_files(**kwargs)
+
             self.cleanup(**kwargs)
             FprobeContainerCrawler.next_cleanup = time.time() + 30
 
@@ -320,6 +372,23 @@ class FprobeContainerCrawler(IContainerCrawler):
                     data
                 ), 'fprobe')
 
+    def need_start_fprobe(self, ifname):
+        """
+          Check whether we need to start an fprobe on this interface
+          We need to start it
+          - if no fprobe process is running on it.
+          - if the process id now represents a different process
+            (pid reused)
+        """
+        pid = FprobeContainerCrawler.fprobes_started.get(ifname)
+        if not pid:
+            return True
+        if ifname != FprobeContainerCrawler.is_my_fprobe_by_pid(pid):
+            # something different runs under this pid...
+            del FprobeContainerCrawler.fprobes_started[ifname]
+            return True
+        return False
+
     def start_container_fprobes(self, container_id, avoid_setns=False,
                                 **kwargs):
         """
@@ -347,13 +416,14 @@ class FprobeContainerCrawler(IContainerCrawler):
 
                 ifnames.append(ifname)
 
-                if ifname not in FprobeContainerCrawler.fprobes_started:
-                    FprobeContainerCrawler.fprobes_started.add(ifname)
+                if self.need_start_fprobe(ifname):
                     logger.info('Need to start fprobe on %s' % ifname)
-                    self.start_netflow_collection(ifname,
-                                                  peer.ip_addresses,
-                                                  container_id,
-                                                  **kwargs)
+                    pid = self.start_netflow_collection(ifname,
+                                                        peer.ip_addresses,
+                                                        container_id,
+                                                        **kwargs)
+                    if pid:
+                        FprobeContainerCrawler.fprobes_started[ifname] = pid
         except Exception as ex:
             logger.info("Error: %s" % str(ex))
 
