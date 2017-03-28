@@ -46,7 +46,10 @@ def get_url_and_name(json_array, className):
 
         if each_json.get("className") == className:
             m = r.search(each_json.get("objectName"))
-            url_name_list.append([each_json.get("URL"), m.group(1)])
+            if m:
+                url_name_list.append([each_json.get("URL"), m.group(1)])
+            else:
+                url_name_list.append([each_json.get("URL"), 0])
 
     return url_name_list
 
@@ -134,6 +137,23 @@ def get_session_stats(base_url, url, user, password):
     return session_stats
 
 
+def get_mongo_connection_stats(base_url, url, user, password):
+    monitor_status = json.loads(retrieve_status_page(
+                                user, password, base_url+url))
+    connection_stats = {}
+
+    attribute_array = monitor_status.get("attributes")
+    connection_name_array = ["CheckedOutCount", "WaitQueueSize",
+                             "MinSize", "MaxSize", "Size", "Host", "Port"]
+    for stat_name in connection_name_array:
+        connection_url = servlet_get_url(attribute_array, stat_name)
+        connection_status = json.loads(retrieve_status_page(
+            user, password, base_url+connection_url))
+        connection_stats[stat_name] = connection_status.get("value")
+
+    return connection_stats
+
+
 def retrieve_metrics(host='localhost', port=9443,
                      user='user', password='password',
                      feature_type='application'):
@@ -200,3 +220,24 @@ def retrieve_metrics(host='localhost', port=9443,
             session_stats.get("InvalidatedCountbyTimeout"),
         )
         yield ('liberty_session_status', session_attributes, feature_type)
+
+    mbeans_url_name_array = get_url_and_name(json_obj,
+                                             "com.mongodb.management"
+                                             ".ConnectionPoolStatistics")
+
+    for url_name in mbeans_url_name_array:
+        connection_stats = get_mongo_connection_stats(base_url,
+                                                      url_name[0],
+                                                      user, password)
+
+        connection_attributes = feature.LibertyMongoConnectionFeature(
+            connection_stats.get("CheckedOutCount"),
+            connection_stats.get("WaitQueueSize"),
+            connection_stats.get("MaxSize"),
+            connection_stats.get("MinSize"),
+            connection_stats.get("Host"),
+            connection_stats.get("Port"),
+            connection_stats.get("Size")
+        )
+        yield ('liberty_mongo_connection_status',
+               connection_attributes, feature_type)
