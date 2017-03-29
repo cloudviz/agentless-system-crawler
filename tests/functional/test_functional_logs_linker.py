@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import subprocess
+import plugins_manager
 
 from containers_logs_linker import DockerContainersLogsLinker
 from worker import Worker
@@ -24,6 +25,7 @@ class LogsLinkerTests(unittest.TestCase):
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
         root.addHandler(ch)
+        plugins_manager.runtime_env = None
         self.container = {}
         self.container_name = 'LogLinkerContainer'
         self.host_namespace = get_host_ipaddr()

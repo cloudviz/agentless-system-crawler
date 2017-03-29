@@ -15,6 +15,12 @@ META_LABELS = 'Labels'
 META_UUID = 'Id'
 META_HOSTNAME = 'Hostname'
 
+K8S_NS_LABEL = "io.kubernetes.pod.namespace"
+K8S_POD_LABEL = "io.kubernetes.pod.name"
+K8S_CONTAINER_NAME_LABEL = "io.kubernetes.container.name"
+
+CRAWLER_NAMESPACE_FORMAT = "{K8S_NS}/{K8S_POD}/{K8S_CONT_NAME}/{K8S_CONT_ID}"
+
 
 class KubernetesEnvironment(IRuntimeEnvironment):
     name = 'kubernetes'
@@ -24,20 +30,22 @@ class KubernetesEnvironment(IRuntimeEnvironment):
 
     def get_container_namespace(self, long_id, options):
         assert isinstance(long_id, str) or unicode, "long_id is not a string"
-        k8s_meta = dict()
+        crawler_k8s_ns = ""
         container_meta = exec_dockerinspect(long_id)
         try:
             labels = container_meta.get(META_CONFIG).get(META_LABELS)
-            k8s_meta[META_UUID] = container_meta.get(META_UUID, None)
             if labels:
-                k8s_meta.update(labels)
-
+                crawler_k8s_ns = CRAWLER_NAMESPACE_FORMAT.format(
+                    K8S_NS=labels.get(K8S_NS_LABEL, ""),
+                    K8S_POD=labels.get(K8S_POD_LABEL, ""),
+                    K8S_CONT_NAME=labels.get(K8S_CONTAINER_NAME_LABEL, ""),
+                    K8S_CONT_ID=long_id)
         except KeyError:
             logger.error('Error retrieving container labels for: %s' %
                          long_id)
             pass
 
-        return k8s_meta
+        return crawler_k8s_ns
 
     def get_container_log_file_list(self, long_id, options):
         assert isinstance(long_id, str) or unicode, "long_id is not a string"
