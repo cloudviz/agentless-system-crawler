@@ -56,7 +56,7 @@ class DockerUtilsTests(unittest.TestCase):
     def test_docker_version(self):
         ver = _get_docker_server_version()
         import re
-        pattern = re.compile("^[0-9]\.[0-9|\.]+$")
+        pattern = re.compile("^[0-9]+\.[0-9]+\.[0-9]+")
         assert pattern.match(ver)
 
     def test_dockerps(self):
