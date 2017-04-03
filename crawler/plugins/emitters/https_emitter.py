@@ -6,7 +6,7 @@ from plugins.emitters.base_http_emitter import BaseHttpEmitter
 logger = logging.getLogger('crawlutils')
 
 
-class HttpEmitter(BaseHttpEmitter, IEmitter):
+class HttpsEmitter(BaseHttpEmitter, IEmitter):
 
     def get_emitter_protocol(self):
-        return 'http'
+        return 'https'
