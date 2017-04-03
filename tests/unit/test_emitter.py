@@ -11,6 +11,7 @@ from capturing import Capturing
 from emitters_manager import EmittersManager
 from plugins.emitters.file_emitter import FileEmitter
 from plugins.emitters.http_emitter import HttpEmitter
+from plugins.emitters.https_emitter import HttpsEmitter
 from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
 from plugins.emitters.fluentd_emitter import FluentdEmitter
@@ -46,13 +47,17 @@ def mocked_requests_post(*args, **kwargs):
 
         def json(self):
             return self.json_data
-    if args[0] == 'http://1.1.1.1/good':
+    if args[0] == 'http://1.1.1.1/good' or\
+            args[0] == 'https://1.1.1.1/good':
         return MockResponse(status_code=200)
-    elif args[0] == 'http://1.1.1.1/bad':
+    elif args[0] == 'http://1.1.1.1/bad' or\
+            args[0] == 'https://1.1.1.1/bad':
         return MockResponse(status_code=500)
-    elif args[0] == 'http://1.1.1.1/exception':
+    elif args[0] == 'http://1.1.1.1/exception' or\
+            args[0] == 'https://1.1.1.1/exception':
         raise requests.exceptions.RequestException('bla')
-    elif args[0] == 'http://1.1.1.1/encoding_error':
+    elif args[0] == 'http://1.1.1.1/encoding_error' or\
+            args[0] == 'https://1.1.1.1/encoding_error':
         raise requests.exceptions.ChunkedEncodingError('bla')
 
 
@@ -416,6 +421,50 @@ class EmitterTests(unittest.TestCase):
     def test_emitter_http_encoding_error(self, mock_post, mock_format):
         emitter = HttpEmitter()
         emitter.init(url='http://1.1.1.1/encoding_error')
+        emitter.emit('frame')
+        # there are no retries for encoding errors
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.https_emitter.HttpsEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.https_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.https_emitter.time.sleep')
+    def test_emitter_https(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/good')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.https_emitter.HttpsEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.https_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.https_emitter.time.sleep')
+    def test_emitter_https_server_error(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/bad')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('plugins.emitters.https_emitter.HttpsEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.https_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.https_emitter.time.sleep')
+    def test_emitter_https_request_exception(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/exception')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('plugins.emitters.https_emitter.HttpsEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.https_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    def test_emitter_https_encoding_error(self, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/encoding_error')
         emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
