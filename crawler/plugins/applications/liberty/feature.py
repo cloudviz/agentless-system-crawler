@@ -33,3 +33,13 @@ LibertySessionFeature = namedtuple('LibertySessionFeature', [
                                    'invalidatedCount',
                                    'invalidatedCountByTimeout',
                                    ])
+
+LibertyMongoConnectionFeature = namedtuple('LibertyMongoConnectionFeature', [
+                                           'checkedOutCount',
+                                           'waitQueueSize',
+                                           'maxSize',
+                                           'minSize',
+                                           'host',
+                                           'port',
+                                           'size',
+                                           ])

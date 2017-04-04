@@ -33,7 +33,8 @@ def server_status_value(user, password, url):
         "ResponseTimeDetails": 'tests/unit/liberty_response_time_details',
         "JvmStats": 'tests/unit/liberty_jvm_stats',
         "ThreadPoolStats": 'tests/unit/liberty_thread_pool_stats',
-        "SessionStats": 'tests/unit/liberty_session_stats'
+        "SessionStats": 'tests/unit/liberty_session_stats',
+        "ConnectionPool": 'tests/unit/liberty_connection_stats'
     }
 
     return_value = {
@@ -56,7 +57,14 @@ def server_status_value(user, password, url):
         "LiveCount":  '{"value":"0","type":"java.lang.Long"}',
         "ActiveCount": '{"value":"0","type":"java.lang.Long"}',
         "InvalidatedCount": '{"value":"1","type":"java.lang.Long"}',
-        "InvalidatedCountbyTimeout": '{"value":"2","type":"java.lang.Long"}'
+        "InvalidatedCountbyTimeout": '{"value":"2","type":"java.lang.Long"}',
+        "CheckedOutCountValue": '{"value":"1","type":"java.lang.Long"}',
+        "WaitQueueSizeValue": '{"value":"2","type":"java.lang.Long"}',
+        "MinSizeValue": '{"value":"3","type":"java.lang.Long"}',
+        "MaxSizeValue": '{"value":"4","type":"java.lang.Long"}',
+        "SizeValue": '{"value":"7","type":"java.lang.Long"}',
+        "HostValue": '{"value":"test","type":"java.lang.Long"}',
+        "PortValue": '{"value":"12","type":"java.lang.Long"}'
     }
 
     if last_word in file_value:
@@ -160,6 +168,16 @@ class LibertyCrawlTests(TestCase):
                                activeCount='0',
                                invalidatedCount='1',
                                invalidatedCountByTimeout='2'),
+                           'application'),
+                          ('liberty_mongo_connection_status',
+                           feature.LibertyMongoConnectionFeature(
+                               checkedOutCount='1',
+                               waitQueueSize='2',
+                               maxSize='4',
+                               minSize='3',
+                               host='test',
+                               port='12',
+                               size='7'),
                            'application')]
 
 
