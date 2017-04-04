@@ -11,6 +11,7 @@ import multiprocessing
 import signal
 import psutil
 import semantic_version
+from utils.dockerutils import _fix_version
 
 # Tests conducted with a single container running.
 # docker events supported avove docker version 1.8.0
@@ -202,7 +203,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
         
         files = os.listdir(self.tempd + '/out')
         docker_server_version = self.docker.version()['Version']
-        if VERSION_SPEC.match(semantic_version.Version(docker_server_version)):
+        if VERSION_SPEC.match(semantic_version.Version(_fix_version(docker_server_version))):
             assert len(files) == 2
 
         f = open(self.tempd + '/out/' + files[0], 'r')
