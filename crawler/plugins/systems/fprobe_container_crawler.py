@@ -146,7 +146,8 @@ class FprobeContainerCrawler(IContainerCrawler):
         try:
             pid, errcode = start_child(params, [], [0, 1, 2],
                                        [signal.SIGCHLD],
-                                       setsid=setsid)
+                                       setsid=setsid,
+                                       max_close_fd=128)
             logger.info('Started fprobe as pid %d' % pid)
         except:
             pid = -1
@@ -177,7 +178,8 @@ class FprobeContainerCrawler(IContainerCrawler):
         try:
             pid, errcode = start_child(params, [socket.fileno()], [],
                                        [signal.SIGCHLD],
-                                       setsid=True)
+                                       setsid=True,
+                                       max_close_fd=128)
             logger.info('Started collector as pid %d' % pid)
         except:
             pid = -1
