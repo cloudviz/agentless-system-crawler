@@ -26,7 +26,7 @@ class MtGraphiteEmitter(IEmitter):
         self.mtgraphite_client = MTGraphiteClient(self.url)
 
     def emit(self, frame, compress=False,
-             metadata={}, snapshot_num=0):
+             metadata={}, snapshot_num=0, **kwargs):
         """
 
         :param compress:

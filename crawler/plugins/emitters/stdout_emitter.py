@@ -11,7 +11,7 @@ class StdoutEmitter(IEmitter):
         return 'stdout'
 
     def emit(self, frame, compress=False,
-             metadata={}, snapshot_num=0):
+             metadata={}, snapshot_num=0, **kwargs):
         """
 
         :param iostream: a CStringIO used to buffer the formatted features.
