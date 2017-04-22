@@ -138,7 +138,10 @@ class FprobeContainerCrawler(IContainerCrawler):
                   '-i', ifname,
                   '-u', user,
                   '-n', '%d' % netflow_version,
-                  '-fip',
+                  # '-fip', doesn't work well
+                  '-S', '6400',
+                  '-B', '256',
+                  '-p',
                   '-l', '2',
                   '-e', '%d' % lifetime_timeout,
                   '-d', '%d' % idle_timeout,
