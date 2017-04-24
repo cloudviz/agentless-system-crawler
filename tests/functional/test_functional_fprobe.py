@@ -61,7 +61,7 @@ def mocked_start_child(params, pass_fds, null_fds, ign_sigs, setsid=False,
 
 def mocked_start_child_fprobe_fail(params, pass_fds, null_fds, ign_sigs,
                                    setsid=False, **kwargs):
-    if params[0] == 'fprobe':
+    if params[0] == 'softflowd':
         return start_child(['___no_such_file'], pass_fds, null_fds, ign_sigs,
                            setsid, **kwargs)
     return start_child(['sleep', '1'], pass_fds, null_fds, ign_sigs, setsid,
@@ -89,7 +89,7 @@ def mocked_psutil_process_iter():
 
         def cmdline(self):
             return self._cmdline
-    yield MyProcess('fprobe', ['-i', 'test.eth0', '127.0.0.1:1234'], 11111)
+    yield MyProcess('softflowd', ['-i', 'test.eth0', '127.0.0.1:1234'], 11111)
 
 
 # Tests conducted with a single container running.
@@ -224,7 +224,7 @@ class FprobeFunctionalTests(unittest.TestCase):
                 mocked_psutil_process_iter)
     def test_interfaces_with_fprobes(self):
         logger = logging.getLogger("crawlutils")
-        logger.info('>>> Testcase: determine interfaces on which fprobes '
+        logger.info('>>> Testcase: determine interfaces on which flow probes '
                     'are running')
         s = FprobeContainerCrawler.interfaces_with_fprobes()
         assert 'test.eth0' in s.keys()
