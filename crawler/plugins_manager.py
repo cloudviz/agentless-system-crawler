@@ -17,9 +17,10 @@ runtime_env = None
 container_crawl_plugins = []
 vm_crawl_plugins = []
 host_crawl_plugins = []
-
+emitter_plugins = []
 
 # XXX make this a class
+
 
 def get_plugins(
         category_filter={},
@@ -37,22 +38,69 @@ def get_plugins(
     return pm.getAllPlugins()
 
 
+def get_emitter_plugin_args(plugin, config):
+    plugin_args = {}
+    if plugin.name in config['emitters']:
+        plugin_args = config['emitters'][plugin.name]
+    return plugin_args
+
+
+def load_emitter_plugins(urls=['stdout://'],
+                         format='csv',
+                         plugin_places=['plugins']):
+    category_filter = {"emitter": IEmitter}
+
+    # getting all emitter plugins from crawelr/plugins/emitters/*
+    all_emitter_plugins = get_plugins(category_filter, plugin_places)
+
+    # getting enabled emitter pluggins from crawler.conf file
+    conf_enabled_plugins = []
+    config = config_parser.get_config()
+    if 'enabled_emitter_plugins' in config['general']:
+        conf_enabled_plugins = config['general']['enabled_emitter_plugins']
+        if 'ALL' in conf_enabled_plugins:
+            conf_enabled_plugins = [p for p in config['emitters']]
+
+    for plugin in all_emitter_plugins:
+        plugin_obj = plugin.plugin_object
+        found_plugin = False
+        # iterate over CLI provided emitters
+        for url in urls:
+            parsed = urlparse.urlparse(url)
+            proto = parsed.scheme
+            if plugin_obj.get_emitter_protocol() == proto:
+                plugin_args = get_emitter_plugin_args(plugin, config)
+                plugin_obj.init(url, emit_format=format)
+                yield (plugin_obj, plugin_args)
+                found_plugin = True
+        if found_plugin is True:
+            continue
+        # iterate over conf provided emitters
+        if plugin.name in conf_enabled_plugins:
+            plugin_args = get_emitter_plugin_args(plugin, config)
+            plugin_obj.init(url=plugin_args.get('url', 'missing_url'),
+                            emit_format=plugin_args.get(
+                                'format', 'missing_format'))
+            yield (plugin_obj, plugin_args)
+
+    # Note1: 'Same' emitters would either be picked from CLI (preference 1)
+    #        or crawler.conf (preference 2), not both
+    # Note3: This does not allow different 'same' emitters to have
+    #        different args
+    # Note2: This does not properly process multiple 'same' emitter plugins
+    #        inside crawler.conf, e.g.: two 'File Emitters'
+
+
 def get_emitter_plugins(urls=['stdout://'],
                         format='csv',
                         plugin_places=['plugins']):
-    category_filter = {"emitter": IEmitter}
-    all_emitter_plugins = get_plugins(category_filter, plugin_places)
-    selected_emitter_plugins = []
-    for url in urls:
-        parsed = urlparse.urlparse(url)
-        proto = parsed.scheme
-        for plugin in all_emitter_plugins:
-            plugin_obj = plugin.plugin_object
-            if plugin_obj.get_emitter_protocol() == proto:
-                plugin_obj.init(url, emit_format=format)
-                selected_emitter_plugins.append(plugin_obj)
-
-        return selected_emitter_plugins
+    global emitter_plugins
+    if not emitter_plugins:
+        emitter_plugins = list(
+            load_emitter_plugins(urls=urls,
+                                 format=format,
+                                 plugin_places=plugin_places))
+    return emitter_plugins
 
 
 def reload_env_plugin(environment='cloudsight', plugin_places=['plugins']):

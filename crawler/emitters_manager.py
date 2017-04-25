@@ -40,11 +40,11 @@ class EmittersManager:
         self.compress = compress
 
         # Create a list of Emitter objects based on urls
-        self.emitters = plugins_manager.get_emitter_plugins(
+        self.emitter_plugins = plugins_manager.get_emitter_plugins(
             urls,
             format,
             plugin_places)
-        if not self.emitters:
+        if not self.emitter_plugins:
             raise EmitterUnsupportedProtocol('Emit protocols not supported')
 
     def emit(self, frame, snapshot_num=0):
@@ -61,6 +61,6 @@ class EmittersManager:
 
         metadata = frame.metadata
         metadata.update(self.extra_metadata)
-        for emitter in self.emitters:
-            emitter.emit(frame, self.compress,
-                         metadata, snapshot_num)
+        for (emitter_obj, emitter_args) in self.emitter_plugins:
+            emitter_obj.emit(frame, self.compress,
+                             metadata, snapshot_num, **(emitter_args or {}))
