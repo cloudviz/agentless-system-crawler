@@ -71,7 +71,7 @@ class FluentdEmitter(IEmitter):
             raise Exception
 
     def emit(self, frame, compress=False,
-             metadata={}, snapshot_num=0):
+             metadata={}, snapshot_num=0, **kwargs):
         """
 
         :param compress:

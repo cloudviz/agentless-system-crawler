@@ -5,6 +5,7 @@ import time
 
 import mock
 import requests.exceptions
+import plugins_manager
 
 from base_crawler import BaseFrame
 from capturing import Capturing
@@ -109,6 +110,7 @@ class EmitterTests(unittest.TestCase):
     image_name = 'alpine:latest'
 
     def setUp(self):
+        plugins_manager.emitter_plugins = []
         pass
 
     def tearDown(self):

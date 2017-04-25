@@ -46,7 +46,7 @@ class KafkaEmitter(IEmitter):
         self.producer = self.client.topics[topic].get_producer()
 
     def emit(self, frame, compress=False,
-             metadata={}, snapshot_num=0):
+             metadata={}, snapshot_num=0, **kwargs):
         """
 
         :param compress:
