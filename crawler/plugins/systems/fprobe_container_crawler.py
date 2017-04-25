@@ -3,15 +3,17 @@ import errno
 import glob
 import json
 import logging
-import netifaces
 import os
-import psutil
 import pwd
 import signal
 import time
-import utils.dockerutils
 
 from collections import namedtuple
+
+import netifaces
+import psutil
+import utils.dockerutils
+
 from icrawl_plugin import IContainerCrawler
 from utils.ethtool import ethtool_get_peer_ifindex
 from utils.misc import get_uint_arg
@@ -26,12 +28,13 @@ NetflowFeature = namedtuple('NetflowFeature', ['data'])
 
 
 class FprobeContainerCrawler(IContainerCrawler):
+    # Class for acquiring netflow data via a 'flow probe' (softflowd)
 
     BIND_ADDRESS = '127.0.0.1'
     STALE_FILE_TIMEOUT = 3600
 
-    # Interface where fprobes were started on.
-    # This is a map with interface names and fprobe process IDs
+    # Interface where netflow probes were started on.
+    # This is a map with interface names and softflowd process IDs
     fprobes_started = {}
 
     # Since we don't get notified when a container dies
@@ -45,20 +48,20 @@ class FprobeContainerCrawler(IContainerCrawler):
     @staticmethod
     def is_my_fprobe(proc):
         """
-          Check whether the given process is an fprobe that was started by
-          this plugin. We only recognize fprobes with target address for
+          Check whether the given process is an softflowd that was started by
+          this plugin. We only recognize softflowd with target address for
           the collector being 127.0.0.1.We determine the parameter passed
           after '-i', which is the name of the interface.
 
           Return the interface on which it is running on, None otherwise
         """
-        if proc.name() == 'fprobe':
+        if proc.name() == 'softflowd':
             params = proc.cmdline()
             targetaddress = params[-1].split(':')[0]
             if targetaddress == FprobeContainerCrawler.BIND_ADDRESS:
                 try:
                     i = params.index('-i')
-                    logger.info('fprobe running on iface %s (pid=%s)' %
+                    logger.info('softflowd running on iface %s (pid=%s)' %
                                 (params[i+1], proc.pid))
                     return params[i+1]
                 except:
@@ -68,9 +71,9 @@ class FprobeContainerCrawler(IContainerCrawler):
     @staticmethod
     def is_my_fprobe_by_pid(pid):
         """
-          Given a pid, check whether 'my' fprobe is running there. Return the
-          name of the interface for which the fprobe there is running, None
-          otherwise.
+          Given a pid, check whether 'my' flow probe is running there. Return
+          the name of the interface for which the flow probe is running,
+          None otherwise.
         """
         try:
             proc = psutil.Process(pid=pid)
@@ -81,8 +84,8 @@ class FprobeContainerCrawler(IContainerCrawler):
     @staticmethod
     def interfaces_with_fprobes():
         """
-          Get a set of interfaces for which fprobe is already running
-          We walk the list of processes and check the 'fprobe' ones
+          Get a set of interfaces for which flow probe is already running
+          We walk the list of processes and check the 'softflowd' ones
           and record those that could have been started by this plugin.
         """
         res = {}
@@ -117,16 +120,15 @@ class FprobeContainerCrawler(IContainerCrawler):
 
     def start_fprobe(self, ifname, user, bindaddr, port, **kwargs):
         """
-          Start the fprobe process on the given interface, using the
-          given user, and use the bindaddr and port as the collector.
+          Start the flow probe process on the given interface;
+          use the bindaddr and port as the collector.
           This function returns the process ID of the started process
           and an errcode (errno) in case an error was encountered in
           the start_child function.
         """
-        lifetime_timeout = get_uint_arg('lifetime_timeout', 30, **kwargs)
-        idle_timeout = get_uint_arg('idle_timeout', 30, **kwargs)
+        maxlife_timeout = get_uint_arg('maxlife_timeout', 30, **kwargs)
         netflow_version = get_uint_arg('netflow_version', 5, **kwargs)
-        if netflow_version not in [1, 5, 7]:
+        if netflow_version not in [1, 5, 9]:
             logger.info('Unsupported netflow version was chosen: %d' %
                         netflow_version)
             netflow_version = 5
@@ -134,21 +136,18 @@ class FprobeContainerCrawler(IContainerCrawler):
         terminate_process = kwargs.get('terminate_fprobe', 'FALSE').upper()
         setsid = terminate_process in ['0', 'FALSE']
 
-        params = ['fprobe',
+        params = ['softflowd',
                   '-i', ifname,
-                  '-u', user,
-                  '-n', '%d' % netflow_version,
-                  '-fip',
-                  '-l', '2',
-                  '-e', '%d' % lifetime_timeout,
-                  '-d', '%d' % idle_timeout,
-                  '%s:%d' % (bindaddr, port)]
+                  '-v', '%d' % netflow_version,
+                  '-d',
+                  '-t', 'maxlife=%d' % maxlife_timeout,
+                  '-n', '%s:%d' % (bindaddr, port)]
         try:
             pid, errcode = start_child(params, [], [0, 1, 2],
                                        [signal.SIGCHLD],
                                        setsid=setsid,
                                        max_close_fd=128)
-            logger.info('Started fprobe as pid %d' % pid)
+            logger.info('Started softflowd as pid %d' % pid)
         except:
             pid = -1
             errcode = errno.EINVAL
@@ -190,14 +189,14 @@ class FprobeContainerCrawler(IContainerCrawler):
     def start_netflow_collection(self, ifname, ip_addresses, container_id,
                                  **kwargs):
         """
-          Start the collector and the fprobe. Return None in case of an
-          error, the process ID of fprobe otherwise
+          Start the collector and the softflowd. Return None in case of an
+          error, the process ID of softflowd otherwise
 
           Note: Fprobe will terminate when the container ends. The collector
-                watches the fprobe via its PID and will terminate once fprobe
-                is gone. To enable this, we have to start the collector
-                after fprobe. Since this is relatively quick, we won't miss
-                any netflow packets in the collector.
+                watches the softflowd via its PID and will terminate once
+                softflowd is gone. To enable this, we have to start the
+                collector after softflowd. Since this is relatively quick,
+                we won't miss any netflow packets in the collector.
         """
 
         fprobe_user = kwargs.get('fprobe_user', 'nobody')
@@ -214,7 +213,7 @@ class FprobeContainerCrawler(IContainerCrawler):
                                     passwd.pw_gid):
             return None
 
-        # Find an open port; we pass the port number for fprobe and the
+        # Find an open port; we pass the port number for the flow probe and the
         # file descriptor of the listening socket to the collector
         bindaddr = FprobeContainerCrawler.BIND_ADDRESS
         sock, port = open_udp_port(bindaddr, 40000, 65535)
@@ -226,7 +225,8 @@ class FprobeContainerCrawler(IContainerCrawler):
                                                 **kwargs)
 
         if fprobe_pid < 0:
-            logger.error('Could not start fprobe: %s' % os.strerror(errcode))
+            logger.error('Could not start softflowd: %s' %
+                         os.strerror(errcode))
             sock.close()
             return None
 
@@ -254,7 +254,7 @@ class FprobeContainerCrawler(IContainerCrawler):
     def cleanup(self, **kwargs):
         """
           Check the available interfaces on the host versus those ones we
-          have fprobes running and remove those where the interface has
+          have flow probes running and remove those where the interface has
           disappeared. We clean up the files with netflow data that were
           written for those interfaces.
         """
@@ -285,7 +285,7 @@ class FprobeContainerCrawler(IContainerCrawler):
 
     def crawl(self, container_id, avoid_setns=False, **kwargs):
         """
-          Start fprobe + data collector pairs on the interfaces of
+          Start flow probe + data collector pairs on the interfaces of
           the given container; collect the files that the collector
           wrote and return their content.
         """
@@ -376,9 +376,9 @@ class FprobeContainerCrawler(IContainerCrawler):
 
     def need_start_fprobe(self, ifname):
         """
-          Check whether we need to start an fprobe on this interface
+          Check whether we need to start a flow probe on this interface
           We need to start it
-          - if no fprobe process is running on it.
+          - if no softflowd process is running on it.
           - if the process id now represents a different process
             (pid reused)
         """
@@ -394,7 +394,7 @@ class FprobeContainerCrawler(IContainerCrawler):
     def start_container_fprobes(self, container_id, avoid_setns=False,
                                 **kwargs):
         """
-          Unless fprobes are already running on the interfaces of the
+          Unless flow probes are already running on the interfaces of the
           given container, we start them.
         """
         inspect = utils.dockerutils.exec_dockerinspect(container_id)
@@ -419,7 +419,7 @@ class FprobeContainerCrawler(IContainerCrawler):
                 ifnames.append(ifname)
 
                 if self.need_start_fprobe(ifname):
-                    logger.info('Need to start fprobe on %s' % ifname)
+                    logger.info('Need to start softflowd on %s' % ifname)
                     pid = self.start_netflow_collection(ifname,
                                                         peer.ip_addresses,
                                                         container_id,
