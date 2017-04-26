@@ -26,7 +26,7 @@ spec:
           name: crawler
           command: ["python2.7", "crawler.py", 
                     "--crawlmode", "OUTCONTAINER", 
-                    "--url", "file:///tmp/test.csv", 
+                    "--url", "sas:///tmp/test.csv", 
                     "--features", "os,disk", 
                     "--frequency", "60", 
                     "--environment", "kubernetes" ]
@@ -44,6 +44,8 @@ spec:
               mountPath: /var/run/docker.sock
             - name: crawler-output
               mountPath: /tmp
+            - name: sas-secrets
+              mountPath: /etc/sas-secrets
       volumes:
         - name: crawler-cgroup
           hostPath:
@@ -60,3 +62,6 @@ spec:
         - name: crawler-output
           hostPath:
               path: /tmp
+        - name: sas-secrets
+          secret:
+              secretName: "bluemix-secret"
