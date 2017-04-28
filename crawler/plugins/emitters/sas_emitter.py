@@ -7,6 +7,7 @@ import requests
 
 from iemit_plugin import IEmitter
 from plugins.emitters.base_http_emitter import BaseHttpEmitter
+from utils.crawler_exceptions import EmitterUnsupportedFormat
 
 logger = logging.getLogger('crawlutils')
 
@@ -15,6 +16,14 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
 
     def get_emitter_protocol(self):
         return 'sas'
+
+    def init(self, url, timeout=1, max_retries=5, emit_format='csv'):
+        IEmitter.init(self, url,
+                      timeout=timeout,
+                      max_retries=max_retries,
+                      emit_format=emit_format)
+        if emit_format != 'csv':
+            raise EmitterUnsupportedFormat('Not supported: %s' % emit_format)
 
     def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0, **kwargs):
@@ -78,20 +87,12 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
     gets these information.
     '''
     def __parse_crawl_metadata(self, content=''):
-        if self.emit_format == 'csv':
-            print content
-            metadata_str = content.split('\n')[0].split()[2]
-            print metadata_str
-            metadata_json = json.loads(metadata_str)
-            print metadata_json
-            timestamp = metadata_json.get('timestamp', '')
-            namespace = metadata_json.get('namespace', '')
-            features = metadata_json.get('features', '')
-            system_type = metadata_json.get('system_type', '')
-
-        else:
-            raise NotImplementedError("Use http or https\
-                 emitter plugin instead.")
+        metadata_str = content.split('\n')[0].split()[2]
+        metadata_json = json.loads(metadata_str)
+        timestamp = metadata_json.get('timestamp', '')
+        namespace = metadata_json.get('namespace', '')
+        features = metadata_json.get('features', '')
+        system_type = metadata_json.get('system_type', '')
 
         return (namespace, timestamp, features, system_type)
 

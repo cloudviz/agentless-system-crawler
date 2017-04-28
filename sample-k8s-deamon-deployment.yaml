@@ -26,7 +26,7 @@ spec:
           name: crawler
           command: ["python2.7", "crawler.py", 
                     "--crawlmode", "OUTCONTAINER", 
-                    "--url", "sas:///tmp/test.csv", 
+                    "--url", "file:///tmp/test.csv", 
                     "--features", "os,disk", 
                     "--frequency", "60", 
                     "--environment", "kubernetes" ]

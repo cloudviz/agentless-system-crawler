@@ -25,7 +25,6 @@ class BaseHttpEmitter:
                       emit_format=emit_format)
         if emit_format == 'json':
             self.emit_per_line = True
-        self.emit_format = emit_format
 
     def emit(self, frame, compress=False,
              metadata={}, snapshot_num=0, **kwargs):
