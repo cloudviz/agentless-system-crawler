@@ -411,6 +411,12 @@ class FprobeContainerCrawler(IContainerCrawler):
                                              ['net'],
                                              self._crawl_in_system)
             for peer in peers:
+                # in rare cases we get an interface without IP address
+                # assigned ot it, yet; we skip it for now and try again
+                # on the next crawl
+                if len(peer.ip_addresses) == 0:
+                    continue
+
                 try:
                     ifname = if_indextoname(peer.peer_ifindex)
                 except:
@@ -433,10 +439,22 @@ class FprobeContainerCrawler(IContainerCrawler):
 
     def get_ifaddresses(self, ifname):
         """
-          Get the list of IPv4 addresses on an interface name
+          Get the list of IPv4 addresses on an interface name; in
+          case none could be found yet, wait a bit and try again
         """
-        return [a.get('addr')
-                for a in netifaces.ifaddresses(ifname).get(2, [])]
+
+        for ctr in range(0, 4):
+            res = []
+
+            for data in netifaces.ifaddresses(ifname).get(2, []):
+                addr = data.get('addr')
+                if addr:
+                    res.append(addr)
+            if len(res):
+                break
+            time.sleep(0.01)
+
+        return res
 
     def _crawl_in_system(self):
         for ifname in netifaces.interfaces():
