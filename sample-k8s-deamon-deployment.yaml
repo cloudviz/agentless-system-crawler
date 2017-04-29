@@ -44,6 +44,8 @@ spec:
               mountPath: /var/run/docker.sock
             - name: crawler-output
               mountPath: /tmp
+            - name: sas-secrets
+              mountPath: /etc/sas-secrets
       volumes:
         - name: crawler-cgroup
           hostPath:
@@ -60,3 +62,6 @@ spec:
         - name: crawler-output
           hostPath:
               path: /tmp
+        - name: sas-secrets
+          secret:
+              secretName: "bluemix-secret"
