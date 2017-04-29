@@ -2,6 +2,8 @@ import cStringIO
 import gzip
 import unittest
 import time
+import os
+import json
 
 import mock
 import requests.exceptions
@@ -14,6 +16,7 @@ from plugins.emitters.file_emitter import FileEmitter
 from plugins.emitters.base_http_emitter import BaseHttpEmitter
 from plugins.emitters.http_emitter import HttpEmitter
 from plugins.emitters.https_emitter import HttpsEmitter
+from plugins.emitters.sas_emitter import SasEmitter
 from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
 from plugins.emitters.fluentd_emitter import FluentdEmitter
@@ -33,6 +36,27 @@ def mocked_formatter1(frame):
     iostream.write('def\r\n')
     return iostream
 
+def mocked_formatter2(frame):
+    iostream = cStringIO.StringIO()
+    metadata = {}
+    metadata["timestamp"] = "current-time"
+    metadata["namespace"] = "my/name"
+    metadata["features"] = "os,cpu,memory"
+    metadata["source_type"] = "container"
+
+    iostream.write('%s\t%s\t%s\n' %
+                   ('metadata', json.dumps('metadata'),
+                    json.dumps(metadata, separators=(',', ':'))))
+    return iostream
+
+def mocked_get_sas_token():
+    return ('sas-token', 'cloudoe', 'access-group')
+
+class RandomKafkaException(Exception):
+        pass
+
+def raise_value_error(*args, **kwargs):
+        raise ValueError()
 
 def mock_call_with_retries(function, max_retries=10,
                            exception_type=Exception,
@@ -57,14 +81,6 @@ def mocked_requests_post(*args, **kwargs):
         raise requests.exceptions.RequestException('bla')
     elif args[0] == 'http://1.1.1.1/encoding_error' or args[0] == 'https://1.1.1.1/encoding_error':
         raise requests.exceptions.ChunkedEncodingError('bla')
-
-
-class RandomKafkaException(Exception):
-    pass
-
-
-def raise_value_error(*args, **kwargs):
-    raise ValueError()
 
 
 class MockProducer:
@@ -469,6 +485,62 @@ class EmitterTests(unittest.TestCase):
     def test_emitter_https_encoding_error(self, mock_post, mock_format):
         emitter = HttpsEmitter()
         emitter.init(url='https://1.1.1.1/encoding_error')
+        emitter.emit('frame')
+        # there are no retries for encoding errors
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_sas(self, mock_sleep, mock_post, mock_format, mock_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_sas_server_error(self, mock_sleep, mock_post, mock_format, mock_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/bad')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_sas_request_exception(self, mock_sleep, mock_post, mock_format, mock_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/exception')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    def test_emitter_sas_encoding_error(self, mock_post, mock_format, mocked_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/encoding_error')
         emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
