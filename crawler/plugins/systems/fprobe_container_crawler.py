@@ -135,6 +135,7 @@ class FprobeContainerCrawler(IContainerCrawler):
 
         terminate_process = kwargs.get('terminate_fprobe', 'FALSE').upper()
         setsid = terminate_process in ['0', 'FALSE']
+        fprobe_bpf = kwargs.get('fprobe_bpf', '')
 
         params = ['softflowd',
                   '-i', ifname,
@@ -142,6 +143,8 @@ class FprobeContainerCrawler(IContainerCrawler):
                   '-d',
                   '-t', 'maxlife=%d' % maxlife_timeout,
                   '-n', '%s:%d' % (bindaddr, port)]
+        if len(fprobe_bpf.strip()):
+            params.insert(1, fprobe_bpf)
         try:
             pid, errcode = start_child(params, [], [0, 1, 2],
                                        [signal.SIGCHLD],
