@@ -118,5 +118,7 @@ def start_child(params, pass_fds, null_fds, ign_sigs, setsid=False,
         except:
             pid = -1
         os.close(rfd)
+        # wait for child process to _exit()
+        os.waitpid(-1, 0)
 
         return pid, errcode
