@@ -128,7 +128,7 @@ class FprobeContainerCrawler(IContainerCrawler):
         """
         maxlife_timeout = get_uint_arg('maxlife_timeout', 30, **kwargs)
         netflow_version = get_uint_arg('netflow_version', 5, **kwargs)
-        if netflow_version not in [1, 5, 9]:
+        if netflow_version not in [1, 5, 9, 10]:
             logger.info('Unsupported netflow version was chosen: %d' %
                         netflow_version)
             netflow_version = 5
@@ -145,6 +145,8 @@ class FprobeContainerCrawler(IContainerCrawler):
                   '-n', '%s:%d' % (bindaddr, port)]
         if len(fprobe_bpf.strip()):
             params.insert(1, fprobe_bpf)
+        if netflow_version == 10:
+            params.insert(1, '-b')
         try:
             pid, errcode = start_child(params, [], [0, 1, 2],
                                        [signal.SIGCHLD],

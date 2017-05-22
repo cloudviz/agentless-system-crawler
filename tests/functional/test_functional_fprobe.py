@@ -120,6 +120,7 @@ class FprobeFunctionalTests(unittest.TestCase):
             'fprobe_user': 'nobody',
             'fprobe_output_dir': self.output_dir,
             'output_filepattern': 'testfile',
+            'netflow_version': 10,
         }
 
         logging.basicConfig(stream=sys.stderr)
