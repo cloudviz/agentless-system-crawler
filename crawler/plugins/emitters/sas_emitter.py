@@ -38,6 +38,7 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
         self.token_filepath = kwargs.get("token_filepath", "")
         self.access_group_filepath = kwargs.get("access_group_filepath", "")
         self.cloudoe_filepath = kwargs.get("cloudoe_filepath", "")
+        self.ssl_verification = kwargs.get("ssl_verification", "")
 
         iostream = self.format(frame)
         if compress:
@@ -113,11 +114,15 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
 
         self.url = self.url.replace('sas:', 'https:')
 
+        verify = True
+        if self.ssl_verification == "False":
+            verify = False
+
         for attempt in range(self.max_retries):
             try:
                 response = requests.post(self.url, headers=headers,
                                          params=params,
-                                         data=content)
+                                         data=content, verify=verify)
             except requests.exceptions.ChunkedEncodingError as e:
                 logger.exception(e)
                 logger.error(
