@@ -24,6 +24,7 @@ class PackageContainerCrawler(IContainerCrawler):
         pid = str(state['Pid'])
 
         if avoid_setns:
+            print "here"
             rootfs_dir = get_docker_container_rootfs_path(
                 container_id)
             return crawl_packages(
