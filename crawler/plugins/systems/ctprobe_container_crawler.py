@@ -102,6 +102,17 @@ class CTProbeContainerCrawler(IContainerCrawler):
 
         return True
 
+    def _get_user(self, **kwargs):
+        """ Get the deprivileged user we are supposed to use """
+        ctprobe_user = kwargs.get('ctprobe_user', 'nobody')
+        try:
+            passwd = pwd.getpwnam(ctprobe_user)
+            return ctprobe_user, passwd
+        except Exception as ex:
+            logger.error('Could not find user %s on this system: %s' %
+                         (ctprobe_user, ex))
+            return ctprobe_user, None
+
     def start_ctprobe(self, sockpath=DEFAULT_UNIX_PATH, **kwargs):
         """
           Start the conntrackprobe process;
@@ -110,13 +121,9 @@ class CTProbeContainerCrawler(IContainerCrawler):
           and an errcode (errno) in case an error was encountered in
           the start_child function.
         """
-        ctprobe_user = kwargs.get('ctprobe_user', 'nobody')
-        try:
-            pwd.getpwnam(ctprobe_user)
-        except Exception as ex:
-            logger.error('Could not find user %s on this system: %s' %
-                         (ctprobe_user, str(ex)))
-            return None
+        ctprobe_user, passwd = self._get_user(**kwargs)
+        if not passwd:
+            return -1, errno.ENOENT
 
         params = ['conntrackprobe',
                   '--unix', sockpath,
@@ -199,12 +206,8 @@ class CTProbeContainerCrawler(IContainerCrawler):
                 we won't miss any netflow packets in the collector.
         """
 
-        ctprobe_user = kwargs.get('ctprobe_user', 'nobody')
-        try:
-            passwd = pwd.getpwnam(ctprobe_user)
-        except Exception as ex:
-            logger.error('Could not find user %s on this system: %s' %
-                         (ctprobe_user, str(ex)))
+        ctprobe_user, passwd = self._get_user(**kwargs)
+        if not passwd:
             return None
 
         ctprobe_output_dir = kwargs.get('ctprobe_output_dir',

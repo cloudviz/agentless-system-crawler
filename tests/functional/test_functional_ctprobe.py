@@ -199,6 +199,30 @@ class CtprobeFunctionalTests(unittest.TestCase):
                 mocked_start_child)
     @mock.patch('plugins.systems.ctprobe_container_crawler.'
                 'requests_unixsocket.Session.get', mocked_session_get)
+    def test_start_netlink_collection_fault3(self):
+        logger = logging.getLogger("crawlutils")
+        logger.info('>>> Testcase: collector cannot be configured')
+
+        ctprobe_user = self.params['ctprobe_user']
+        self.params['ctprobe_user'] = 'user-does-not-exist'
+
+        ctc = CTProbeContainerCrawler()
+        assert ctc.get_feature() == 'ctprobe'
+
+        # with socket-datacollector failing to start, we won't get data
+        res = []
+        for data in ctc.crawl(self.container['Id'], avoid_setns=False,
+                              **self.params):
+            res.append(data)
+        assert len(res) == 0
+        assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
+
+        self.params['ctprobe_user'] = ctprobe_user
+
+    @mock.patch('plugins.systems.ctprobe_container_crawler.start_child',
+                mocked_start_child)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'requests_unixsocket.Session.get', mocked_session_get)
     def test_remove_datafiles(self):
         logger = logging.getLogger("crawlutils")
         logger.info('>>> Testcase: datafiles of disappeared interface '
