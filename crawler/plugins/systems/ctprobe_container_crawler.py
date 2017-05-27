@@ -406,7 +406,7 @@ class CTProbeContainerCrawler(IContainerCrawler):
             peers = run_as_another_namespace(pid,
                                              ['net'],
                                              self._crawl_in_system)
-            for peer in peers:
+            for peer in peers or []:
                 # in rare cases we get an interface without IP address
                 # assigned ot it, yet; we skip it for now and try again
                 # on the next crawl
