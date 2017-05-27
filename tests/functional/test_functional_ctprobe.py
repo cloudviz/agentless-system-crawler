@@ -75,6 +75,14 @@ def mocked_start_child_collector_fail(params, pass_fds, null_fds, ign_sigs,
                        setsid, **kwargs)
 
 
+def mocked_start_child_collector_except(params, pass_fds, null_fds, ign_sigs,
+                                        setsid=False, **kwargs):
+    if params[0] == 'socket-datacollector':
+        raise Exception('Refusing to start %s' % params[0])
+    return start_child(['sleep', '1'], pass_fds, null_fds, ign_sigs,
+                       setsid, **kwargs)
+
+
 def mocked_session_get(self, path, data=''):
     class Session(object):
         def __init__(self, status_code, content):
@@ -196,10 +204,29 @@ class CtprobeFunctionalTests(unittest.TestCase):
         assert len(CTProbeContainerCrawler.ifaces_monitored) == num
 
     @mock.patch('plugins.systems.ctprobe_container_crawler.start_child',
-                mocked_start_child)
+                mocked_start_child_collector_except)
     @mock.patch('plugins.systems.ctprobe_container_crawler.'
                 'requests_unixsocket.Session.get', mocked_session_get)
     def test_start_netlink_collection_fault3(self):
+        logger = logging.getLogger("crawlutils")
+        logger.info('>>> Testcase: collector start throws exception')
+
+        ctc = CTProbeContainerCrawler()
+        assert ctc.get_feature() == 'ctprobe'
+
+        # with socket-datacollector failing to start, we won't get data
+        res = []
+        for data in ctc.crawl(self.container['Id'], avoid_setns=False,
+                              **self.params):
+            res.append(data)
+        assert len(res) == 0
+        assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
+
+    @mock.patch('plugins.systems.ctprobe_container_crawler.start_child',
+                mocked_start_child)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'requests_unixsocket.Session.get', mocked_session_get)
+    def test_start_netlink_collection_fault4(self):
         logger = logging.getLogger("crawlutils")
         logger.info('>>> Testcase: collector cannot be configured')
 
