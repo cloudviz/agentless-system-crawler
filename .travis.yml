@@ -25,7 +25,7 @@ before_install:
     - docker -v
     # might as well upgrade pip to support TLS and get rid of the warnings
     - sudo -H pip install --upgrade pip
-    - sudo -H pip install codecov pytest-cov
+    - sudo -H pip install codecov pytest-cov==2.3.0 pytest==2.9.2
     # psvmi specific
     - sudo apt-get install qemu-kvm
     - git clone https://github.com/cloudviz/psvmi.git
