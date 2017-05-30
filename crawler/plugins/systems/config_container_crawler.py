@@ -40,6 +40,7 @@ class ConfigContainerCrawler(IContainerCrawler):
                 '/etc/ssh/sshd_config',
                 '/etc/sudoers'],
             discover_config_files=False,
+            target_config_files=[],
             **kwargs):
         inspect = utils.dockerutils.exec_dockerinspect(container_id)
         state = inspect['State']
@@ -49,14 +50,13 @@ class ConfigContainerCrawler(IContainerCrawler):
         if avoid_setns:
             rootfs_dir = utils.dockerutils.get_docker_container_rootfs_path(
                 container_id)
-            exclude_dirs = [utils.misc.join_abs_paths(rootfs_dir, d)
-                            for d in exclude_dirs]
             return crawl_config_files(
                 root_dir=utils.misc.join_abs_paths(rootfs_dir, root_dir),
                 exclude_dirs=exclude_dirs,
                 root_dir_alias=root_dir,
                 known_config_files=known_config_files,
-                discover_config_files=discover_config_files)
+                discover_config_files=discover_config_files,
+                target_config_files=target_config_files)
         else:  # in all other cases, including wrong mode set
             return run_as_another_namespace(pid,
                                             ['mnt'],
@@ -65,4 +65,5 @@ class ConfigContainerCrawler(IContainerCrawler):
                                             exclude_dirs,
                                             None,
                                             known_config_files,
-                                            discover_config_files)
+                                            discover_config_files,
+                                            target_config_files)
