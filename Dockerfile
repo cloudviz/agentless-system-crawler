@@ -8,7 +8,7 @@ RUN pip install -r requirements.txt
 COPY \
   dependencies/python-socket-datacollector_0.1.3-1_all.deb \
   dependencies/softflowd_0.9.9902-1_amd64.deb \
-  dependencies/python-conntrackprobe_0.1.0-1_all.deb \
+  dependencies/python-conntrackprobe_0.1.1-1_all.deb \
   /tmp/
 
 RUN dpkg -i /tmp/python-socket-datacollector_*_all.deb && \
