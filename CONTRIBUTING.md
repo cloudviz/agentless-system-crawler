@@ -32,9 +32,11 @@ No Pull Request (PR) is too small! Typos, additional comments in the code,
 new testcases, bug fixes, new features, more documentation, ... it's all 
 welcome!
 
-While bug fixes can first be identified via an "issue", that is not required.
-It's ok to just open up a PR with the fix, but make sure you include the same
-information you would have included in an issue - like how to reproduce it.
+### PR Policy
+
+*Please create an issue first!* Each PR should be associated with an issue whether it is a bug fix or new feature. 
+If you are creating an issue to submit a PR, please assign the issue to yourself and 
+include some for the issue - like how to reproduce it.
 
 PRs for new features should include some background on what use cases the
 new code is trying to address. And, when possible and it makes, try to break-up
