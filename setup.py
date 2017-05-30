@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     install_requires=['psutil', 'netifaces', ],
     setup_requires=['pytest-runner>=2.0,<3dev', ],
-    tests_require=['pytest', ],
+    tests_require=['pytest>=2.9.2', ],
     use_2to3=True,
     data_files=[('plugins', ['plugins/cloudsight_environment.plugin',
                              'plugins/cloudsight_environment.py'])]
