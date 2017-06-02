@@ -13,12 +13,19 @@ _SC_OPEN_MAX = 4
 # flake8: noqa
 
 
-def _close_fds(keep_fds):
+def _close_fds(keep_fds, max_close_fd=None):
     """
       Have a process close all file descriptors except for stderr, stdout,
       and stdin and those ones in the keep_fds list
+      The maximum file descriptor to close can be provided to avoid long
+      delays; this max_fd value depends on the program being used and could
+      be a low number if the program does not have many file descriptors
     """
-    for fd in range(3, os.sysconf(_SC_OPEN_MAX)):
+    maxfd = os.sysconf(_SC_OPEN_MAX)
+    if max_close_fd:
+        maxfd = min(maxfd, max_close_fd)
+
+    for fd in range(3, maxfd):
         if fd in keep_fds:
             continue
         try:
@@ -27,7 +34,8 @@ def _close_fds(keep_fds):
             pass
 
 
-def start_child(params, pass_fds, null_fds, ign_sigs, setsid=False, **kwargs):
+def start_child(params, pass_fds, null_fds, ign_sigs, setsid=False,
+                max_close_fd=None, **kwargs):
     """
       Start a child process without leaking file descriptors of the
       current process. We pass a list of file descriptors to the
@@ -45,6 +53,9 @@ def start_child(params, pass_fds, null_fds, ign_sigs, setsid=False, **kwargs):
                  stdin, stdout, and stderr
       @ign_sigs: a list of signals to ignore
       @set_sid:  whether to call os.setsid()
+      @max_close_fd: max. number of file descriptors to close;
+                     can be a low number in case program doesn't
+                     typically have many open file descriptors;
       @**kwargs: kwargs to pass to subprocess.Popen()
 
       This function returns the process ID of the process that
@@ -78,7 +89,7 @@ def start_child(params, pass_fds, null_fds, ign_sigs, setsid=False, **kwargs):
         keep_fds.extend(null_fds)
         keep_fds.append(wfd)
 
-        _close_fds(keep_fds)
+        _close_fds(keep_fds, max_close_fd=max_close_fd)
 
         for ign_sig in ign_sigs:
             signal.signal(ign_sig, signal.SIG_IGN)
@@ -107,5 +118,7 @@ def start_child(params, pass_fds, null_fds, ign_sigs, setsid=False, **kwargs):
         except:
             pid = -1
         os.close(rfd)
+        # wait for child process to _exit()
+        os.waitpid(-1, 0)
 
         return pid, errcode

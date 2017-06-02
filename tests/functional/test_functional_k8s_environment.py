@@ -19,10 +19,10 @@ import logging
 # Tests conducted with a single container running.
 
 CONT_NAME = "io.kubernetes.container.name"
-CONT_HASH = "io.kubernetes.container.hash"
 POD_NAME = "io.kubernetes.pod.name"
 POD_UID = "io.kubernetes.pod.uid"
 POD_NS = "io.kubernetes.pod.namespace"
+K8S_DELIMITER = "/"
 
 class ContainersCrawlerTests(unittest.TestCase):
 
@@ -40,7 +40,6 @@ class ContainersCrawlerTests(unittest.TestCase):
                                     version='auto')
         self.k8s_labels = dict()
         self.k8s_labels[CONT_NAME] = "simson"
-        self.k8s_labels[CONT_HASH] = "hash123"
         self.k8s_labels[POD_NAME] = "pod-test"
         self.k8s_labels[POD_UID] = "pod-123"
         self.k8s_labels[POD_NS] = "devtest"
@@ -128,15 +127,12 @@ class ContainersCrawlerTests(unittest.TestCase):
         output = f.read()
         print output  # only printed if the test fails
         sample_out = output.split('\n')[0]
-        namespace_str = sample_out.split('}')[0]
-        print namespace_str
-        assert namespace_str
-        namespace = json.loads("%s}"%(namespace_str))
-        assert namespace[CONT_NAME] == self.k8s_labels[CONT_NAME]
-        assert namespace[CONT_HASH] == self.k8s_labels[CONT_HASH]
-        assert namespace[POD_NAME] == self.k8s_labels[POD_NAME]
-        assert namespace[POD_UID] == self.k8s_labels[POD_UID]
-        assert namespace[POD_NS] == self.k8s_labels[POD_NS]
+        print sample_out
+        namespace_parts = sample_out.split(".")[:4]
+        assert len(namespace_parts) == 4
+        assert namespace_parts[0] == self.k8s_labels[POD_NS]
+        assert namespace_parts[1] == self.k8s_labels[POD_NAME]
+        assert namespace_parts[2] == self.k8s_labels[CONT_NAME]
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
@@ -180,12 +176,13 @@ class ContainersCrawlerTests(unittest.TestCase):
         metadata_frame = output.split('\n')[0]
         metadata_str = metadata_frame.split()[2]
         metadata_json = json.loads(metadata_str)
-        namespace = metadata_json['namespace']
-        assert namespace[CONT_NAME] == self.k8s_labels[CONT_NAME]
-        assert namespace[CONT_HASH] == self.k8s_labels[CONT_HASH]
-        assert namespace[POD_NAME] == self.k8s_labels[POD_NAME]
-        assert namespace[POD_UID] == self.k8s_labels[POD_UID]
-        assert namespace[POD_NS] == self.k8s_labels[POD_NS]
+        namespace_str = metadata_json['namespace']
+        assert namespace_str
+        namespace_parts = namespace_str.split(K8S_DELIMITER)
+        assert len(namespace_parts) == 4
+        assert namespace_parts[0] == self.k8s_labels[POD_NS]
+        assert namespace_parts[1] == self.k8s_labels[POD_NAME]
+        assert namespace_parts[2] == self.k8s_labels[CONT_NAME]
         assert 'interface-lo' in output
         assert 'cpu-0' in output
         assert 'memory' in output
@@ -227,17 +224,19 @@ class ContainersCrawlerTests(unittest.TestCase):
         output = f.read()
         print output  # only printed if the test fails
         sample_out = output.split('\n')[0]
-        metadata = json.loads(sample_out)
-        namespace = metadata['namespace']
-        assert namespace[CONT_NAME] == self.k8s_labels[CONT_NAME]
-        assert namespace[CONT_HASH] == self.k8s_labels[CONT_HASH]
-        assert namespace[POD_NAME] == self.k8s_labels[POD_NAME]
-        assert namespace[POD_UID] == self.k8s_labels[POD_UID]
-        assert namespace[POD_NS] == self.k8s_labels[POD_NS]
+        metadata_json = json.loads(sample_out)
+        namespace_str = metadata_json['namespace']
+        assert namespace_str
+        namespace_parts = namespace_str.split(K8S_DELIMITER)
+        assert len(namespace_parts) == 4
+        assert namespace_parts[0] == self.k8s_labels[POD_NS]
+        assert namespace_parts[1] == self.k8s_labels[POD_NAME]
+        assert namespace_parts[2] == self.k8s_labels[CONT_NAME]
         assert 'memory_used' in output
         assert 'if_octets_tx' in output
         assert 'cpu_idle' in output
         f.close()
+
 
 if __name__ == '__main__':
     unittest.main()

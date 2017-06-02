@@ -1,17 +1,25 @@
 import cStringIO
 import gzip
 import unittest
+import time
+import os
+import json
 
 import mock
 import requests.exceptions
+import plugins_manager
 
 from base_crawler import BaseFrame
 from capturing import Capturing
 from emitters_manager import EmittersManager
 from plugins.emitters.file_emitter import FileEmitter
+from plugins.emitters.base_http_emitter import BaseHttpEmitter
 from plugins.emitters.http_emitter import HttpEmitter
+from plugins.emitters.https_emitter import HttpsEmitter
+from plugins.emitters.sas_emitter import SasEmitter
 from plugins.emitters.kafka_emitter import KafkaEmitter
 from plugins.emitters.mtgraphite_emitter import MtGraphiteEmitter
+from plugins.emitters.fluentd_emitter import FluentdEmitter
 from utils import crawler_exceptions
 
 
@@ -28,6 +36,27 @@ def mocked_formatter1(frame):
     iostream.write('def\r\n')
     return iostream
 
+def mocked_formatter2(frame):
+    iostream = cStringIO.StringIO()
+    metadata = {}
+    metadata["timestamp"] = "current-time"
+    metadata["namespace"] = "my/name"
+    metadata["features"] = "os,cpu,memory"
+    metadata["source_type"] = "container"
+
+    iostream.write('%s\t%s\t%s\n' %
+                   ('metadata', json.dumps('metadata'),
+                    json.dumps(metadata, separators=(',', ':'))))
+    return iostream
+
+def mocked_get_sas_token():
+    return ('sas-token', 'cloudoe', 'access-group')
+
+class RandomKafkaException(Exception):
+        pass
+
+def raise_value_error(*args, **kwargs):
+        raise ValueError()
 
 def mock_call_with_retries(function, max_retries=10,
                            exception_type=Exception,
@@ -44,22 +73,14 @@ def mocked_requests_post(*args, **kwargs):
 
         def json(self):
             return self.json_data
-    if args[0] == 'http://1.1.1.1/good':
+    if args[0] == 'http://1.1.1.1/good' or args[0] == 'https://1.1.1.1/good':
         return MockResponse(status_code=200)
-    elif args[0] == 'http://1.1.1.1/bad':
+    elif args[0] == 'http://1.1.1.1/bad' or args[0] == 'https://1.1.1.1/bad':
         return MockResponse(status_code=500)
-    elif args[0] == 'http://1.1.1.1/exception':
+    elif args[0] == 'http://1.1.1.1/exception' or args[0] == 'https://1.1.1.1/exception':
         raise requests.exceptions.RequestException('bla')
-    elif args[0] == 'http://1.1.1.1/encoding_error':
+    elif args[0] == 'http://1.1.1.1/encoding_error' or args[0] == 'https://1.1.1.1/encoding_error':
         raise requests.exceptions.ChunkedEncodingError('bla')
-
-
-class RandomKafkaException(Exception):
-    pass
-
-
-def raise_value_error(*args, **kwargs):
-    raise ValueError()
 
 
 class MockProducer:
@@ -84,10 +105,28 @@ class MockedMTGraphiteClient:
         return 1
 
 
+class MockFluentdSender:
+
+    def __init__(self):
+        self._emitted = dict()
+
+    def emit_with_time(self, tag, timestamp, item):
+        self._emitted.update(item)
+        self.last_error = None
+
+    def clear_last_error():
+        pass
+
+
+def mocked_fluentd_connect(self, host, port):
+    self.fluentd_sender = MockFluentdSender()
+
+
 class EmitterTests(unittest.TestCase):
     image_name = 'alpine:latest'
 
     def setUp(self):
+        plugins_manager.emitter_plugins = []
         pass
 
     def tearDown(self):
@@ -358,46 +397,150 @@ class EmitterTests(unittest.TestCase):
             assert float(_output[1].split(' ')[1]) == 12345.0
             assert float(_output[2].split(' ')[1]) == 12345.0
 
-    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+    def test_emitter_base_http(self):
+        emitter = BaseHttpEmitter()
+        self.assertRaises(NotImplementedError, emitter.get_emitter_protocol)
+
+    @mock.patch('iemit_plugin.IEmitter.format',
                 side_effect=mocked_formatter)
-    @mock.patch('plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    @mock.patch('plugins.emitters.http_emitter.time.sleep')
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
     def test_emitter_http(self, mock_sleep, mock_post, mock_format):
         emitter = HttpEmitter()
         emitter.init(url='http://1.1.1.1/good')
         emitter.emit('frame')
         self.assertEqual(mock_post.call_count, 1)
 
-    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+    @mock.patch('iemit_plugin.IEmitter.format',
                 side_effect=mocked_formatter)
-    @mock.patch('plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    @mock.patch('plugins.emitters.http_emitter.time.sleep')
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
     def test_emitter_http_server_error(self, mock_sleep, mock_post, mock_format):
         emitter = HttpEmitter()
         emitter.init(url='http://1.1.1.1/bad')
         emitter.emit('frame')
         self.assertEqual(mock_post.call_count, 5)
 
-    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+    @mock.patch('iemit_plugin.IEmitter.format',
                 side_effect=mocked_formatter)
-    @mock.patch('plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
                 side_effect=mocked_requests_post)
-    @mock.patch('plugins.emitters.http_emitter.time.sleep')
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
     def test_emitter_http_request_exception(self, mock_sleep, mock_post, mock_format):
         emitter = HttpEmitter()
         emitter.init(url='http://1.1.1.1/exception')
         emitter.emit('frame')
         self.assertEqual(mock_post.call_count, 5)
 
-    @mock.patch('plugins.emitters.http_emitter.HttpEmitter.format',
+    @mock.patch('iemit_plugin.IEmitter.format',
                 side_effect=mocked_formatter)
-    @mock.patch('plugins.emitters.http_emitter.requests.post',
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
                 side_effect=mocked_requests_post)
     def test_emitter_http_encoding_error(self, mock_post, mock_format):
         emitter = HttpEmitter()
         emitter.init(url='http://1.1.1.1/encoding_error')
+        emitter.emit('frame')
+        # there are no retries for encoding errors
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_https(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/good')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_https_server_error(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/bad')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_https_request_exception(self, mock_sleep, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/exception')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter)
+    @mock.patch('plugins.emitters.base_http_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    def test_emitter_https_encoding_error(self, mock_post, mock_format):
+        emitter = HttpsEmitter()
+        emitter.init(url='https://1.1.1.1/encoding_error')
+        emitter.emit('frame')
+        # there are no retries for encoding errors
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_sas(self, mock_sleep, mock_post, mock_format, mock_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_sas_server_error(self, mock_sleep, mock_post, mock_format, mock_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/bad')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('plugins.emitters.base_http_emitter.time.sleep')
+    def test_emitter_sas_request_exception(self, mock_sleep, mock_post, mock_format, mock_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/exception')
+        emitter.emit('frame')
+        self.assertEqual(mock_post.call_count, 5)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    def test_emitter_sas_encoding_error(self, mock_post, mock_format, mocked_get_sas_token):
+        #env = SasEnvironment()
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/encoding_error')
         emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
@@ -433,6 +576,55 @@ class EmitterTests(unittest.TestCase):
                      max_retries=0)
         emitter.emit('frame')
         assert MockMTGraphiteClient.call_count == 1
+
+    @mock.patch('plugins.emitters.fluentd_emitter.FluentdEmitter.connect_to_fluentd_engine',
+                side_effect=mocked_fluentd_connect, autospec=True)
+    def test_emitter_fluentd_one_per_line(self, *args):
+        frame = BaseFrame(feature_types=[])
+        frame.metadata['namespace'] = 'namespace777'
+        frame.metadata['timestamp'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        frame.add_features([("dummy_feature_key",
+                             {'test': 'bla',
+                              'test2': 12345,
+                              'test3': 12345.0,
+                              'test4': 12345.00000},
+                             'dummy_feature_type')])
+        emitter = FluentdEmitter()
+        emitter.init(url='fluentd://1.1.1.1:123', emit_format='json')
+        emitter.emit_per_line = True
+        emitter.emit(frame)
+        emitted_json = emitter.fluentd_sender._emitted
+        assert emitted_json["feature_key"] == "dummy_feature_key"
+        assert emitted_json["feature_type"] == "dummy_feature_type"
+        assert emitted_json["feature_val"] == {'test': 'bla',
+                                               'test2': 12345,
+                                               'test3': 12345.0,
+                                               'test4': 12345.00000}
+
+    @mock.patch('plugins.emitters.fluentd_emitter.FluentdEmitter.connect_to_fluentd_engine',
+                side_effect=mocked_fluentd_connect, autospec=True)
+    def test_emitter_fluentd(self, *args):
+        frame = BaseFrame(feature_types=[])
+        frame.metadata['namespace'] = 'namespace777'
+        frame.metadata['timestamp'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        frame.add_features([("dummy_feature_key",
+                             {'test': 'bla',
+                              'test2': 12345,
+                              'test3': 12345.0,
+                              'test4': 12345.00000},
+                             'dummy_feature_type')])
+        emitter = FluentdEmitter()
+        emitter.init(url='fluentd://1.1.1.1:123', emit_format='json')
+        emitter.emit_per_line = False
+        emitter.emit(frame)
+        emitted_json = emitter.fluentd_sender._emitted
+        print emitted_json
+        assert emitted_json["feature1"]["feature_key"] == "dummy_feature_key"
+        assert emitted_json["feature1"]["feature_type"] == "dummy_feature_type"
+        assert emitted_json["feature1"]["feature_val"] == {'test': 'bla',
+                                                           'test2': 12345,
+                                                           'test3': 12345.0,
+                                                           'test4': 12345.00000}
 
     def test_emitter_logstash_simple_file(self):
         emitter = EmittersManager(urls=['file:///tmp/test_emitter'],

@@ -7,10 +7,10 @@ services:
 env:
   matrix:
     - DOCKER_VERSION=1.7.1-0~trusty
-    - DOCKER_VERSION=1.8.1-0~trusty
     - DOCKER_VERSION=1.9.1-0~trusty
     - DOCKER_VERSION=1.10.1-0~trusty
     - DOCKER_VERSION=1.11.1-0~trusty
+    - DOCKER_VERSION=17.03.0~ce-0~ubuntu-trusty
 
 python:
   - "2.7"
@@ -25,7 +25,7 @@ before_install:
     - docker -v
     # might as well upgrade pip to support TLS and get rid of the warnings
     - sudo -H pip install --upgrade pip
-    - sudo -H pip install codecov pytest-cov
+    - sudo -H pip install codecov pytest-cov==2.3.0 pytest==2.9.2
     # psvmi specific
     - sudo apt-get install qemu-kvm
     - git clone https://github.com/cloudviz/psvmi.git
