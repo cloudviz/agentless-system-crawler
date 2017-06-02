@@ -13,7 +13,8 @@ env:
     - DOCKER_VERSION=17.03.0~ce-0~ubuntu-trusty
 
 python:
-  - "2.7"
+  - "2.7.13"
+
 
 before_install:
     - ./.validateDCO
