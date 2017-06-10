@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import pwd
-import signal
 import time
 
 from collections import namedtuple
@@ -18,7 +17,7 @@ from icrawl_plugin import IContainerCrawler
 from utils.ethtool import ethtool_get_peer_ifindex
 from utils.namespace import run_as_another_namespace
 from utils.process_utils import start_child
-from utils.socket_utils import open_udp_port, if_indextoname
+from utils.socket_utils import if_indextoname
 
 logger = logging.getLogger('crawlutils')
 
@@ -142,12 +141,13 @@ class CTProbeContainerCrawler(IContainerCrawler):
 
         return pid, errcode
 
-    def configure_ctprobe(self, ipaddresses, ifname, bindaddr, port, **kwargs):
+    def configure_ctprobe(self, ipaddresses, ifname, filepath, **kwargs):
         """
           Configure the CTprobe to listen for data from the current
-          container.
+          container and have it write the data to files specific to
+          that container.
         """
-        coll = 'udp://%s:%d' % (bindaddr, port)
+        coll = 'file+json://%s' % filepath
 
         cpc = ConntrackProbeClient(DEFAULT_UNIX_PATH)
         try:
@@ -158,96 +158,29 @@ class CTProbeContainerCrawler(IContainerCrawler):
 
         return True
 
-    def start_collector(self, user, socket, output_dir, metadata,
-                        ifname, **kwargs):
-        """
-          Start the collector process; have it drop privileges by
-          switching to the given user; have it write the data to the
-          output_dir and use a filename pattern given by
-          filenamepattern; have it watch the process with the given
-          watch_pid
-        """
-        filepattern = kwargs.get('output_filepattern',
-                                 'conntrack-{ifname}-{timestamp}')
-
-        params = ['socket-datacollector',
-                  '--user', user,
-                  '--sockfd', str(socket.fileno()),
-                  '--dir', output_dir,
-                  '--watch-pid', str(CTProbeContainerCrawler.ctprobe_pid),
-                  '--watch-iface', ifname,
-                  '--filepattern', filepattern,
-                  '--metadata', json.dumps(metadata),
-                  '--md-filter', 'ip-addresses']
-        logger.info('Starting: %s' % ' '.join(params))
-
-        try:
-            pid, errcode = start_child(params, [socket.fileno()], [],
-                                       [],
-                                       setsid=False,
-                                       max_close_fd=128)
-            logger.info('Started collector as pid %d' % pid)
-        except Exception:
-            pid = -1
-            errcode = errno.EINVAL
-
-        return pid, errcode
-
     def start_netlink_collection(self, ifname, ip_addresses, container_id,
                                  **kwargs):
         """
-          Start the collector and program conntrackprobe. Return None in case
-          of an error, the process ID of socket-datacollector otherwise
-
-          Note: Fprobe will terminate when the container ends. The collector
-                watches the softflowd via its PID and will terminate once
-                softflowd is gone. To enable this, we have to start the
-                collector after softflowd. Since this is relatively quick,
-                we won't miss any netflow packets in the collector.
+          Start the collector and program conntrackprobe. Return False in case
+          of an error, True otherwise
         """
 
         ctprobe_user, passwd = self._get_user(**kwargs)
         if not passwd:
-            return None
+            return False
 
         ctprobe_output_dir = kwargs.get('ctprobe_output_dir',
                                         '/tmp/crawler-ctprobe')
         if not self.setup_outputdir(ctprobe_output_dir, passwd.pw_uid,
                                     passwd.pw_gid):
-            return None
+            return False
 
-        # Find an open port; we pass the port number for the flow probe and the
-        # file descriptor of the listening socket to the collector
-        bindaddr = CTProbeContainerCrawler.BIND_ADDRESS
-        sock, port = open_udp_port(bindaddr, 40000, 65535)
-        if not sock:
-            return None
+        filepattern = kwargs.get('output_filepattern',
+                                 'conntrack-{ifname}-{timestamp}')
+        filepath = '%s/%s' % (ctprobe_output_dir, filepattern)
 
-        metadata = {
-            'ifname': ifname,
-            'ip-addresses': ip_addresses,
-        }
-
-        collector_pid, errcode = self.start_collector(ctprobe_user, sock,
-                                                      ctprobe_output_dir,
-                                                      metadata,
-                                                      ifname,
-                                                      **kwargs)
-
-        sock.close()
-
-        if collector_pid == -1:
-            logger.error('Could not start collector: %s' %
-                         os.strerror(errcode))
-            return None
-
-        success = self.configure_ctprobe(ip_addresses, ifname,
-                                         bindaddr, port, **kwargs)
-        if not success:
-            os.kill(collector_pid, signal.SIGKILL)
-            return None
-
-        return collector_pid
+        return self.configure_ctprobe(ip_addresses, ifname,
+                                      filepath, **kwargs)
 
     def cleanup(self, **kwargs):
         """
@@ -421,11 +354,11 @@ class CTProbeContainerCrawler(IContainerCrawler):
                 ifnames.append(ifname)
 
                 if ifname not in CTProbeContainerCrawler.ifaces_monitored:
-                    pid = self.start_netlink_collection(ifname,
-                                                        peer.ip_addresses,
-                                                        container_id,
-                                                        **kwargs)
-                    if pid:
+                    ok = self.start_netlink_collection(ifname,
+                                                       peer.ip_addresses,
+                                                       container_id,
+                                                       **kwargs)
+                    if ok:
                         CTProbeContainerCrawler.ifaces_monitored.append(ifname)
         except Exception as ex:
             logger.info("Error: %s" % str(ex))
