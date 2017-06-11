@@ -5,11 +5,13 @@ import json
 import logging
 import os
 import pwd
+import signal
 import time
 
 from collections import namedtuple
 
 import netifaces
+import psutil
 import utils.dockerutils
 import requests_unixsocket
 
@@ -141,6 +143,32 @@ class CTProbeContainerCrawler(IContainerCrawler):
 
         return pid, errcode
 
+    def terminate_ctprobe(self, pid):
+        """
+          Terminate the conntrackprobe process given its PID
+        """
+        proc = psutil.Process(pid=pid)
+        if proc and proc.name() == 'conntrackprobe':
+            os.kill(pid, signal.SIGKILL)
+        CTProbeContainerCrawler.ifaces_monitored = []
+
+    def check_ctprobe_alive(self, pid):
+        """
+          Check whether the conntrackprobe with the given PID is still running
+          Returns True if the conntrackprobe is still alive, false otherwise.
+        """
+        gone = False
+        try:
+            proc = psutil.Process(pid=pid)
+            if not proc or proc.name() != 'conntrackprobe':
+                gone = True
+        except Exception:
+            gone = True
+
+        if gone:
+            CTProbeContainerCrawler.ifaces_monitored = []
+        return not gone
+
     def configure_ctprobe(self, ipaddresses, ifname, filepath, **kwargs):
         """
           Configure the CTprobe to listen for data from the current
@@ -179,8 +207,16 @@ class CTProbeContainerCrawler(IContainerCrawler):
                                  'conntrack-{ifname}-{timestamp}')
         filepath = '%s/%s' % (ctprobe_output_dir, filepattern)
 
-        return self.configure_ctprobe(ip_addresses, ifname,
-                                      filepath, **kwargs)
+        success = self.configure_ctprobe(ip_addresses, ifname,
+                                         filepath, **kwargs)
+        if not success:
+            logger.warn('Terminating malfunctioning conntrackprobe')
+            self.terminate_ctprobe(CTProbeContainerCrawler.ctprobe_pid)
+            # setting the PID to zero will cause it to be restarted
+            # upon next crawl()
+            CTProbeContainerCrawler.ctprobe_pid = 0
+
+        return success
 
     def cleanup(self, **kwargs):
         """
@@ -225,6 +261,9 @@ class CTProbeContainerCrawler(IContainerCrawler):
           the given container; collect the files that the collector
           wrote and return their content.
         """
+        if not self.check_ctprobe_alive(CTProbeContainerCrawler.ctprobe_pid):
+            CTProbeContainerCrawler.ctprobe_pid = 0
+
         if CTProbeContainerCrawler.ctprobe_pid == 0:
             pid, errcode = self.start_ctprobe(**kwargs)
             CTProbeContainerCrawler.ctprobe_pid = pid
