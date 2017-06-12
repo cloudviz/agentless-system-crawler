@@ -28,32 +28,28 @@ CTPROBE_FRAME = \
     'ADAAM3QUACAADAAAAAY4=","metadata":{"ip-addresses":["172.17.0.14"]}}]'
 
 
-def simulate_socket_datacollector(params):
-    """ simulate writing by the socket-datacollector """
-    dir_idx = params.index('--dir')
-    assert dir_idx > 0
-    output_dir = params[dir_idx + 1]
-
-    filepattern_idx = params.index('--filepattern')
-    assert filepattern_idx > 0
-    filepattern = params[filepattern_idx + 1]
-
-    filename = os.path.join(output_dir, filepattern)
+def simulate_ctprobe(url):
+    """ simulate writing by ctprobe """
+    filename = url.split('://')[1]
     with open(filename, 'w') as f:
         f.write(CTPROBE_FRAME)
-        print 'Write file %s' % filename
     with open(filename + ".tmp", 'w') as f:
         f.write(CTPROBE_FRAME)
 
 
+def mocked_add_collector(self, url, ipaddresses, ifname):
+    code, content = self.send_request('add_collector',
+                                      [url, ipaddresses, ifname])
+    if code == 200:
+        # in this case we simulate a file being written...
+        simulate_ctprobe(url)
+        return True
+    else:
+        raise Exception('HTTP Error %d: %s' % (code, content['error']))
+
+
 def mocked_start_child(params, pass_fds, null_fds, ign_sigs, setsid=False,
                        **kwargs):
-    if params[0] == 'socket-datacollector':
-        # in case the socket-datacollector is started, we just write
-        # the frame without actually starting that program.
-        simulate_socket_datacollector(params)
-
-    # return appropriate values
     return start_child(['sleep', '1'], pass_fds, null_fds, ign_sigs, setsid)
 
 
@@ -61,25 +57,6 @@ def mocked_start_child_ctprobe_except(params, pass_fds, null_fds, ign_sigs,
                                       setsid=False, **kwargs):
     if params[0] == 'conntrackprobe':
         raise Exception('Refusing to start %s' % params[0])
-    return start_child(['sleep', '1'], pass_fds, null_fds, ign_sigs, setsid,
-                       **kwargs)
-
-
-def mocked_start_child_collector_fail(params, pass_fds, null_fds, ign_sigs,
-                                      setsid=False, **kwargs):
-    if params[0] == 'socket-datacollector':
-        return start_child(['___no_such_file'], pass_fds, null_fds, ign_sigs,
-                           setsid, **kwargs)
-    return start_child(['sleep', '1'], pass_fds, null_fds, ign_sigs,
-                       setsid, **kwargs)
-
-
-def mocked_start_child_collector_except(params, pass_fds, null_fds, ign_sigs,
-                                        setsid=False, **kwargs):
-    if params[0] == 'socket-datacollector':
-        raise Exception('Refusing to start %s' % params[0])
-    return start_child(['sleep', '1'], pass_fds, null_fds, ign_sigs,
-                       setsid, **kwargs)
 
 
 def mocked_session_get(self, path, data=''):
@@ -102,6 +79,10 @@ def mocked_session_get_fail(self, path, data=''):
 
 def mocked_ethtool_get_peer_ifindex(ifname):
     raise Exception('ethtool exception')
+
+
+def mocked_check_ctprobe_alive(self, pid):
+    return True
 
 
 # Tests conducted with a single container running.
@@ -149,6 +130,8 @@ class CtprobeFunctionalTests(unittest.TestCase):
                 mocked_start_child)
     @mock.patch('plugins.systems.ctprobe_container_crawler.'
                 'requests_unixsocket.Session.get', mocked_session_get)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'ConntrackProbeClient.add_collector', mocked_add_collector)
     def test_crawl_outcontainer_ctprobe(self):
         logger = logging.getLogger("crawlutils")
         logger.info('>>> Testcase: expecting collector output')
@@ -182,44 +165,6 @@ class CtprobeFunctionalTests(unittest.TestCase):
         for data in ctc.crawl(self.container['Id'], avoid_setns=False,
                               **self.params):
             res.append(data)
-        assert len(res) == 1
-        assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
-
-    @mock.patch('plugins.systems.ctprobe_container_crawler.start_child',
-                mocked_start_child_collector_fail)
-    @mock.patch('plugins.systems.ctprobe_container_crawler.'
-                'requests_unixsocket.Session.get', mocked_session_get)
-    def test_start_netlink_collection_fault2(self):
-        logger = logging.getLogger("crawlutils")
-        logger.info('>>> Testcase: collector fails to start')
-
-        ctc = CTProbeContainerCrawler()
-        assert ctc.get_feature() == 'ctprobe'
-
-        # with socket-datacollector failing to start, we won't get data
-        res = []
-        for data in ctc.crawl(self.container['Id'], avoid_setns=False,
-                              **self.params):
-            res.append(data)
-        assert len(res) == 0
-        assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
-
-    @mock.patch('plugins.systems.ctprobe_container_crawler.start_child',
-                mocked_start_child_collector_except)
-    @mock.patch('plugins.systems.ctprobe_container_crawler.'
-                'requests_unixsocket.Session.get', mocked_session_get)
-    def test_start_netlink_collection_fault3(self):
-        logger = logging.getLogger("crawlutils")
-        logger.info('>>> Testcase: collector start throws exception')
-
-        ctc = CTProbeContainerCrawler()
-        assert ctc.get_feature() == 'ctprobe'
-
-        # with socket-datacollector failing to start, we won't get data
-        res = []
-        for data in ctc.crawl(self.container['Id'], avoid_setns=False,
-                              **self.params):
-            res.append(data)
         assert len(res) == 0
         assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
 
@@ -227,6 +172,8 @@ class CtprobeFunctionalTests(unittest.TestCase):
                 mocked_start_child)
     @mock.patch('plugins.systems.ctprobe_container_crawler.'
                 'requests_unixsocket.Session.get', mocked_session_get)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'ConntrackProbeClient.add_collector', mocked_add_collector)
     def test_start_netlink_collection_fault4(self):
         logger = logging.getLogger("crawlutils")
         logger.info('>>> Testcase: collector cannot be configured')
@@ -237,7 +184,7 @@ class CtprobeFunctionalTests(unittest.TestCase):
         ctc = CTProbeContainerCrawler()
         assert ctc.get_feature() == 'ctprobe'
 
-        # with socket-datacollector failing to start, we won't get data
+        # with ctprobe failing to start, we won't get data
         assert not ctc.crawl(self.container['Id'], avoid_setns=False,
                              **self.params)
         assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
@@ -248,6 +195,8 @@ class CtprobeFunctionalTests(unittest.TestCase):
                 mocked_start_child_ctprobe_except)
     @mock.patch('plugins.systems.ctprobe_container_crawler.'
                 'requests_unixsocket.Session.get', mocked_session_get)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'ConntrackProbeClient.add_collector', mocked_add_collector)
     def test_start_netlink_collection_fault5(self):
         logger = logging.getLogger("crawlutils")
         logger.info('>>> Testcase: conntrackprobe fails to start')
@@ -258,6 +207,10 @@ class CtprobeFunctionalTests(unittest.TestCase):
         assert not ctc.crawl(self.container['Id'], avoid_setns=False,
                              **self.params)
         assert len(CTProbeContainerCrawler.ifaces_monitored) == 0
+
+        assert not ctc.check_ctprobe_alive(CTProbeContainerCrawler.ctprobe_pid)
+        # this should always fail
+        assert not ctc.check_ctprobe_alive(1)
 
     @mock.patch('plugins.systems.ctprobe_container_crawler.start_child',
                 mocked_start_child)
@@ -272,7 +225,7 @@ class CtprobeFunctionalTests(unittest.TestCase):
         ctc = CTProbeContainerCrawler()
         assert ctc.get_feature() == 'ctprobe'
 
-        # with socket-datacollector failing to start, we won't get data
+        # with ctprobe failing to start, we won't get data
         res = []
         for data in ctc.crawl(self.container['Id'], avoid_setns=False,
                               **self.params):
@@ -284,6 +237,11 @@ class CtprobeFunctionalTests(unittest.TestCase):
                 mocked_start_child)
     @mock.patch('plugins.systems.ctprobe_container_crawler.'
                 'requests_unixsocket.Session.get', mocked_session_get)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'ConntrackProbeClient.add_collector', mocked_add_collector)
+    @mock.patch('plugins.systems.ctprobe_container_crawler.'
+                'CTProbeContainerCrawler.check_ctprobe_alive',
+                mocked_check_ctprobe_alive)
     def test_remove_datafiles(self):
         logger = logging.getLogger("crawlutils")
         logger.info('>>> Testcase: datafiles of disappeared interface '
@@ -302,16 +260,10 @@ class CtprobeFunctionalTests(unittest.TestCase):
         timestamp = int(time.time())
         filepattern = 'ctprobe-{ifname}-{timestamp}' \
                       .format(ifname=ifname, timestamp=timestamp)
-        params = [
-            'socket-datacollector',
-            '--dir', self.output_dir,
-            '--filepattern', filepattern,
-        ]
-
-        # have the fake socket-datacollector write a file with the ifname in
+        # have the ctprobe write a file with the ifname in
         # the filename
         ctc.setup_outputdir(self.output_dir, os.getuid(), os.getgid())
-        simulate_socket_datacollector(params)
+        simulate_ctprobe('file+json://%s/%s' % (self.output_dir, filepattern))
         written_file = os.path.join(self.output_dir, filepattern)
         assert os.path.isfile(written_file)
 
