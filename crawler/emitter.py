@@ -185,7 +185,7 @@ class Emitter:
                 suffix = 'load.load'
             suffix = suffix.replace('/', '$')
 
-            tmp_message = '%s.%s.%s %f %d\r\n' % (sysname, suffix,
+            tmp_message = '%s.%s.%s %f %d\n' % (sysname, suffix,
                                                   metric, value, timestamp)
             self.emitfile.write(tmp_message)
 
