@@ -44,9 +44,7 @@ class MTGraphiteClient(object):
         self.port = matches.group(2)
         self.tenant = matches.group(3)
         self.password = matches.group(4)
-        logger.info("AUTH")
-        logger.info(self.tenant)
-        logger.info(self.password)
+
         # create a connection only when we need it, but keep it alive
 
         self.conn = None
@@ -103,7 +101,7 @@ class MTGraphiteClient(object):
         if authentication_message_sent != len(authentication_message):
             raise RuntimeError('failed to send tenant/password')
         chunk = self.conn.read(6)  # Expecting "1A"
-        logger.info(chunk)
+
         code = bytearray(chunk)[:2]
 
         logger.info('MTGraphite authentication server response of %s'
@@ -150,8 +148,6 @@ class MTGraphiteClient(object):
                                                           self.password,
                                                           supertenant=False)
                     self._send_and_check_authentication_message(msg)
-                logger.info("connection")
-                logger.info(self.conn)
                 return self.conn
 
             except Exception as e:
@@ -207,7 +203,7 @@ class MTGraphiteClient(object):
     def _write_messages(self, msgset, max_emit_retries=10):
         msg_sent = False
         retries = 0
-#        logger.info(msgset)
+
         while not msg_sent and retries <= max_emit_retries:
             try:
                 retries += 1
