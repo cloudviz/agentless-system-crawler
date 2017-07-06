@@ -101,6 +101,7 @@ class MTGraphiteClient(object):
         if authentication_message_sent != len(authentication_message):
             raise RuntimeError('failed to send tenant/password')
         chunk = self.conn.read(6)  # Expecting "1A"
+
         code = bytearray(chunk)[:2]
 
         logger.info('MTGraphite authentication server response of %s'
@@ -137,7 +138,7 @@ class MTGraphiteClient(object):
 
                 msg = self._create_authentication_msg(self.tenant,
                                                       self.password,
-                                                      supertenant=True)
+                                                      supertenant=False)
                 # We first try with a super tenant account.
                 try:
                     self._send_and_check_authentication_message(msg)
@@ -202,6 +203,7 @@ class MTGraphiteClient(object):
     def _write_messages(self, msgset, max_emit_retries=10):
         msg_sent = False
         retries = 0
+
         while not msg_sent and retries <= max_emit_retries:
             try:
                 retries += 1
