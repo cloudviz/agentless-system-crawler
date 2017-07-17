@@ -137,7 +137,7 @@ class MTGraphiteClient(object):
 
                 msg = self._create_authentication_msg(self.tenant,
                                                       self.password,
-                                                      supertenant=True)
+                                                      supertenant=False)
                 # We first try with a super tenant account.
                 try:
                     self._send_and_check_authentication_message(msg)
