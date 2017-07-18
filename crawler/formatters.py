@@ -136,5 +136,5 @@ def write_feature_in_graphite_format(iostream, namespace, timestamp,
         feature_key = feature_key.replace('/', '$')
 
         tmp_message = '%s.%s.%s %f %d\n' % (namespace, feature_key,
-                                              metric, value, timestamp)
+                                            metric, value, timestamp)
         iostream.write(tmp_message)
