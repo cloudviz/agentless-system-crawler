@@ -43,7 +43,7 @@ install:
 
 # command to run tests
 script:
-  - flake8 --count --max-complexity=10 --statistics crawler
+  - flake8 --count --max-complexity=10 --show-source --statistics .
   - sudo -H python setup.py test --addopts '--cov=.'
 
 after_success:
