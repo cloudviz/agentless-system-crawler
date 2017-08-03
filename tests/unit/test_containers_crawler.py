@@ -102,7 +102,7 @@ class ContainersCrawlerTests(unittest.TestCase):
     def test_failed_containers_crawler(self, *args):
         crawler = ContainersCrawler(features=['os'])
         with self.assertRaises(OSError):
-            frames = list(crawler.crawl(ignore_plugin_exception=False))
+            frames = list(crawler.crawl(ignore_plugin_exception=False))  # noqa
         assert args[0].call_count == 1
         assert args[1].call_count == 1
 
