@@ -39,8 +39,8 @@ class ContainersCrawlerTests(unittest.TestCase):
                     "Sorry, this test requires a machine with no docker"
                     "containers running.")
         except requests.exceptions.ConnectionError:
-            print ("Error connecting to docker daemon, are you in the docker"
-                   "group? You need to be in the docker group.")
+            print("Error connecting to docker daemon, are you in the docker"
+                  "group? You need to be in the docker group.")
 
         self.start_crawled_container()
 
@@ -91,7 +91,7 @@ class ContainersCrawlerTests(unittest.TestCase):
                 'package'])
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'interface-lo' in output
         assert 'if_octets_tx=' in output
         assert 'cpu-0' in output
@@ -121,22 +121,21 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        print(output)  # only printed if the test fails
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
         assert 'apt.pkgsize' in output
-        f.close()
 
     def testCrawlContainerKafka(self):
         env = os.environ.copy()
@@ -157,8 +156,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         kafka = pykafka.KafkaClient(hosts='localhost:9092')
         topic = kafka.topics['test']
@@ -204,20 +203,19 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        print(output)  # only printed if the test fails
         assert 'sleep' in output
         assert 'linux' or 'Linux' in output
-        f.close()
 
     def testCrawlContainerAvoidSetns(self):
         options = {'avoid_setns': True}
@@ -227,16 +225,17 @@ class ContainersCrawlerTests(unittest.TestCase):
             options=options)
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         # interface in avoid_setns mode is not supported
-        #assert 'interface-lo' in output
-        #assert 'if_octets_tx=' in output
+        # assert 'interface-lo' in output
+        # assert 'if_octets_tx=' in output
         assert 'cpu-0' in output
         assert 'cpu_nice=' in output
         assert 'memory' in output
         assert 'memory_buffered=' in output
         assert 'apt' in output
         assert 'pkgarchitecture=' in output
+
 
 if __name__ == '__main__':
     unittest.main()
