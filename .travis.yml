@@ -46,7 +46,7 @@ install:
 
 # command to run tests
 script:
-  - flake8 --count --max-complexity=10 --statistics .
+  - flake8 --count --exclude=psvmi --max-complexity=10 --statistics .
   - sudo -H python setup.py test --addopts '--cov=.'
 
 after_success:
