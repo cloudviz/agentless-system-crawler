@@ -41,7 +41,8 @@ class LogsLinkerTests(unittest.TestCase):
         self.docker.pull(repository='ubuntu', tag='latest')
         self.container = self.docker.create_container(
             image='ubuntu:latest',
-            command='bash -c "echo hi ; echo hi > /var/log/messages; /bin/sleep 120"',
+            command=('bash -c "echo hi ; echo hi > /var/log/messages ;'
+                     '/bin/sleep 120"'),
             name=self.container_name)
         self.docker.start(container=self.container['Id'])
 
@@ -112,14 +113,15 @@ class LogsLinkerTests(unittest.TestCase):
         mypath = os.path.dirname(os.path.realpath(__file__))
         process = subprocess.Popen(
             [
-                '/usr/bin/python', mypath + '/../../crawler/containers_logs_linker.py'
+                '/usr/bin/python',
+                mypath + '/../../crawler/containers_logs_linker.py'
             ],
             env=env)
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         with open(docker_log, 'r') as log:
             assert 'hi' in log.read()
