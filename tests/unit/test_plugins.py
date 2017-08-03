@@ -5,19 +5,23 @@ from collections import namedtuple
 import mock
 from plugins.systems.config_container_crawler import ConfigContainerCrawler
 from plugins.systems.config_host_crawler import ConfigHostCrawler
-from plugins.systems.connection_container_crawler import ConnectionContainerCrawler
+from plugins.systems.connection_container_crawler import (
+    ConnectionContainerCrawler)
 from plugins.systems.connection_host_crawler import ConnectionHostCrawler
 from plugins.systems.connection_vm_crawler import ConnectionVmCrawler
 from plugins.systems.cpu_container_crawler import CpuContainerCrawler
 from plugins.systems.cpu_host_crawler import CpuHostCrawler
 from plugins.systems.disk_container_crawler import DiskContainerCrawler
 from plugins.systems.disk_host_crawler import DiskHostCrawler
-from plugins.systems.dockerhistory_container_crawler import DockerhistoryContainerCrawler
-from plugins.systems.dockerinspect_container_crawler import DockerinspectContainerCrawler
+from plugins.systems.dockerhistory_container_crawler import (
+    DockerhistoryContainerCrawler)
+from plugins.systems.dockerinspect_container_crawler import (
+    DockerinspectContainerCrawler)
 from plugins.systems.dockerps_host_crawler import DockerpsHostCrawler
 from plugins.systems.file_container_crawler import FileContainerCrawler
 from plugins.systems.file_host_crawler import FileHostCrawler
-from plugins.systems.interface_container_crawler import InterfaceContainerCrawler
+from plugins.systems.interface_container_crawler import (
+    InterfaceContainerCrawler)
 from plugins.systems.interface_host_crawler import InterfaceHostCrawler
 from plugins.systems.interface_vm_crawler import InterfaceVmCrawler
 from plugins.systems.load_container_crawler import LoadContainerCrawler
@@ -66,6 +70,7 @@ class DummyContainer(Container):
     def get_cpu_cgroup_path(self, node):
         return '/cgroup/%s' % node
 
+
 # for OUTVM psvmi
 psvmi_sysinfo = namedtuple('psvmi_sysinfo',
                            '''boottime ipaddr osdistro osname osplatform osrelease
@@ -108,6 +113,7 @@ def mocked_os_walk_for_avoidsetns(root_dir):
         dirs = []
         yield ('/dir', dirs, files)
 
+
 # XXX can't do self.count = for some reason
 mcount = 0
 
@@ -132,6 +138,7 @@ class MockedMemCgroupFile(mock.Mock):
             return 'total_active_file 200'
         else:
             raise StopIteration()
+
 
 # XXX can't do self.count = for some reason
 ccount = 0
@@ -185,7 +192,7 @@ def mocked_cpu_cgroup_open(filename, mode):
     m = mock.Mock()
     m.__enter__ = mock.Mock(return_value=MockedCpuCgroupFile())
     m.__exit__ = mock.Mock(return_value=False)
-    print filename
+    print(filename)
     return m
 
 
@@ -193,8 +200,9 @@ def mocked_memory_cgroup_open(filename, mode):
     m = mock.Mock()
     m.__enter__ = mock.Mock(return_value=MockedMemCgroupFile())
     m.__exit__ = mock.Mock(return_value=False)
-    print filename
+    print(filename)
     return m
+
 
 partition = namedtuple('partition', 'device fstype mountpoint opts')
 pdiskusage = namedtuple('pdiskusage', 'percent total')
@@ -257,11 +265,12 @@ class Process():
     def get_memory_percent(self):
         return 30
 
+
 STAT_DIR_MODE = 16749
 
 
 def mocked_os_lstat(path):
-    print path
+    print(path)
     if path == '/':
         return os_stat(STAT_DIR_MODE, 2, 3, 4, 5, 6, 7)
     elif path == '/file1':
@@ -319,7 +328,7 @@ class PluginTests(unittest.TestCase):
     def test_os_host_cawler_plugin(self, *args):
         fc = OSHostCrawler()
         for os in fc.crawl():
-            print os
+            print(os)
             assert os == (
                 'linux',
                 OSFeature(
@@ -353,7 +362,7 @@ class PluginTests(unittest.TestCase):
     def test_os_host_crawler_plugin_mountpoint_mode(self, *args):
         fc = OSHostCrawler()
         for os in fc.crawl(root_dir='/a'):
-            print os
+            print(os)
             assert os == (
                 'linux',
                 OSFeature(
@@ -404,7 +413,7 @@ class PluginTests(unittest.TestCase):
     def test_os_container_crawler_plugin(self, *args):
         fc = OSContainerCrawler()
         for os in fc.crawl(container_id=123):
-            print os
+            print(os)
             assert os == (
                 'linux',
                 OSFeature(
@@ -437,7 +446,7 @@ class PluginTests(unittest.TestCase):
     def test_os_container_crawler_plugin_avoidsetns(self, *args):
         fc = OSContainerCrawler()
         for os in fc.crawl(container_id=123, avoid_setns=True):
-            print os
+            print(os)
             assert os == (
                 'linux',
                 OSFeature(
@@ -450,7 +459,7 @@ class PluginTests(unittest.TestCase):
                     architecture='unknown'),
                 'os')
         for i, arg in enumerate(args):
-            print i, arg
+            print(i, arg)
             if i == 0:
                 # get_osinfo()
                 assert arg.call_count == 1
@@ -520,7 +529,7 @@ class PluginTests(unittest.TestCase):
     def test_file_host_crawler(self, *args):
         fc = FileHostCrawler()
         for (k, f, fname) in fc.crawl():
-            print f
+            print(f)
             assert fname == "file"
             assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
             assert f.atime == 4 and f.ctime == 5
@@ -545,7 +554,7 @@ class PluginTests(unittest.TestCase):
     def test_file_host_crawler_with_exclude_dirs(self, *args):
         fc = FileHostCrawler()
         for (k, f, fname) in fc.crawl(exclude_dirs=['dir']):
-            print f
+            print(f)
             assert fname == "file"
             assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
             assert f.atime == 4 and f.ctime == 5
@@ -642,7 +651,7 @@ class PluginTests(unittest.TestCase):
     def test_file_container_crawler_avoidsetns(self, *args):
         fc = FileContainerCrawler()
         for (k, f, fname) in fc.crawl(root_dir='/', avoid_setns=True):
-            print f
+            print(f)
             assert fname == "file"
             assert f.mode in [1, STAT_DIR_MODE] and f.gid == 2 and f.uid == 3
             assert f.atime == 4 and f.ctime == 5
@@ -765,7 +774,7 @@ class PluginTests(unittest.TestCase):
 
         configs = fc.crawl(known_config_files=['/etc/file1'],
                            discover_config_files=True)
-        print configs
+        print(configs)
         assert set(configs) == set([('/file3.conf',
                                      ConfigFeature(name='file3.conf',
                                                    content='content',
@@ -1112,7 +1121,7 @@ class PluginTests(unittest.TestCase):
     def test_process_host_crawler(self, *args):
         fc = ProcessHostCrawler()
         for (k, f, fname) in fc.crawl():
-            print f
+            print(f)
             assert fname == "process"
             assert f.pname == 'init'
             assert f.cmd == 'cmd'
@@ -1132,7 +1141,7 @@ class PluginTests(unittest.TestCase):
     def test_process_container_crawler(self, *args):
         fc = ProcessContainerCrawler()
         for (k, f, fname) in fc.crawl('123'):
-            print f
+            print(f)
             assert fname == "process"
             assert f.pname == 'init'
             assert f.cmd == 'cmd'
@@ -1147,7 +1156,7 @@ class PluginTests(unittest.TestCase):
     def test_process_vm_crawler(self, *args):
         fc = process_vm_crawler()
         for (k, f, fname) in fc.crawl(vm_desc=('dn', '2.6', 'ubuntu', 'x86')):
-            print f
+            print(f)
             assert fname == "process"
             assert f.pname == 'init'
             assert f.cmd == 'cmd'
@@ -1295,9 +1304,9 @@ class PluginTests(unittest.TestCase):
 
     @mock.patch('utils.connection_utils.psutil.process_iter',
                 side_effect=lambda: [Process('init')])
-    @mock.patch(
-        'plugins.systems.connection_container_crawler.run_as_another_namespace',
-        side_effect=mocked_run_as_another_namespace)
+    @mock.patch(('plugins.systems.connection_container_crawler.'
+                 'run_as_another_namespace'),
+                side_effect=mocked_run_as_another_namespace)
     @mock.patch(
         ("plugins.systems.connection_container_crawler.utils.dockerutils."
          "exec_dockerinspect"),
@@ -1660,7 +1669,8 @@ class PluginTests(unittest.TestCase):
                 pass
         assert args[0].call_count == 1
 
-    @mock.patch('plugins.systems.dockerhistory_container_crawler.exec_docker_history',
+    @mock.patch(('plugins.systems.dockerhistory_container_crawler.'
+                 'exec_docker_history'),
                 side_effect=lambda long_id: [
                     {'Id': 'image1', 'random': 'abc'},
                     {'Id': 'image2', 'random': 'abc'}])
