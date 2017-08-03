@@ -8,14 +8,13 @@ import subprocess
 import commands
 import time
 import multiprocessing
-import signal
-import psutil
 import semantic_version
 from utils.dockerutils import _fix_version
 
 # Tests conducted with a single container running.
 # docker events supported avove docker version 1.8.0
 VERSION_SPEC = semantic_version.Spec('>=1.8.1')
+
 
 class CrawlerDockerEventTests(unittest.TestCase):
 
@@ -24,10 +23,11 @@ class CrawlerDockerEventTests(unittest.TestCase):
             base_url='unix://var/run/docker.sock', version='auto')
         try:
             if len(self.docker.containers()) != 0:
-                raise Exception(
-                    "Sorry, this test requires a machine with no docker containers running.")
+                raise Exception("Sorry, this test requires a machine with no "
+                                "docker containers running.")
         except requests.exceptions.ConnectionError as e:
-            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
+            print("Error connecting to docker daemon, are you in the docker "
+                  "group? You need to be in the docker group.")
 
         self.docker.pull(repository='alpine', tag='latest')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest-events.')
@@ -39,7 +39,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
             self.docker.remove_container(container=container['Id'])
 
         shutil.rmtree(self.tempd)
-        #self.__exec_kill_crawlers()
+        # self.__exec_kill_crawlers()
 
     def __exec_crawler(self, cmd):
         status, output = commands.getstatusoutput(cmd)
@@ -55,7 +55,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
         self.docker.stop(container=containerId)
         self.docker.remove_container(container=containerId)
 
-    ''' 
+    '''
     def __exec_kill_crawlers(self):
         procname = "python"
         for proc in psutil.process_iter():
@@ -67,9 +67,9 @@ class CrawlerDockerEventTests(unittest.TestCase):
     '''
 
     '''
-    This is a basic sanity test. It first creates a container and then starts crawler.
-    In this case, crawler would miss the create event, but it should be able to
-    discover already running containers and snapshot them
+    This is a basic sanity test. It first creates a container and then starts
+    crawler.  In this case, crawler would miss the create event, but it should
+    be able to discover already running containers and snapshot them
     '''
     def testCrawlContainer0(self):
         env = os.environ.copy()
@@ -98,20 +98,19 @@ class CrawlerDockerEventTests(unittest.TestCase):
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
-        f.close()
 
-        #clear the outut direcory
-        shutil.rmtree(os.path.join(self.tempd, 'out')) 
+        # clear the outut direcory
+        shutil.rmtree(os.path.join(self.tempd, 'out'))
 
     '''
     In this test, crawler is started with high snapshot frequency (60 sec),
     and container is created immediately. Expected behaviour is that
-    crawler should get intrupptted and start snapshotting container immediately.
+    crawler should get interrupted and start snapshotting container immediately.
 
     '''
     def testCrawlContainer1(self):
@@ -149,15 +148,14 @@ class CrawlerDockerEventTests(unittest.TestCase):
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        #print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        # print output  # only printed if the test fails
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
-        f.close()
-        #clear the outut direcory
-        shutil.rmtree(os.path.join(self.tempd, 'out')) 
+        # clear the outut direcory
+        shutil.rmtree(os.path.join(self.tempd, 'out'))
         crawlerProc.terminate()
         crawlerProc.join()
 
@@ -200,23 +198,23 @@ class CrawlerDockerEventTests(unittest.TestCase):
         time.sleep(30)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
-        
+
         files = os.listdir(self.tempd + '/out')
         docker_server_version = self.docker.version()['Version']
         if VERSION_SPEC.match(semantic_version.Version(_fix_version(docker_server_version))):
             assert len(files) == 2
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        #print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        # print output  # only printed if the test fails
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
-        f.close()
-        #clear the outut direcory
-        shutil.rmtree(os.path.join(self.tempd, 'out')) 
+        # clear the outut direcory
+        shutil.rmtree(os.path.join(self.tempd, 'out'))
         crawlerProc.terminate()
         crawlerProc.join()
+
 
 if __name__ == '__main__':
     unittest.main()
