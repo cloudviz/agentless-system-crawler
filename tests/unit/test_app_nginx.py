@@ -21,7 +21,7 @@ def mocked_retrieve_status_page(host, port):
 
 
 def mocked_no_status_page(host, port):
-    #raise urllib2.HTTPError(1,2,3,4,5)
+    # raise urllib2.HTTPError(1,2,3,4,5)
     raise Exception
 
 
