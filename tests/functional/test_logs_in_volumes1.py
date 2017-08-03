@@ -5,7 +5,6 @@ import os
 import shutil
 import mock
 
-import utils.dockerutils
 import dockercontainer
 import plugins_manager
 
@@ -67,7 +66,7 @@ class DockerContainerTests(unittest.TestCase):
             "docker_image_registry": "image_registry",
             "owner_namespace": "owner_namespace",
             "NetworkSettings": {}}
-        
+
         plugins_manager.runtime_env = None
         self.docker_container = \
             dockercontainer.DockerContainer(inspect['Id'], inspect)
@@ -85,6 +84,7 @@ class DockerContainerTests(unittest.TestCase):
                     log.dest, self.host_log_dir + '/data/test1.log')
                 self.assertEqual(log.source,
                                  self.volume + '/test1.log')
+
 
 if __name__ == '__main__':
     logging.basicConfig(
