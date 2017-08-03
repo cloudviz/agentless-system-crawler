@@ -18,7 +18,7 @@ class MockedCPUCrawler:
 class MockedOSCrawlerFailure:
 
     def crawl(self, vm_desc, **kwargs):
-        print vm_desc
+        print(vm_desc)
         if vm_desc[0] == 'errorpid':
             raise OSError('some exception')
         else:
@@ -89,7 +89,7 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
     def test_failed_vms_crawler(self, *args):
         crawler = VirtualMachinesCrawler(features=['os'])
         with self.assertRaises(OSError):
-            frames = list(crawler.crawl(ignore_plugin_exception=False))
+            frames = list(crawler.crawl(ignore_plugin_exception=False))  # noqa
         assert args[0].call_count == 1
         assert args[1].call_count == 1
 
