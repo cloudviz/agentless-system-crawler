@@ -110,7 +110,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
     '''
     In this test, crawler is started with high snapshot frequency (60 sec),
     and container is created immediately. Expected behaviour is that
-    crawler should get interrupted and start snapshotting container immediately.
+    crawler should get interrupted and start snapshotting container immediately
 
     '''
     def testCrawlContainer1(self):
