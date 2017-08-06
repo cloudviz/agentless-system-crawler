@@ -1,5 +1,5 @@
 import logging
-
+import os
 import psutil
 
 import utils.dockerutils
@@ -24,6 +24,8 @@ class ProcessContainerCrawler(IContainerCrawler):
         if avoid_setns:
             raise NotImplementedError()
 
+        self.get_mmap_files = kwargs.get('get_mmap_files', 'False')
+
         return run_as_another_namespace(pid,
                                         ALL_NAMESPACES,
                                         self._crawl_in_system)
@@ -38,6 +40,15 @@ class ProcessContainerCrawler(IContainerCrawler):
             if create_time <= created_since:
                 continue
             yield self._crawl_single_process(p)
+
+    def _get_mmap_files(self, p):
+        mmapfiles = []
+        if self.get_mmap_files == 'True':
+            for mmap in p.memory_maps():
+                mmap_path = getattr(mmap, 'path')
+                if os.path.isabs(mmap_path):
+                    mmapfiles.append(mmap_path)
+        return mmapfiles
 
     def _crawl_single_process(self, p):
         """Returns a ProcessFeature"""
@@ -85,6 +96,9 @@ class ProcessContainerCrawler(IContainerCrawler):
         for f in p.get_open_files():
             openfiles.append(f.path)
         openfiles.sort()
+
+        mmapfiles = self._get_mmap_files(p)
+
         feature_key = '{0}/{1}'.format(name, pid)
         return (feature_key, ProcessFeature(
             str(' '.join(cmdline)),
@@ -92,6 +106,7 @@ class ProcessContainerCrawler(IContainerCrawler):
             cwd,
             name,
             openfiles,
+            mmapfiles,
             pid,
             ppid,
             num_threads,
