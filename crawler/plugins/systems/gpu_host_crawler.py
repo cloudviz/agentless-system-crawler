@@ -1,11 +1,8 @@
 import logging
-import os
-import subprocess
 from icrawl_plugin import IHostCrawler
 
 logger = logging.getLogger('crawlutils')
-
-NVIDIA_SMI = "/usr/bin/nvidia-smi"
+pynvml = None
 
 
 class GPUHostCrawler(IHostCrawler):
@@ -13,9 +10,27 @@ class GPUHostCrawler(IHostCrawler):
     def get_feature(self):
         return 'gpu'
 
+    def _init_nvml(self):
+        try:
+            global pynvml
+            import pip
+            pip.main(['install', '--quiet', 'nvidia-ml-py'])
+            import pynvml as pynvml
+            pynvml.nvmlInit()
+            return 0
+        except pynvml.NVMLError, err:
+            logger.debug('Failed to initialize NVML: ', err)
+            return -1
+
+    def _shutdown_nvml(self):
+        try:
+            pynvml.nvmlShutdown()
+        except pynvml.NVMLError, err:
+            logger.debug('Failed to shutdown NVML: ', err)
+
     def crawl(self, **kwargs):
         logger.debug('Crawling GPU metrics for the host')
-        self._crawl_in_system()
+        return self._crawl_in_system()
 
     def _crawl_in_system(self):
         '''
@@ -30,34 +45,37 @@ class GPUHostCrawler(IHostCrawler):
             memory.total,memory.free,memory.used --format=csv,noheader,nounits
         '''
 
-        if not os.path.exists(NVIDIA_SMI):
+        if self._init_nvml() == -1:
             return
 
-        params = ['utilization.gpu', 'utilization.memory', 'memory.total',
-                  'memory.free', 'memory.used', 'temperature.gpu',
-                  'power.draw', 'power.limit']
+        num_gpus = pynvml.nvmlDeviceGetCount()
 
-        nvidia_smi_proc = subprocess.Popen(
-            [NVIDIA_SMI, '--query-gpu={}'.format(','.join(params)),
-                '--format=csv,noheader,nounits'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        nvidia_smi_proc_out, err = nvidia_smi_proc.communicate()
+        for gpuid in range(0, num_gpus):
+            gpuhandle = pynvml.nvmlDeviceGetHandleByIndex(gpuid)
+            temperature = pynvml.nvmlDeviceGetTemperature(
+                gpuhandle, pynvml.NVML_TEMPERATURE_GPU)
+            memory = pynvml.nvmlDeviceGetMemoryInfo(gpuhandle)
+            mem_total = memory.total / 1024 / 1024
+            mem_used = memory.used / 1024 / 1024
+            mem_free = memory.free / 1024 / 1024
+            power_draw = pynvml.nvmlDeviceGetPowerUsage(gpuhandle) / 1000
+            power_limit = pynvml.nvmlDeviceGetEnforcedPowerLimit(
+                gpuhandle) / 1000
+            util = pynvml.nvmlDeviceGetUtilizationRates(gpuhandle)
+            util_gpu = util.gpu
+            util_mem = util.memory
+            entry = {
+                'utilization': {'gpu': util_gpu, 'memory': util_mem},
+                'memory': {'total': mem_total, 'free': mem_free,
+                           'used': mem_used},
+                'temperature': temperature,
+                'power': {'draw': power_draw, 'limit': power_limit}
+            }
+            key = 'gpu{}'.format(gpuid)
 
-        if nvidia_smi_proc.returncode > 0:
-            raise Exception('Unable to get gpu metrics')
+            if gpuid == num_gpus - 1:
+                self._shutdown_nvml()
 
-        metrics = nvidia_smi_proc_out.split('\n')
-        for i, val_str in enumerate(metrics):
-            if len(val_str) != 0:
-                values = val_str.split(',')
-                entry = {
-                    'utilization': {'gpu': values[0], 'memory': values[1]},
-                    'memory': {'total': values[2], 'free': values[3],
-                               'used': values[4]},
-                    'temperature': values[5],
-                    'power': {'draw': values[6], 'limit': values[7]}
-                }
-                key = 'gpu{}'.format(i)
-                yield (key, entry)
+            yield (key, entry, 'gpu')
+
         return
