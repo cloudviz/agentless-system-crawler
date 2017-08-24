@@ -1,4 +1,8 @@
 import logging
+import ctypes
+import platform
+import os
+import sys
 from icrawl_plugin import IHostCrawler
 
 logger = logging.getLogger('crawlutils')
@@ -10,7 +14,23 @@ class GPUHostCrawler(IHostCrawler):
     def get_feature(self):
         return 'gpu'
 
+    def _load_nvidia_lib(self):
+        try:
+            lib_dir = os.getcwd() + '/utils/nvidialib'
+            if platform.architecture()[0] == '64bit':
+                ctypes.cdll.LoadLibrary(
+                    lib_dir + '/lib64/libnvidia-ml.so.375.66')
+            else:
+                ctypes.cdll.LoadLibrary(
+                    lib_dir + '/lib/libnvidia-ml.so.375.66')
+        except:
+            logger.debug(sys.exc_info()[0])
+            return -1
+
     def _init_nvml(self):
+        if self._load_nvidia_lib() == -1:
+            return -1
+
         try:
             global pynvml
             import pip
