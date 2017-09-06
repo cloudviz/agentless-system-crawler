@@ -33,6 +33,12 @@ DiskFeature = namedtuple('DiskFeature', [
     'mountopts',
     'partitionsize',
 ])
+DiskioFeature = namedtuple('DiskioFeature', [
+    'readoprate',
+    'writeoprate',
+    'readbytesrate',
+    'writebytesrate',
+])
 ProcessFeature = namedtuple('ProcessFeature', [
     'cmd',
     'created',
