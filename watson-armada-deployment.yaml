@@ -33,10 +33,16 @@ spec:
           name: crawler
           command: ["python2.7", "crawler.py", 
                     "--crawlmode", "INVM", 
-                    "--url", "file:///tmp/out-gpu", 
+                    "--url", "mtgraphite://metrics.opvis.bluemix.net:9095/<bluemix-space-id>:<logment-token>",
+                    "--namespace","<bluemix-space-id>.dev.$(MY_NODE_NAME)",
+                    "--format","graphite", 
                     "--features", "gpu", 
-                    "--frequency", "36000", 
-                    "--environment", "kubernetes" ]
+                    "--frequency", "60" ]
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: crawler-cgroup
               mountPath: /cgroup
