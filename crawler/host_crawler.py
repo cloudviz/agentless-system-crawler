@@ -1,6 +1,6 @@
 import plugins_manager
 from base_crawler import BaseCrawler, BaseFrame
-
+from utils import misc
 
 class HostFrame(BaseFrame):
 
@@ -23,7 +23,11 @@ class HostCrawler(BaseCrawler):
             features, plugin_places, options)
         self.plugins = plugins_manager.get_host_crawl_plugins(
             features=features)
-        self.namespace = namespace
+        hostip = misc.get_host_ipaddr()
+        if hostip != namespace:
+           self.namespace = "{}.{}".format(namespace, hostip)
+        else:
+	   self.namespace = namespace
 
     def crawl(self, ignore_plugin_exception=True):
         """

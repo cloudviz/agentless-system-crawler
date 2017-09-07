@@ -31,7 +31,8 @@ class HostCrawlerTests(unittest.TestCase):
         crawler = HostCrawler(features=['os', 'cpu'], namespace='localhost')
         frames = list(crawler.crawl())
         namespaces = [f.metadata['namespace'] for f in frames]
-        assert namespaces == ['localhost']
+        for namespace in namespaces:
+            assert 'localhost' in namespace
         features_count = [f.num_features for f in frames]
         assert features_count == [2]
         system_types = [f.metadata['system_type'] for f in frames]
@@ -62,7 +63,8 @@ class HostCrawlerTests(unittest.TestCase):
             namespace='localhost')
         frames = list(crawler.crawl())
         namespaces = sorted([f.metadata['namespace'] for f in frames])
-        assert namespaces == sorted(['localhost'])
+        for namespace in namespaces:
+            assert 'localhost' in namespace
         features_count = [f.num_features for f in frames]
         assert features_count == [2]
         system_types = [f.metadata['system_type'] for f in frames]
