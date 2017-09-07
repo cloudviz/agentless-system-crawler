@@ -29,7 +29,6 @@ class HostCrawler(BaseCrawler):
         else:
 	   self.namespace = namespace
 
-
     def crawl(self, ignore_plugin_exception=True):
         """
         Crawl the host with all the plugins loaded on __init__
