@@ -1,0 +1,8 @@
+[Core]
+Name = diskio_host
+Module = diskio_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Disk I/O crawling function for hosts"
