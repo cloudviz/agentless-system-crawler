@@ -6,6 +6,10 @@ Utilization = collections.namedtuple('Utilization', 'gpu memory')
 
 NVML_TEMPERATURE_GPU = 0
 
+class DummyProcess():
+    pid = 1234
+    usedGpuMemory = 273285120
+
 def nvmlInit():
     pass
 
@@ -34,5 +38,7 @@ def nvmlDeviceGetEnforcedPowerLimit(arg):
 def nvmlDeviceGetUtilizationRates(arg):
     return Utilization(gpu=0, memory=0)
 
-
-
+def nvmlDeviceGetComputeRunningProcesses(arg):
+    p = DummyProcess()
+    return [p]
+    #return [{'pid': 1234, 'usedGpuMemory': 273285120}]
