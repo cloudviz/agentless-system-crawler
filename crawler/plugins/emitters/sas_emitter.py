@@ -110,7 +110,16 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
         params.update({'namespace': namespace})
         params.update({'features': features})
         params.update({'timestamp': timestamp})
-        params.update({'source_type': system_type})
+
+        # load source_type from env variables
+        # if not set, it uses system_type as a default value
+        # live crawler should be set it as 'container' and
+        # reg crawler should be set it as 'image'
+        if 'SOURCE_TYPE' in os.environ:
+            source_type = os.environ['SOURCE_TYPE']
+            params.update({'source_type': source_type})
+        else:
+            params.update({'source_type': system_type})
 
         self.url = self.url.replace('sas:', 'https:')
 
