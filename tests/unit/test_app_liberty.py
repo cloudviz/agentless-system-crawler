@@ -1,5 +1,4 @@
 from unittest import TestCase
-
 import mock
 from plugins.applications.liberty import liberty_crawler
 from plugins.applications.liberty import feature
@@ -8,10 +7,45 @@ from plugins.applications.liberty.liberty_container_crawler \
 from plugins.applications.liberty.liberty_host_crawler \
     import LibertyHostCrawler
 from utils.crawler_exceptions import CrawlError
+from requests.exceptions import ConnectionError
 
 
 def mocked_urllib2_open(request):
     return MockedURLResponse()
+
+
+def mock_status_value(user, password, url):
+    raise CrawlError
+
+
+class MockedLibertyContainer1(object):
+
+    def __init__(self, container_id):
+        ports = "[ {\"containerPort\" : \"9443\"} ]"
+        self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
+                        {"annotation.io.kubernetes.container.ports": ports}}}
+
+
+class MockedLibertyContainer2(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["9443"]
+        return ports
+
+
+class MockedLibertyContainer3(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["1234"]
+        return ports
 
 
 class MockedURLResponse(object):
@@ -72,44 +106,6 @@ def server_status_value(user, password, url):
 
     if last_word in return_value:
         return return_value.get(last_word)
-
-
-class MockedLibertyContainer(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'liberty'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
-
-    def get_container_ports(self):
-        ports = [8080, 443]
-        return ports
-
-
-class MockedNoPortContainer(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'liberty'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
-
-    def get_container_ports(self):
-        ports = []
-        return ports
-
-
-class MockedNoNameContainer(object):
-
-    def __init__(self, container_id):
-        self.image_name = 'dummy'
 
 
 class LibertyCrawlTests(TestCase):
@@ -220,8 +216,26 @@ class LibertyContainerTest(TestCase):
                 'liberty_crawler.retrieve_status_page',
                 server_status_value)
     @mock.patch('dockercontainer.DockerContainer',
-                MockedLibertyContainer)
-    def test_get_metrics(self):
+                MockedLibertyContainer1)
+    @mock.patch(("plugins.applications.liberty.liberty_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_liberty_container_forkube(self, *args):
+        c = LibertyContainerCrawler()
+        options = {"password": "password", "user": "liberty"}
+        emitted = list(c.crawl(**options))
+        self.assertEqual(emitted[0][0], 'liberty_servlet_status')
+        self.assertEqual(emitted[0][2], 'application')
+
+    @mock.patch('plugins.applications.liberty.'
+                'liberty_crawler.retrieve_status_page',
+                server_status_value)
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedLibertyContainer2)
+    @mock.patch(("plugins.applications.liberty.liberty_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_liberty_container_fordocker(self, *args):
         c = LibertyContainerCrawler()
         options = {"password": "password", "user": "liberty"}
         emitted = list(c.crawl(**options))
@@ -229,15 +243,22 @@ class LibertyContainerTest(TestCase):
         self.assertEqual(emitted[0][2], 'application')
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoPortContainer)
-    def test_no_available_port(self):
+                MockedLibertyContainer3)
+    def test_liberty_container_noport(self, *args):
         c = LibertyContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        c.crawl(1234)
+        pass
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoNameContainer)
-    def test_none_liberty_container(self):
+                MockedLibertyContainer1)
+    @mock.patch(("plugins.applications.liberty.liberty_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    @mock.patch('plugins.applications.liberty.'
+                'liberty_crawler.retrieve_metrics',
+                mock_status_value)
+    def test_none_liberty_container(self, *args):
+        options = {"password": "password", "user": "liberty"}
         c = LibertyContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        with self.assertRaises(ConnectionError):
+            c.crawl(1234, **options)

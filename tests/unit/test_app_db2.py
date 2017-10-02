@@ -8,46 +8,39 @@ from plugins.applications.db2.db2_container_crawler \
 from plugins.applications.db2.db2_host_crawler \
     import DB2HostCrawler
 from utils.crawler_exceptions import CrawlError
+from requests.exceptions import ConnectionError
 
 
 pip.main(['install', 'ibm_db'])
 
 
-class MockedNoNameContainer(object):
+class MockedDB2Container1(object):
 
     def __init__(self, container_id):
-        self.image_name = 'dummy'
+        ports = "[ {\"containerPort\" : \"50000\"} ]"
+        self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
+                        {"annotation.io.kubernetes.container.ports": ports}}}
 
 
-class MockedNoPortContainer(object):
+class MockedDB2Container2(object):
 
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'db2'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
 
     def get_container_ports(self):
-        ports = []
+        ports = ["50000"]
         return ports
 
 
-class MockedDB2Container(object):
+class MockedDB2Container3(object):
 
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'db2'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
 
     def get_container_ports(self):
-        ports = [500001, 500000]
+        ports = ["1234"]
         return ports
 
 
@@ -200,35 +193,52 @@ class DB2ContainerTest(TestCase):
                 'db2_crawler.retrieve_metrics',
                 mocked_retrieve_metrics)
     @mock.patch('dockercontainer.DockerContainer',
-                MockedDB2Container)
-    def test_get_metrics(self):
+                MockedDB2Container1)
+    @mock.patch(("plugins.applications.db2.db2_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_db2_container_crawler_forkube(self, *kwargs):
         c = DB2ContainerCrawler()
         options = {"password": "password", "user": "db2inst1", "db": "sample"}
-        emitted = c.crawl(**options)[0]
+        emitted = c.crawl(1234, **options)[0]
+        self.assertEqual(emitted[0], 'db2')
+        self.assertIsInstance(emitted[1], DB2Feature)
+        self.assertEqual(emitted[2], 'application')
+
+    @mock.patch('plugins.applications.db2.'
+                'db2_crawler.retrieve_metrics',
+                mocked_retrieve_metrics)
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedDB2Container2)
+    @mock.patch(("plugins.applications.db2.db2_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_db2_container_crawler_fordocker(self, *kwargs):
+        c = DB2ContainerCrawler()
+        options = {"password": "password", "user": "db2inst1", "db": "sample"}
+        emitted = c.crawl(1234, **options)[0]
         self.assertEqual(emitted[0], 'db2')
         self.assertIsInstance(emitted[1], DB2Feature)
         self.assertEqual(emitted[2], 'application')
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoPortContainer)
+                MockedDB2Container3)
     def test_no_available_port(self):
         c = DB2ContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
-
-    @mock.patch('dockercontainer.DockerContainer',
-                MockedNoNameContainer)
-    def test_none_apache_container(self):
-        c = DB2ContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        c.crawl("mockcontainer")
+        pass
 
     @mock.patch('plugins.applications.db2.'
                 'db2_crawler.retrieve_metrics',
                 mocked_retrieve_metrics_error)
     @mock.patch('dockercontainer.DockerContainer',
-                MockedDB2Container)
-    def test_no_accessible_endpoint(self):
+                MockedDB2Container2)
+    @mock.patch(("plugins.applications.db2.db2_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_no_accessible_endpoint(self, *args):
         c = DB2ContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        with self.assertRaises(ConnectionError):
+            options = {"password": "password",
+                       "user": "db2inst1", "db": "sample"}
+            c.crawl(1234, **options)[0]
