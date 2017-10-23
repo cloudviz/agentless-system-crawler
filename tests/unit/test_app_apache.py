@@ -1,7 +1,5 @@
 from unittest import TestCase
-
 import mock
-
 from plugins.applications.apache import apache_crawler
 from plugins.applications.apache.feature import ApacheFeature
 from plugins.applications.apache.apache_container_crawler \
@@ -9,10 +7,10 @@ from plugins.applications.apache.apache_container_crawler \
 from plugins.applications.apache.apache_host_crawler \
     import ApacheHostCrawler
 from utils.crawler_exceptions import CrawlError
+from requests.exceptions import ConnectionError
 
 
 # expected format from apache status page
-
 def mocked_wrong_status_page(host, port):
     return ('No Acceptable status page format')
 
@@ -80,19 +78,36 @@ class MockedURLResponseWithZero(object):
                 )
 
 
-class MockedApacheContainer(object):
+class MockedApacheContainer1(object):
 
     def __init__(
             self,
             container_id,
     ):
-        self.image_name = 'httpd-container'
+        ports = "[ {\"containerPort\" : \"80\"} ]"
+        self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
+                        {"annotation.io.kubernetes.container.ports": ports}}}
 
-    def get_container_ip(self):
-        return '1.2.3.4'
+
+class MockedApacheContainer2(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
 
     def get_container_ports(self):
-        ports = [80, 443]
+        ports = ["80"]
+        return ports
+
+
+class MockedApacheContainer3(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["1234"]
         return ports
 
 
@@ -225,9 +240,27 @@ class ApacheContainerTest(TestCase):
     @mock.patch('plugins.applications.apache.'
                 'apache_crawler.retrieve_status_page',
                 mocked_retrieve_status_page)
+    @mock.patch(("plugins.applications.apache.apache_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
     @mock.patch('dockercontainer.DockerContainer',
-                MockedApacheContainer)
-    def test_get_metrics(self):
+                MockedApacheContainer1)
+    def test_apache_container_crawler_forkube(self, *args):
+        c = ApacheContainerCrawler()
+        emitted = c.crawl()[0]
+        self.assertEqual(emitted[0], 'apache')
+        self.assertIsInstance(emitted[1], ApacheFeature)
+        self.assertEqual(emitted[2], 'application')
+
+    @mock.patch('plugins.applications.apache.'
+                'apache_crawler.retrieve_status_page',
+                mocked_retrieve_status_page)
+    @mock.patch(("plugins.applications.apache.apache_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedApacheContainer2)
+    def test_apache_container_crawler_docker(self, *args):
         c = ApacheContainerCrawler()
         emitted = c.crawl()[0]
         self.assertEqual(emitted[0], 'apache')
@@ -235,25 +268,21 @@ class ApacheContainerTest(TestCase):
         self.assertEqual(emitted[2], 'application')
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoPortContainer)
-    def test_no_available_port(self):
+                MockedApacheContainer3)
+    def test_no_available_ports(self):
         c = ApacheContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
-
-    @mock.patch('dockercontainer.DockerContainer',
-                MockedNoNameContainer)
-    def test_none_apache_container(self):
-        c = ApacheContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        c.crawl()
+        pass
 
     @mock.patch('plugins.applications.apache.'
                 'apache_crawler.retrieve_status_page',
                 mocked_no_status_page)
+    @mock.patch(("plugins.applications.apache.apache_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
     @mock.patch('dockercontainer.DockerContainer',
-                MockedApacheContainer)
-    def test_no_accessible_endpoint(self):
+                MockedApacheContainer1)
+    def test_no_accessible_endpoint(self, *kwargs):
         c = ApacheContainerCrawler()
-        with self.assertRaises(CrawlError):
+        with self.assertRaises(ConnectionError):
             c.crawl("mockcontainer")
