@@ -1,5 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import glob
 import json
 import logging
@@ -22,6 +23,11 @@ from utils.dockerutils import (exec_dockerps,
                                get_docker_container_rootfs_path,
                                exec_dockerinspect,
                                poll_container_create_events)
+
+try:
+    basestring        # Python 2
+except NameError:
+    basestring = str  # Python 3
 
 logger = logging.getLogger('crawlutils')
 

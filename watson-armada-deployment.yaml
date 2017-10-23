@@ -1,0 +1,77 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: crawler
+  labels:
+    tier: monitoring
+    app: crawler
+    version: v1
+spec:
+  template:
+    metadata:
+      labels:
+        name: crawler
+      annotations:
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"dedicated","value":"gpu-task","effect":"NoSchedule"}]'          
+    spec:
+      hostPID: true
+      hostIPC: true
+      hostNetwork: true
+      #tolerations: 
+      #- key: "dedicated"
+      #  operator: "Equal"
+      #  value: "gpu-task"
+      #  effect: "NoSchedule"          
+      containers:
+              #- resources:
+              #requests:
+              #cpu: 0.1
+        - securityContext:
+            privileged: true
+          # crawler image path from image registry 
+          image: cloudviz/agentless-system-crawler
+          name: crawler
+          command: ["python2.7", "crawler.py", 
+                    "--crawlmode", "INVM", 
+                    "--url", "mtgraphite://metrics.opvis.bluemix.net:9095/<bluemix-space-id>:<logment-token>",
+                    "--namespace","<bluemix-space-id>.dev.$(MY_NODE_NAME)",
+                    "--format","graphite", 
+                    "--features", "gpu", 
+                    "--frequency", "60" ]
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: crawler-cgroup
+              mountPath: /cgroup
+              readOnly: true
+            - name: crawler-fs-cgroup
+              mountPath: /sys/fs/cgroup
+              readOnly: true
+            - name: docker-home
+              mountPath: /var/lib/docker
+              readOnly: true
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+            - name: crawler-output
+              mountPath: /tmp
+      volumes:
+        - name: crawler-cgroup
+          hostPath:
+              path: /cgroup
+        - name: crawler-fs-cgroup
+          hostPath:
+              path: /sys/fs/cgroup
+        - name: docker-home
+          hostPath:
+              path: /var/lib/docker
+        - name: docker-sock
+          hostPath:
+              path: /var/run/docker.sock
+        - name: crawler-output
+          hostPath:
+              path: /tmp
+      nodeSelector:
+          gpu/nvidia: TeslaK80

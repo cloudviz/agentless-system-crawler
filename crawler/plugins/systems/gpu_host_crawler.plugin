@@ -1,0 +1,8 @@
+[Core]
+Name = gpu_host
+Module = gpu_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = GPU metrics crawler for host
