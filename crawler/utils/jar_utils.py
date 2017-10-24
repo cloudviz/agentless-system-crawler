@@ -84,10 +84,9 @@ def _crawl_jar_file(
     frelpath = os.path.normpath(frelpath)
 
     (_, fname) = os.path.split(frelpath)
-    return 
-        JarFeature(
-            os.path.basename(fpath),
-            fpath,
-            jarhash,
-            hashes
-        )
+    return JarFeature(
+        os.path.basename(fpath),
+        fpath,
+        jarhash,
+        hashes
+    )

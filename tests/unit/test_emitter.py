@@ -53,10 +53,10 @@ def mocked_get_sas_token():
     return ('sas-token', 'cloudoe', 'access-group')
 
 class RandomKafkaException(Exception):
-        pass
+    pass
 
 def raise_value_error(*args, **kwargs):
-        raise ValueError()
+    raise ValueError()
 
 def mock_call_with_retries(function, max_retries=10,
                            exception_type=Exception,
