@@ -41,7 +41,7 @@ class JarContainerCrawler(IContainerCrawler):
                 container_id)
             exclude_dirs = [utils.misc.join_abs_paths(rootfs_dir, d)
                             for d in exclude_dirs]
-            return crawl_files(
+            return crawl_jar_files(
                 root_dir=utils.misc.join_abs_paths(rootfs_dir, root_dir),
                 exclude_dirs=exclude_dirs,
                 root_dir_alias=root_dir)

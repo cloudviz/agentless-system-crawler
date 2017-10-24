@@ -46,7 +46,7 @@ def crawl_jar_files(
         for fpath in files:
             if not fpath.endswith('.jar'):
                 continue
-            feature = _crawl_jar_file(root_dir, fpath,root_dir_alias)
+            feature = _crawl_jar_file(root_dir, fpath, root_dir_alias)
             if feature:
                 yield (feature.path, feature, 'jar')
 
