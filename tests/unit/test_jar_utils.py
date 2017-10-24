@@ -39,7 +39,7 @@ class JarUtilsTests(unittest.TestCase):
             assert 'myfile.jar' == jar_feature.name
             assert '48ac85a26ffa7ff5cefdd5c73a9fb888' == jar_feature.jarhash
             assert ['ddc6eff37020aa858e26b1ba8a49ee0e',
-                   'cbe2a13eb99c1c8ac5f30d0a04f8c492'] == jar_feature.hashes
+                    'cbe2a13eb99c1c8ac5f30d0a04f8c492'] == jar_feature.hashes
             assert 'jar' == jars[0][2]
 
         except IOError as e:

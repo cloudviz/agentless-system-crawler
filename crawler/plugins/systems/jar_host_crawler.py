@@ -23,4 +23,4 @@ class JarHostCrawler(IHostCrawler):
                 '/usr/share/mime'],
             **kwargs):
         return crawl_jar_files(root_dir=root_dir,
-                           exclude_dirs=exclude_dirs)
+                               exclude_dirs=exclude_dirs)

@@ -46,8 +46,7 @@ def crawl_jar_files(
         for fpath in files:
             if not fpath.endswith('.jar'):
                 continue
-            feature = _crawl_jar_file(root_dir, fpath,
-                                  root_dir_alias)
+            feature = _crawl_jar_file(root_dir, fpath,root_dir_alias)
             if feature:
                 yield (feature.path, feature, 'jar')
 
@@ -63,13 +62,13 @@ def _crawl_jar_file(
 
     hashes = []
     with zipfile.ZipFile(fpath, 'r') as zf:
-         for info in zf.infolist():
-             if not info.filename.endswith('.class'):
-                 continue
-             data = zf.read(info.filename)
-             md = hashlib.md5()
-             md.update(data)
-             hashes.append(md.hexdigest())
+        for info in zf.infolist():
+            if not info.filename.endswith('.class'):
+                continue
+            data = zf.read(info.filename)
+            md = hashlib.md5()
+            md.update(data)
+            hashes.append(md.hexdigest())
 
     # compute hash of jar file
     with open(fpath, 'rb') as jarin:
@@ -90,4 +89,4 @@ def _crawl_jar_file(
         fpath,
         jarhash,
         hashes
-       )
+        )
