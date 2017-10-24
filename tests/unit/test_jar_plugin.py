@@ -1,6 +1,7 @@
 import unittest
 
 import os
+import sys
 import tempfile
 from zipfile import ZipFile, ZipInfo
 
@@ -11,7 +12,11 @@ from utils.features import JarFeature
 # https://security.openstack.org/guidelines/dg_using-temporary-files-securely.html
 #
 
-class JarUtilsTests(unittest.TestCase):
+sys.path.append('tests/unit/')
+from plugins.systems.jar_host_crawler import JarHostCrawler
+
+
+class GPUPluginTests(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -19,7 +24,7 @@ class JarUtilsTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_get_jar_features(self):
+    def test_jar_host_crawler_plugin(self, *args):
         tmpdir = tempfile.mkdtemp()
         jar_file_name = 'myfile.jar'
 
@@ -33,7 +38,9 @@ class JarUtilsTests(unittest.TestCase):
                 myjar.writestr(ZipInfo('second.class',(1980,1,1,1,1,1)), "second secrets!")
                 myjar.writestr(ZipInfo('second.txt',(1980,1,1,1,1,1)), "second secrets!")
 
-            jars = list(jar_utils.crawl_jar_files(root_dir=tmpdir))
+            fc = JarHostCrawler()
+            jars = list(fc.crawl(root_dir=tmpdir))
+            #jars = list(jar_utils.crawl_jar_files(root_dir=tmpdir))
             print jars
             jar_feature = jars[0][1]
             assert 'myfile.jar' == jar_feature.name
@@ -47,4 +54,3 @@ class JarUtilsTests(unittest.TestCase):
         finally:
             os.remove(path)
             os.umask(saved_umask)
-            os.rmdir(tmpdir)
