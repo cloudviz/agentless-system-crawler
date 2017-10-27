@@ -1,7 +1,5 @@
 from unittest import TestCase
-
 import mock
-
 from plugins.applications.nginx import nginx_crawler
 from plugins.applications.nginx.feature import NginxFeature
 from plugins.applications.nginx.nginx_container_crawler \
@@ -9,6 +7,7 @@ from plugins.applications.nginx.nginx_container_crawler \
 from plugins.applications.nginx.nginx_host_crawler \
     import NginxHostCrawler
 from utils.crawler_exceptions import CrawlError
+from requests.exceptions import ConnectionError
 
 
 # expected format from nginx status page
@@ -21,7 +20,7 @@ def mocked_retrieve_status_page(host, port):
 
 
 def mocked_no_status_page(host, port):
-    #raise urllib2.HTTPError(1,2,3,4,5)
+    # raise urllib2.HTTPError(1,2,3,4,5)
     raise Exception
 
 
@@ -43,42 +42,34 @@ class MockedURLResponse(object):
                 )
 
 
-class MockedNginxContainer(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'nginx-container'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
-
-    def get_container_ports(self):
-        ports = [80, 443]
-        return ports
-
-
-class MockedNoPortContainer(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'nginx-container'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
-
-    def get_container_ports(self):
-        ports = []
-        return ports
-
-
-class MockedNoNameContainer(object):
+class MockedNginxContainer1(object):
 
     def __init__(self, container_id):
-        self.image_name = 'dummy'
+        ports = "[ {\"containerPort\" : \"80\"} ]"
+        self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
+                        {"annotation.io.kubernetes.container.ports": ports}}}
+
+
+class MockedNginxContainer2(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["80"]
+        return ports
+
+
+class MockedNginxContainer3(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["1234"]
+        return ports
 
 
 class NginxCrawlTests(TestCase):
@@ -156,8 +147,26 @@ class NginxContainerTest(TestCase):
                 'nginx_crawler.retrieve_status_page',
                 mocked_retrieve_status_page)
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNginxContainer)
-    def test_get_metrics(self):
+                MockedNginxContainer1)
+    @mock.patch(("plugins.applications.nginx.nginx_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_nginx_container_forkube(self, *args):
+        c = NginxContainerCrawler()
+        emitted = c.crawl()[0]
+        self.assertEqual(emitted[0], 'nginx')
+        self.assertIsInstance(emitted[1], NginxFeature)
+        self.assertEqual(emitted[2], 'application')
+
+    @mock.patch('plugins.applications.nginx.'
+                'nginx_crawler.retrieve_status_page',
+                mocked_retrieve_status_page)
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedNginxContainer2)
+    @mock.patch(("plugins.applications.nginx.nginx_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_nginx_container_fordocker(self, *args):
         c = NginxContainerCrawler()
         emitted = c.crawl()[0]
         self.assertEqual(emitted[0], 'nginx')
@@ -165,25 +174,21 @@ class NginxContainerTest(TestCase):
         self.assertEqual(emitted[2], 'application')
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoPortContainer)
-    def test_no_available_port(self):
+                MockedNginxContainer3)
+    def test_nginx_container_noport(self, *args):
         c = NginxContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
-
-    @mock.patch('dockercontainer.DockerContainer',
-                MockedNoNameContainer)
-    def test_none_nginx_container(self):
-        c = NginxContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        c.crawl(1234)
+        pass
 
     @mock.patch('plugins.applications.nginx.'
                 'nginx_crawler.retrieve_status_page',
                 mocked_no_status_page)
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNginxContainer)
-    def test_no_accessible_endpoint(self):
+                MockedNginxContainer2)
+    @mock.patch(("plugins.applications.nginx.nginx_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_no_accessible_endpoint(self, *arg):
         c = NginxContainerCrawler()
-        with self.assertRaises(CrawlError):
+        with self.assertRaises(ConnectionError):
             c.crawl("mockcontainer")

@@ -9,12 +9,10 @@ from plugins.applications.redis.redis_container_crawler \
     import RedisContainerCrawler
 from requests.exceptions import ConnectionError
 
-
 pip.main(['install', 'redis'])
 
 
 class MockedRedisClient(object):
-
     def __init__(self, host='localhost', port=6379):
         self.host = host
         self.port = port
@@ -132,30 +130,17 @@ class MockedRedisClient3(object):
 
 class MockedRedisContainer1(object):
 
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'redis-container'
-
-    def get_container_ip(self):
-        return "1.2.3.4"
-
-    def get_container_ports(self):
-        ports = ["6379"]
-        return ports
+    def __init__(self, container_id):
+        ports = "[ {\"containerPort\" : \"6379\"} ]"
+        self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
+                        {"annotation.io.kubernetes.container.ports": ports}}}
 
 
 class MockedRedisContainer2(object):
 
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'dummy'
-
-    def get_container_ip(self):
-        return "1.2.3.4"
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
 
     def get_container_ports(self):
         ports = ["6379"]
@@ -164,33 +149,12 @@ class MockedRedisContainer2(object):
 
 class MockedRedisContainer3(object):
 
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'redis-no-ports'
-
-    def get_container_ip(self):
-        return "1.2.3.4"
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
 
     def get_container_ports(self):
-        ports = []
-        return ports
-
-
-class MockedRedisContainer4(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'redis-no-ports'
-
-    def get_container_ip(self):
-        return "1.2.3.4"
-
-    def get_container_ports(self):
-        ports = ["80", "8080"]
+        ports = ["1234"]
         return ports
 
 
@@ -222,8 +186,11 @@ class RedisContainerCrawlTests(TestCase):
 
     @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer1)
+    @mock.patch(("plugins.applications.redis.redis_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
     @mock.patch('redis.Redis', MockedRedisClient)
-    def test_redis_container_crawler(self):
+    def test_redis_container_crawler_forkube(self, *args):
         c = RedisContainerCrawler()
         emitted_tuple = c.crawl("mockcontainerid")[0]
         self.assertEqual(emitted_tuple[0], "redis",
@@ -234,27 +201,37 @@ class RedisContainerCrawlTests(TestCase):
 
     @mock.patch('dockercontainer.DockerContainer',
                 MockedRedisContainer2)
-    def test_none_redis_container_crawler(self):
-        c = RedisContainerCrawler()
-        with self.assertRaises(NameError):
-            c.crawl("mockcontainerid")
-
-    @mock.patch('dockercontainer.DockerContainer',
-                MockedRedisContainer4)
-    @mock.patch('redis.Redis', MockedRedisClient2)
-    def test_no_available_ports(self):
-        c = RedisContainerCrawler()
-        with self.assertRaises(ConnectionError):
-            c.crawl("mockcontainerid")
-
-    @mock.patch('dockercontainer.DockerContainer',
-                MockedRedisContainer3)
     @mock.patch('redis.Redis', MockedRedisClient)
-    def test_set_default_port(self):
+    @mock.patch(("plugins.applications.redis.redis_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_redis_container_crawler_fordocker(self, *args):
         c = RedisContainerCrawler()
         emitted_tuple = c.crawl("mockcontainerid")[0]
         self.assertEqual(emitted_tuple[0], "redis",
                          "feature key must be equal to redis")
+        self.assertIsInstance(emitted_tuple[1], RedisFeature)
+        self.assertEqual(emitted_tuple[2], "application",
+                         "feature type must be equal to application")
+
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedRedisContainer3)
+    @mock.patch('redis.Redis', MockedRedisClient)
+    def test_no_available_ports(self):
+        c = RedisContainerCrawler()
+        c.crawl(1234)
+        pass
+
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedRedisContainer2)
+    @mock.patch('redis.Redis', MockedRedisClient2)
+    @mock.patch(("plugins.applications.redis.redis_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_redis_container_no_connect(self, *args):
+        c = RedisContainerCrawler()
+        with self.assertRaises(ConnectionError):
+            c.crawl(1234)
 
 
 class RedisHostCrawlTests(TestCase):

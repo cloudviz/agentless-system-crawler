@@ -1,7 +1,5 @@
 from unittest import TestCase
-
 import mock
-
 from plugins.applications.tomcat import tomcat_crawler
 from plugins.applications.tomcat import feature
 from plugins.applications.tomcat.tomcat_container_crawler \
@@ -9,6 +7,7 @@ from plugins.applications.tomcat.tomcat_container_crawler \
 from plugins.applications.tomcat.tomcat_host_crawler \
     import TomcatHostCrawler
 from utils.crawler_exceptions import CrawlError
+from requests.exceptions import ConnectionError
 
 
 def mocked_urllib2_open(request):
@@ -17,6 +16,10 @@ def mocked_urllib2_open(request):
 
 def mocked_retrieve_status_page(host, port, user, password):
     return server_status_value()
+
+
+def mock_status_value(host, user, password, url):
+    raise CrawlError
 
 
 def server_status_value():
@@ -69,42 +72,34 @@ class MockedURLResponse(object):
         return server_status_value()
 
 
-class MockedTomcatContainer(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'tomcat'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
-
-    def get_container_ports(self):
-        ports = [8080, 443]
-        return ports
-
-
-class MockedNoPortContainer(object):
-
-    def __init__(
-            self,
-            container_id,
-    ):
-        self.image_name = 'tomcat'
-
-    def get_container_ip(self):
-        return '1.2.3.4'
-
-    def get_container_ports(self):
-        ports = []
-        return ports
-
-
-class MockedNoNameContainer(object):
+class MockedTomcatContainer1(object):
 
     def __init__(self, container_id):
-        self.image_name = 'dummy'
+        ports = "[ {\"containerPort\" : \"8080\"} ]"
+        self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
+                        {"annotation.io.kubernetes.container.ports": ports}}}
+
+
+class MockedTomcatContainer2(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["8080"]
+        return ports
+
+
+class MockedTomcatContainer3(object):
+
+    def __init__(self, container_id):
+        self.inspect = {"State": {"Pid": 1234},
+                        "Config": {"Labels": {"dummy": "dummy"}}}
+
+    def get_container_ports(self):
+        ports = ["1234"]
+        return ports
 
 
 class TomcatCrawlTests(TestCase):
@@ -252,8 +247,26 @@ class TomcatContainerTest(TestCase):
                 'tomcat_crawler.retrieve_status_page',
                 mocked_retrieve_status_page)
     @mock.patch('dockercontainer.DockerContainer',
-                MockedTomcatContainer)
-    def test_get_metrics(self):
+                MockedTomcatContainer1)
+    @mock.patch(("plugins.applications.tomcat.tomcat_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_tomcat_container_forkube(self, *args):
+        c = TomcatContainerCrawler()
+        options = {"password": "password", "user": "tomcat"}
+        emitted = list(c.crawl(**options))
+        self.assertEqual(emitted[0][0], 'tomcat_jvm')
+        self.assertEqual(emitted[0][2], 'application')
+
+    @mock.patch('plugins.applications.tomcat.'
+                'tomcat_crawler.retrieve_status_page',
+                mocked_retrieve_status_page)
+    @mock.patch('dockercontainer.DockerContainer',
+                MockedTomcatContainer2)
+    @mock.patch(("plugins.applications.tomcat.tomcat_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    def test_tomcat_container_fordocker(self, *args):
         c = TomcatContainerCrawler()
         options = {"password": "password", "user": "tomcat"}
         emitted = list(c.crawl(**options))
@@ -261,15 +274,22 @@ class TomcatContainerTest(TestCase):
         self.assertEqual(emitted[0][2], 'application')
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoPortContainer)
-    def test_no_available_port(self):
+                MockedTomcatContainer3)
+    def test_tomcat_container_noport(self, *args):
         c = TomcatContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        c.crawl(1234)
+        pass
 
     @mock.patch('dockercontainer.DockerContainer',
-                MockedNoNameContainer)
-    def test_none_tomcat_container(self):
+                MockedTomcatContainer1)
+    @mock.patch(("plugins.applications.tomcat.tomcat_container_crawler."
+                 "run_as_another_namespace"),
+                return_value=['127.0.0.1', '1.2.3.4'])
+    @mock.patch('plugins.applications.tomcat.'
+                'tomcat_crawler.retrieve_metrics',
+                mock_status_value)
+    def test_none_tomcat_container(self, *args):
+        options = {"password": "password", "user": "tomcat"}
         c = TomcatContainerCrawler()
-        with self.assertRaises(CrawlError):
-            c.crawl("mockcontainer")
+        with self.assertRaises(ConnectionError):
+            c.crawl(1234, **options)
