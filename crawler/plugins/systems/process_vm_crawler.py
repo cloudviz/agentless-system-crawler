@@ -84,6 +84,9 @@ class process_vm_crawler(IVMCrawler):
         for f in p.get_open_files():
             openfiles.append(f.path)
         openfiles.sort()
+
+        mmapfiles = []
+
         feature_key = '{0}/{1}'.format(name, pid)
         return (feature_key, ProcessFeature(
             str(' '.join(cmdline)),
@@ -91,6 +94,7 @@ class process_vm_crawler(IVMCrawler):
             cwd,
             name,
             openfiles,
+            mmapfiles,
             pid,
             ppid,
             num_threads,
