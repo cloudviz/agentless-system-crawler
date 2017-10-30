@@ -70,6 +70,11 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
         # sleep + crawler
         assert len(list(fc.crawl(self.container['Id']))) == 2
 
+    def test_crawl_outcontainer_processes_mmapfiles(self):
+        fc = ProcessContainerCrawler()
+        output = "%s" % list(fc.crawl(self.container['Id'], get_mmap_files='True'))
+        assert '/bin/busybox' in output
+
     def test_crawl_outcontainer_mem(self):
         fc = MemoryContainerCrawler()
         output = "%s" % list(fc.crawl(self.container['Id']))

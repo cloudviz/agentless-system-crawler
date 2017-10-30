@@ -45,6 +45,7 @@ ProcessFeature = namedtuple('ProcessFeature', [
     'cwd',
     'pname',
     'openfiles',
+    'mmapfiles',
     'pid',
     'ppid',
     'threads',
