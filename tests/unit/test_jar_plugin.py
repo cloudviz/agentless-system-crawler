@@ -16,7 +16,7 @@ sys.path.append('tests/unit/')
 from plugins.systems.jar_host_crawler import JarHostCrawler
 
 
-class GPUPluginTests(unittest.TestCase):
+class JarHashesPluginTests(unittest.TestCase):
 
     def setUp(self):
         pass
