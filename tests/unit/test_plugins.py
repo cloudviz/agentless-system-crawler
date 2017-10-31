@@ -630,7 +630,7 @@ class PluginTests(unittest.TestCase):
                 myjar.writestr(ZipInfo('second.class',(1980,1,1,1,1,1)), "second secrets!")
                 myjar.writestr(ZipInfo('second.txt',(1980,1,1,1,1,1)), "second secrets!")
 
-            fc = JarHostCrawler()
+            fc = JarContainerCrawler()
             jars = list(fc.crawl(root_dir=tmpdir))
             #jars = list(jar_utils.crawl_jar_files(root_dir=tmpdir))
             print jars
