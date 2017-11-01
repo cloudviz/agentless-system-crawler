@@ -662,7 +662,7 @@ class PluginTests(unittest.TestCase):
     @mock.patch(
         ("plugins.systems.jar_container_crawler.utils.dockerutils."
             "get_docker_container_rootfs_path"),
-        side_effect=lambda long_id: '/1/2/3')
+        side_effect=lambda long_id: '/tmp')
     def test_jar_container_crawler_avoidsetns(self, *args):
         tmpdir = tempfile.mkdtemp()
         jar_file_name = 'myfile.jar'
@@ -678,8 +678,7 @@ class PluginTests(unittest.TestCase):
                 myjar.writestr(ZipInfo('second.txt',(1980,1,1,1,1,1)), "second secrets!")
 
             fc = JarContainerCrawler()
-            jars = list(fc.crawl(root_dir=tmpdir))
-            #jars = list(jar_utils.crawl_jar_files(root_dir=tmpdir))
+            jars = list(fc.crawl(root_dir=os.path.basename(tmpdir), avoid_setns=True))
             print jars
             jar_feature = jars[0][1]
             assert 'myfile.jar' == jar_feature.name
