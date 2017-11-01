@@ -617,19 +617,13 @@ class PluginTests(unittest.TestCase):
         args[2].assert_called_with('/')
 
     @mock.patch(
-        ("plugins.systems.file_container_crawler."
+        ("plugins.systems.jar_container_crawler."
             "utils.dockerutils.exec_dockerinspect"),
         side_effect=lambda long_id: {'State': {'Pid': 123}})
     @mock.patch(
-        ("plugins.systems.file_container_crawler."
+        ("plugins.systems.jar_container_crawler."
             "run_as_another_namespace"),
         side_effect=mocked_run_as_another_namespace)
-    @mock.patch('utils.file_utils.os.path.isdir',
-                side_effect=lambda p: True)
-    @mock.patch('utils.file_utils.os.walk',
-                side_effect=mocked_os_walk)
-    @mock.patch('utils.file_utils.os.lstat',
-                side_effect=mocked_os_lstat)
     def test_jar_container_crawler_plugin(self, *args):
         tmpdir = tempfile.mkdtemp()
         jar_file_name = 'myfile.jar'
