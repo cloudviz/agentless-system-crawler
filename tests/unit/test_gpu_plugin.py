@@ -32,4 +32,4 @@ class GPUPluginTests(unittest.TestCase):
                     "power": {"draw": 27, "limit": 149},
                     "utilization": {"gpu": 0, "memory": 0}
                 }'
-            assert gpu_metric[2] = 'gpu'
+            assert gpu_metric[2] == 'gpu'
