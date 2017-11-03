@@ -24,12 +24,12 @@ class GPUPluginTests(unittest.TestCase):
         fc = GPUHostCrawler()
         for gpu_metrics in fc.crawl():
             print gpu_metrics
-            assert 'gpu0.NA' in gpu_metrics[0]
-            assert gpu_metrics[1] == '
+            assert gpu_metrics == (
+                '127/0/0/1.gpu0.NA',
                 {
                     "memory": {"total": 12205, "used": 0, "free": 12205},
                     "temperature": 31,
                     "power": {"draw": 27, "limit": 149},
                     "utilization": {"gpu": 0, "memory": 0}
-                }'
-            assert gpu_metric[2] == 'gpu'
+                },
+                'gpu')            
