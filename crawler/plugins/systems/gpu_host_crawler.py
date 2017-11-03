@@ -6,6 +6,7 @@ import sys
 import psutil
 from icrawl_plugin import IHostCrawler
 from utils.dockerutils import exec_dockerps
+from utils.misc import get_host_ipaddr
 
 logger = logging.getLogger('crawlutils')
 pynvml = None
@@ -66,7 +67,12 @@ class GPUHostCrawler(IHostCrawler):
             cont_pid = int(state['Pid'])
             cont_child_pids = self._get_children_pids(cont_pid)
             if pid in cont_child_pids:
-                return inspect['Name']
+                labels = inspect['Config']['Labels']
+                pod_ns = labels.get('io.kubernetes.pod.namespace', 'NA')
+                pod_name = labels.get('io.kubernetes.pod.name', 'NA')
+                training_id = labels.get('training_id', pod_name)
+                name = "{}.{}".format(pod_ns, training_id)
+                return name
         return 'NA'
 
     def _get_container_id(self, gpuhandle):
@@ -85,10 +91,11 @@ class GPUHostCrawler(IHostCrawler):
             logger.debug('Failed to get pid on gpu: ', err)
 
     def _get_feature_key(self, gpuhandle, gpuid):
-        key = 'gpu{}'.format(gpuid)
+        hostip = get_host_ipaddr().replace('.', '/')
+        key = '{}.gpu{}'.format(hostip, gpuid)
         cont_ids = self._get_container_id(gpuhandle)
         for cont_id in cont_ids:
-            key = key + '.' + 'containerid:' + cont_id
+            key = key + '.' + cont_id
         return key
 
     def crawl(self, **kwargs):
