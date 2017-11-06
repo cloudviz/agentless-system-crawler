@@ -14,11 +14,13 @@ class GPUPluginTests(unittest.TestCase):
         pass
 
     @mock.patch(
+        'plugins.systems.gpu_host_crawler.get_host_ipaddr',
+        #'plugins.systems.gpu_host_crawler.utils.misc.get_host_ipaddr',
+        #'utils.misc.get_host_ipaddr',
+        side_effect=lambda: "127.0.0.1")
+    @mock.patch(
         'plugins.systems.gpu_host_crawler.GPUHostCrawler._load_nvidia_lib',
         side_effect=lambda: 1)
-    @mock.patch(
-        'plugins.systems.gpu_host_crawler.utils.misc.get_host_ipaddr',
-        side_effect=lambda: "127.0.0.1")
     def test_os_gpu_host_crawler_plugin(self, *args):
         fc = GPUHostCrawler()
         for gpu_metrics in fc.crawl():
