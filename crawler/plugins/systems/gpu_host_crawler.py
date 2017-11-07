@@ -65,13 +65,14 @@ class GPUHostCrawler(IHostCrawler):
         for inspect in self.inspect_arr:
             state = inspect['State']
             cont_pid = int(state['Pid'])
+            cont_name = inspect['Name']
             cont_child_pids = self._get_children_pids(cont_pid)
             if pid in cont_child_pids:
                 labels = inspect['Config']['Labels']
-                pod_ns = labels.get('io.kubernetes.pod.namespace', 'NA')
-                pod_name = labels.get('io.kubernetes.pod.name', 'NA')
-                training_id = labels.get('training_id', pod_name)
-                name = "{}.{}".format(pod_ns, training_id)
+                namespace = labels.get('io.kubernetes.pod.namespace', 'NA')
+                pod_name = labels.get('io.kubernetes.pod.name', cont_name)
+                cont_idx = labels.get('training_id', pod_name)
+                name = "{}.{}".format(namespace, cont_idx)
                 return name
         return 'NA'
 
