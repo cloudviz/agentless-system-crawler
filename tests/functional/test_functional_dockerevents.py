@@ -200,7 +200,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
         time.sleep(30)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
-        
+
         files = os.listdir(self.tempd + '/out')
         docker_server_version = self.docker.version()['Version']
         if VERSION_SPEC.match(semantic_version.Version(_fix_version(docker_server_version))):
