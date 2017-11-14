@@ -93,11 +93,12 @@ def main():
             Modes.OUTVM,
             Modes.MOUNTPOINT,
             Modes.OUTCONTAINER,
+            Modes.OUTCONTAINERSAFE,
             Modes.MESOS,
         ],
         default=Modes.INVM,
         help='The crawler mode: '
-             '{INVM,OUTVM,MOUNTPOINT,OUTCONTAINER}. '
+             '{INVM,OUTVM,MOUNTPOINT,OUTCONTAINER,OUTCONTAINERSAFE}. '
              'Defaults to INVM',
     )
     parser.add_argument(
@@ -221,6 +222,15 @@ def main():
             user_list=args.vm_descs_list,
             host_namespace=args.namespace,
             plugin_places=args.plugin_places,
+            options=options)
+    elif args.crawlmode == 'OUTCONTAINERSAFE':
+        crawler = SafeContainersCrawler(
+            features=args.features,
+            environment=args.environment,
+            user_list=args.crawlContainers,
+            host_namespace=args.namespace,
+            plugin_places=args.plugin_places,
+            frequency=args.frequency,
             options=options)
     else:
         raise NotImplementedError('Invalid crawlmode')
