@@ -5,7 +5,6 @@ import os
 import shutil
 import mock
 
-import utils.dockerutils
 import dockercontainer
 
 # Tests dockercontainer._get_logfiles_list
@@ -82,6 +81,7 @@ class DockerContainerTests(unittest.TestCase):
                 assert os.path.basename(log.dest) in self.log_file_list
                 assert os.path.basename(
                     log.source) in self.log_file_list
+
 
 if __name__ == '__main__':
     logging.basicConfig(

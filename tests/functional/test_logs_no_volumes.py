@@ -5,7 +5,6 @@ import os
 import shutil
 import mock
 
-import utils.dockerutils
 import dockercontainer
 
 
@@ -79,6 +78,7 @@ class DockerContainerTests(unittest.TestCase):
                     log.dest, self.host_log_dir +
                     '/data/test1.log'
                 )
+
 
 if __name__ == '__main__':
     logging.basicConfig(

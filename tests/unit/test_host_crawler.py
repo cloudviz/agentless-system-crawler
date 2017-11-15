@@ -45,7 +45,7 @@ class HostCrawlerTests(unittest.TestCase):
     def test_failed_host_crawler(self, *args):
         crawler = HostCrawler(features=['os', 'cpu'], namespace='localhost')
         with self.assertRaises(OSError):
-            frames = list(crawler.crawl(ignore_plugin_exception=False))
+            frames = list(crawler.crawl(ignore_plugin_exception=False))  # noqa
         assert args[0].call_count == 1
 
     @mock.patch(
@@ -68,6 +68,7 @@ class HostCrawlerTests(unittest.TestCase):
         system_types = [f.metadata['system_type'] for f in frames]
         assert system_types == ['host']
         assert args[0].call_count == 1
+
 
 if __name__ == '__main__':
     unittest.main()

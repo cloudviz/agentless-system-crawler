@@ -7,14 +7,11 @@ import shutil
 import subprocess
 import sys
 import json
+import logging
 
 # Tests for crawlers in kubernetes crawlers configuration.
 
 from containers_crawler import ContainersCrawler
-from worker import Worker
-from emitters_manager import EmittersManager
-
-import logging
 
 # Tests conducted with a single container running.
 
@@ -23,6 +20,7 @@ POD_NAME = "io.kubernetes.pod.name"
 POD_UID = "io.kubernetes.pod.uid"
 POD_NS = "io.kubernetes.pod.namespace"
 K8S_DELIMITER = "/"
+
 
 class ContainersCrawlerTests(unittest.TestCase):
 
@@ -45,26 +43,25 @@ class ContainersCrawlerTests(unittest.TestCase):
         self.k8s_labels[POD_NS] = "devtest"
         try:
             if len(self.docker.containers()) != 0:
-                raise Exception(
-                    "Sorry, this test requires a machine with no docker"
-                    "containers running.")
+                raise Exception("Sorry, this test requires a machine with no "
+                                "docker containers running.")
         except requests.exceptions.ConnectionError:
-            print ("Error connecting to docker daemon, are you in the docker"
-                   "group? You need to be in the docker group.")
+            print("Error connecting to docker daemon, are you in the docker"
+                  "group? You need to be in the docker group.")
 
         self.start_crawled_container()
 
     def start_crawled_container(self):
         # start a container to be crawled
         self.docker.pull(repository='ubuntu', tag='latest')
-        self.container = self.docker.create_container(
-            image='ubuntu:latest', labels = self.k8s_labels, command='/bin/sleep 60')
+        self.container = self.docker.create_container(image='ubuntu:latest',
+                                                      labels=self.k8s_labels,
+                                                      command='/bin/sleep 60')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
         self.docker.start(container=self.container['Id'])
 
     def tearDown(self):
         self.remove_crawled_container()
-
         shutil.rmtree(self.tempd)
 
     def remove_crawled_container(self):
@@ -81,7 +78,7 @@ class ContainersCrawlerTests(unittest.TestCase):
             environment='kubernetes')
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'interface-lo' in output
         assert 'if_octets_tx=' in output
         assert 'cpu-0' in output
@@ -115,19 +112,19 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        print(output)  # only printed if the test fails
         sample_out = output.split('\n')[0]
-        print sample_out
+        print(sample_out)
         namespace_parts = sample_out.split(".")[:4]
         assert len(namespace_parts) == 4
         assert namespace_parts[0] == self.k8s_labels[POD_NS]
@@ -136,7 +133,6 @@ class ContainersCrawlerTests(unittest.TestCase):
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
-        f.close()
 
     '''
     Test for csv o/p format
@@ -162,17 +158,17 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        print(output)  # only printed if the test fails
         metadata_frame = output.split('\n')[0]
         metadata_str = metadata_frame.split()[2]
         metadata_json = json.loads(metadata_str)
@@ -186,7 +182,6 @@ class ContainersCrawlerTests(unittest.TestCase):
         assert 'interface-lo' in output
         assert 'cpu-0' in output
         assert 'memory' in output
-        f.close()
 
     '''
     Test for json o/p format
@@ -212,17 +207,17 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
         files = os.listdir(self.tempd + '/out')
         assert len(files) == 1
 
-        f = open(self.tempd + '/out/' + files[0], 'r')
-        output = f.read()
-        print output  # only printed if the test fails
+        with open(self.tempd + '/out/' + files[0], 'r') as f:
+            output = f.read()
+        print(output)  # only printed if the test fails
         sample_out = output.split('\n')[0]
         metadata_json = json.loads(sample_out)
         namespace_str = metadata_json['namespace']
@@ -235,7 +230,6 @@ class ContainersCrawlerTests(unittest.TestCase):
         assert 'memory_used' in output
         assert 'if_octets_tx' in output
         assert 'cpu_idle' in output
-        f.close()
 
 
 if __name__ == '__main__':

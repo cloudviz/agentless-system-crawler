@@ -479,8 +479,8 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('dockercontainer.get_docker_container_rootfs_path',
                 side_effect=mocked_get_rootfs)
     @mock.patch('dockercontainer.os.path.ismount',
-                side_effect=lambda x:
-                True if x == '/cgroup/cpuacct' or '/cgroup/cpu,cpuacct' else False)
+                side_effect=lambda x: x in ('/cgroup/cpuacct',
+                                            '/cgroup/cpu,cpuacct'))
     def test_cpu_cgroup(
             self,
             mocked_ismount,
@@ -490,8 +490,8 @@ class DockerDockerContainerTests(unittest.TestCase):
             mocked_dockerps):
         c = DockerContainer("good_id")
         assert c.get_cpu_cgroup_path(
-            'abc') == ("/cgroup/cpuacct/docker/good_id/"
-                       "abc") or ("cgroup/cpu,cpuacct/docker/good_id/abc")
+            'abc') in ("/cgroup/cpuacct/docker/good_id/abc",
+                       "cgroup/cpu,cpuacct/docker/good_id/abc")
 
     @mock.patch('dockercontainer.exec_dockerps',
                 side_effect=mocked_exec_dockerps)
