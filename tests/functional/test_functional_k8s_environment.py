@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import docker
 import requests.exceptions
@@ -81,7 +82,7 @@ class ContainersCrawlerTests(unittest.TestCase):
             environment='kubernetes')
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'interface-lo' in output
         assert 'if_octets_tx=' in output
         assert 'cpu-0' in output
@@ -115,8 +116,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -125,9 +126,9 @@ class ContainersCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         sample_out = output.split('\n')[0]
-        print sample_out
+        print(sample_out)
         namespace_parts = sample_out.split(".")[:4]
         assert len(namespace_parts) == 4
         assert namespace_parts[0] == self.k8s_labels[POD_NS]
@@ -162,8 +163,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -172,7 +173,7 @@ class ContainersCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         metadata_frame = output.split('\n')[0]
         metadata_str = metadata_frame.split()[2]
         metadata_json = json.loads(metadata_str)
@@ -212,8 +213,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -222,7 +223,7 @@ class ContainersCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         sample_out = output.split('\n')[0]
         metadata_json = json.loads(sample_out)
         namespace_str = metadata_json['namespace']

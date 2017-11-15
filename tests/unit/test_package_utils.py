@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 
 import mock
@@ -27,7 +28,7 @@ class PackageUtilsTests(unittest.TestCase):
                 side_effect=mocked_subprocess_run)
     def test_get_dpkg_packages(self, mock_subprocess_run):
         pkgs = list(package_utils.get_dpkg_packages())
-        print pkgs
+        print(pkgs)
         assert pkgs == [
             ('pkg1',
              PackageFeature(
@@ -48,7 +49,7 @@ class PackageUtilsTests(unittest.TestCase):
                 side_effect=mocked_subprocess_run)
     def test_get_rpm_packages(self, mock_subprocess_run):
         pkgs = list(package_utils.get_rpm_packages())
-        print pkgs
+        print(pkgs)
         assert pkgs == [
             ('pkg1',
              PackageFeature(
@@ -69,7 +70,7 @@ class PackageUtilsTests(unittest.TestCase):
                 side_effect=mocked_subprocess_run)
     def test_get_rpm_packages_with_db_reload(self, mock_subprocess_run):
         pkgs = list(package_utils.get_rpm_packages(reload_needed=True))
-        print pkgs
+        print(pkgs)
         assert pkgs == [
             ('pkg1',
              PackageFeature(

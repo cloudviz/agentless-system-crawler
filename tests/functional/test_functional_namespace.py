@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging
 import shutil
 import sys
@@ -33,7 +34,7 @@ class FooError(Exception):
 
 
 def func_crash(arg, *args, **kwargs):
-    print locals()
+    print(locals())
     raise FooError("oops")
 
 
@@ -65,7 +66,7 @@ class NamespaceLibTests(unittest.TestCase):
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
         self.docker.start(container=self.container['Id'])
         inspect = self.docker.inspect_container(self.container['Id'])
-        print inspect
+        print(inspect)
         self.pid = str(inspect['State']['Pid'])
 
     def tearDown(self):
@@ -78,24 +79,24 @@ class NamespaceLibTests(unittest.TestCase):
         res = run_as_another_namespace(
             self.pid, all_namespaces, func_args, "arg1", "arg2")
         assert res == "test arg1 arg2"
-        print sys._getframe().f_code.co_name, 1
+        print(sys._getframe().f_code.co_name, 1)
 
     def test_run_as_another_namespace_function_kwargs(self):
         res = run_as_another_namespace(
             self.pid, all_namespaces, func_kwargs, arg1="arg1", arg2="arg2")
         assert res == "test arg1 arg2"
-        print sys._getframe().f_code.co_name, 1
+        print(sys._getframe().f_code.co_name, 1)
 
     def test_run_as_another_namespace_function_mixed_args(self):
         res = run_as_another_namespace(
             self.pid, all_namespaces, func_mixed_args, "arg1", arg2="arg2")
         assert res == "test arg1 arg2"
-        print sys._getframe().f_code.co_name, 1
+        print(sys._getframe().f_code.co_name, 1)
 
     def test_run_as_another_namespace_simple_function_no_args(self):
         res = run_as_another_namespace(self.pid, all_namespaces, func_no_args)
         assert res == "test default"
-        print sys._getframe().f_code.co_name, 1
+        print(sys._getframe().f_code.co_name, 1)
 
     def test_run_as_another_namespace_crashing_function(self):
         with self.assertRaises(FooError):

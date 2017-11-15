@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import cStringIO
 from yapsy.IPlugin import IPlugin
-from formatters import (write_in_csv_format,
+from .formatters import (write_in_csv_format,
                         write_in_json_format,
                         write_in_graphite_format,
                         write_in_logstash_format)
-from utils.crawler_exceptions import (EmitterUnsupportedFormat)
+from .utils.crawler_exceptions import (EmitterUnsupportedFormat)
 
 
 class IEmitter(IPlugin):

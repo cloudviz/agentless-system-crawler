@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import os
 import multiprocessing
 import Queue
@@ -8,7 +9,7 @@ import sys
 import types
 import signal
 import ctypes
-from crawler_exceptions import (CrawlTimeoutError,
+from .crawler_exceptions import (CrawlTimeoutError,
                                 CrawlError,
                                 NamespaceFailedSetns)
 

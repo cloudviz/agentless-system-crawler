@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import docker
 import requests.exceptions
@@ -27,7 +28,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
                 raise Exception(
                     "Sorry, this test requires a machine with no docker containers running.")
         except requests.exceptions.ConnectionError as e:
-            print "Error connecting to docker daemon, are you in the docker group? You need to be in the docker group."
+            print("Error connecting to docker daemon, are you in the docker group? You need to be in the docker group.")
 
         self.docker.pull(repository='alpine', tag='latest')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest-events.')

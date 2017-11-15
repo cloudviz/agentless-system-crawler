@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging
 import mock
 import os
@@ -43,7 +44,7 @@ def simulate_socket_datacollector(params):
     filename = os.path.join(output_dir, filepattern)
     with open(filename, 'w') as f:
         f.write(FPROBE_FRAME)
-        print 'Write file %s' % filename
+        print('Write file %s' % filename)
     with open(filename + ".tmp", 'w') as f:
         f.write(FPROBE_FRAME)
 

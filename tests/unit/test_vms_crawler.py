@@ -1,3 +1,4 @@
+from __future__ import print_function
 import mock
 import unittest
 from vms_crawler import VirtualMachinesCrawler
@@ -18,7 +19,7 @@ class MockedCPUCrawler:
 class MockedOSCrawlerFailure:
 
     def crawl(self, vm_desc, **kwargs):
-        print vm_desc
+        print(vm_desc)
         if vm_desc[0] == 'errorpid':
             raise OSError('some exception')
         else:

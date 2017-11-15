@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import socket
 import unittest
@@ -10,7 +11,7 @@ import utils.misc
 class MockedSocket1():
 
     def __init__(self, a, b):
-        print a, b
+        print(a, b)
         pass
 
     def connect(self, dest):
@@ -23,7 +24,7 @@ class MockedSocket1():
 class MockedSocket2():
 
     def __init__(self, a, b):
-        print a, b
+        print(a, b)
         pass
 
     def connect(self, dest):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import cStringIO
 import gzip
 import sys
@@ -34,7 +35,7 @@ class StdoutEmitter(IEmitter):
             gzip_file = gzip.GzipFile(fileobj=tempio, mode='w')
             gzip_file.write(string)
             gzip_file.close()
-            print tempio.getvalue()
+            print(tempio.getvalue())
         else:
-            print "%s" % string
+            print("%s" % string)
         sys.stdout.flush()

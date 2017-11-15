@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 import logging
 
 from configobj import ConfigObj
 from validate import Validator
 
-from utils import misc
+from .utils import misc
 
 CONFIG_SPEC_PATH = 'config_spec_and_defaults.conf'
 

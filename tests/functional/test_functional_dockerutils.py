@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging
 import unittest
 import docker
@@ -67,18 +68,18 @@ class DockerUtilsTests(unittest.TestCase):
 
     def test_docker_history(self):
         history = exec_docker_history(self.container['Id'])
-        print history[0]
+        print(history[0])
         assert self.image_name in history[0][
             'Tags'] or self.long_image_name in history[0]['Tags']
 
     def test_dockerinspect(self):
         inspect = exec_dockerinspect(self.container['Id'])
-        print inspect
+        print(inspect)
         assert self.container['Id'] == inspect['Id']
 
     def test_get_container_rootfs(self):
         root = get_docker_container_rootfs_path(self.container['Id'])
-        print root
+        print(root)
         assert root.startswith('/var/lib/docker')
 
     if __name__ == '__main__':

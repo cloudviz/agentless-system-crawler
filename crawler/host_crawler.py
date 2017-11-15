@@ -1,5 +1,6 @@
-import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
+from __future__ import absolute_import
+from . import plugins_manager
+from .base_crawler import BaseCrawler, BaseFrame
 
 
 class HostFrame(BaseFrame):

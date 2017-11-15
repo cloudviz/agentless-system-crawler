@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 
-import container
-from utils import misc
-from dockercontainer import get_docker_containers, poll_docker_containers
+from . import container
+from .utils import misc
+from .dockercontainer import get_docker_containers, poll_docker_containers
 
 logger = logging.getLogger('crawlutils')
 

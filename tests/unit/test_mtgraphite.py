@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 
 import mock
@@ -18,7 +19,7 @@ class MockedSocket:
 class MockedConnection:
 
     def __init__(self):
-        print 'init mocked connection'
+        print('init mocked connection')
 
     def connect(self, *args):
         pass
@@ -39,7 +40,7 @@ class MockedConnection:
 class MockedConnectionBadPassword:
 
     def __init__(self):
-        print 'init mocked connection'
+        print('init mocked connection')
 
     def connect(self, *args):
         pass

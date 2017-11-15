@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 
 import os
@@ -24,7 +25,7 @@ class JarUtilsTests(unittest.TestCase):
         jar_file_name = 'myfile.jar'
 
         # Ensure the file is read/write by the creator only
-        saved_umask = os.umask(0077)
+        saved_umask = os.umask(0o077)
 
         path = os.path.join(tmpdir, jar_file_name)
         try:
@@ -34,7 +35,7 @@ class JarUtilsTests(unittest.TestCase):
                 myjar.writestr(ZipInfo('second.txt',(1980,1,1,1,1,1)), "second secrets!")
 
             jars = list(jar_utils.crawl_jar_files(root_dir=tmpdir))
-            print jars
+            print(jars)
             jar_feature = jars[0][1]
             assert 'myfile.jar' == jar_feature.name
             assert '48ac85a26ffa7ff5cefdd5c73a9fb888' == jar_feature.jarhash
@@ -43,7 +44,7 @@ class JarUtilsTests(unittest.TestCase):
             assert 'jar' == jars[0][2]
 
         except IOError as e:
-            print 'IOError'
+            print('IOError')
         finally:
             os.remove(path)
             os.umask(saved_umask)

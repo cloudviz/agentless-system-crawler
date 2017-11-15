@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import docker
 import requests.exceptions
@@ -91,7 +92,7 @@ class ContainersCrawlerTests(unittest.TestCase):
                 'package'])
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'interface-lo' in output
         assert 'if_octets_tx=' in output
         assert 'cpu-0' in output
@@ -121,8 +122,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -131,7 +132,7 @@ class ContainersCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
@@ -157,8 +158,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         kafka = pykafka.KafkaClient(hosts='localhost:9092')
         topic = kafka.topics['test']
@@ -204,8 +205,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -214,7 +215,7 @@ class ContainersCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'sleep' in output
         assert 'linux' or 'Linux' in output
         f.close()
@@ -227,7 +228,7 @@ class ContainersCrawlerTests(unittest.TestCase):
             options=options)
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         # interface in avoid_setns mode is not supported
         #assert 'interface-lo' in output
         #assert 'if_octets_tx=' in output

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 
 import dateutil.parser as dp
@@ -92,7 +93,7 @@ class DockerUtilsTests(unittest.TestCase):
                 side_effect=lambda base_url, version: MockedClient())
     def test_exec_dockerps(self, *args):
         for c in utils.dockerutils.exec_dockerps():
-            print c
+            print(c)
             break
 
         docker_datetime = dp.parse('2016-07-06')

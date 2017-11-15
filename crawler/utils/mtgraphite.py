@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 import socket
 import ssl
@@ -7,7 +8,7 @@ import struct
 import time
 import re
 
-from crawler_exceptions import MTGraphiteInvalidTenant
+from .crawler_exceptions import MTGraphiteInvalidTenant
 
 # This code is based upon the Kafka producer/client classes
 

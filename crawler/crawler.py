@@ -1,17 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+from __future__ import absolute_import
 import argparse
 import json
 import os
 
-from worker import Worker
-from containers_crawler import ContainersCrawler
-from utils import misc
-from crawlmodes import Modes
-from emitters_manager import EmittersManager
-from host_crawler import HostCrawler
-from vms_crawler import VirtualMachinesCrawler
+from .worker import Worker
+from .containers_crawler import ContainersCrawler
+from .utils import misc
+from .crawlmodes import Modes
+from .emitters_manager import EmittersManager
+from .host_crawler import HostCrawler
+from .vms_crawler import VirtualMachinesCrawler
 
 logger = None
 
@@ -28,7 +30,7 @@ def main():
 
     euid = os.geteuid()
     if euid != 0:
-        print 'Need to run this as root.'
+        print('Need to run this as root.')
         exit(1)
 
     parser = argparse.ArgumentParser()
