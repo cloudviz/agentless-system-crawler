@@ -4,6 +4,10 @@ language: python
 services:
   - docker
 
+python:
+  - "2.7"
+  - "3.6"
+
 env:
   matrix:
     - DOCKER_VERSION=1.7.1-0~trusty
@@ -11,9 +15,8 @@ env:
     - DOCKER_VERSION=1.10.1-0~trusty
     - DOCKER_VERSION=1.11.1-0~trusty
     - DOCKER_VERSION=17.03.0~ce-0~ubuntu-trusty
-
-python:
-  - "2.7"
+  allow_failures:
+    - python: 3.6
 
 before_install:
     - ./.validateDCO
@@ -43,7 +46,7 @@ install:
 
 # command to run tests
 script:
-  - flake8 --count --max-complexity=10 --statistics crawler
+  - flake8 --count --exclude=psvmi --max-complexity=10 --statistics .
   - sudo -H python setup.py test --addopts '--cov=.'
 
 after_success:
