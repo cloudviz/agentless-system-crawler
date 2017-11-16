@@ -2,11 +2,11 @@ import ast
 import sys
 import docker
 import iptc
-from containers import poll_containers, get_containers
 import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
 import utils.dockerutils
-
+from base_crawler import BaseCrawler, BaseFrame
+from containers import poll_containers, get_containers
+from utils.crawler_exceptions import ContainerWithoutCgroups
 
 class ContainerFrame(BaseFrame):
 
@@ -45,7 +45,7 @@ class SafeContainersCrawler(BaseCrawler):
         self.plugincont_image = 'crawler_plugins12'
         self.plugincont_name = 'plugin_cont'
         self.plugincont_username = 'user1'
-        self.plugincont.workdir = '/home/user1/'
+        self.plugincont.workdir = '/home/user1/features/'
         self.plugincont_seccomp_profile_path = '/utils/plugincont/seccomp-no-ptrace.json'
         self.plugincont_guestcont_mountpoint = '/rootfs_local'
         self.plugincont_host_uid = '166536' #from  docker userns remapping
@@ -102,7 +102,7 @@ class SafeContainersCrawler(BaseCrawler):
                 
             rule = iptc.Rule()
             match = iptc.Match(rule, "cgroup")
-            match.cgroup =  self.plugincont_cgroup_netclsid)  
+            match.cgroup =  self.plugincont_cgroup_netclsid 
             rule.add_match(match)
             rule.src = "!localhost"
             rule.target = iptc.Target(rule, "DROP")
@@ -113,11 +113,27 @@ class SafeContainersCrawler(BaseCrawler):
             retVal = -1
         return retVal
 
+    def _get_cgroup_dir(self, devlist=[]):
+        for dev in devlist:
+            paths = [os.path.join('/cgroup/', dev),
+                     os.path.join('/sys/fs/cgroup/', dev)]
+            for path in paths:
+                if os.path.ismount(path):
+                    return path
+
+            # Try getting the mount point from /proc/mounts
+            for l in open('/proc/mounts', 'r'):
+                _type, mnt, _, _, _, _ = l.split(' ')
+                if _type == 'cgroup' and mnt.endswith('cgroup/' + dev):
+                    return mnt
+
+        raise ContainerWithoutCgroups('Can not find the cgroup dir')
+
     def _setup_netcls_cgroup(self, plugincont_id):
         retVal = 0
         try:
-            #TODO cgroup path
-            cgroup_netcls_path = '/sys/fs/cgroup/net_cls/docker/'+plugincont_id
+            # cgroup_netcls_path = '/sys/fs/cgroup/net_cls/docker/'+plugincont_id
+            cgroup_netcls_path = _get_cgroup_dir(['net_cls','net_cls,net_prio'])+'/docker/'+plugincont_id
             tasks_path = cgroup_netcls_path+'/tasks'
             block_path = cgroup_netcls_path+'/block'
             block_classid_path = block_path+'/net_cls.classid'
@@ -180,11 +196,10 @@ class SafeContainersCrawler(BaseCrawler):
         plugincont_id = guestcont.plugincont.id
         rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
         frame_dir = rootfs+self.plugincont.workdir
-        frame_list = os.listdir(frame_dir)
-        frame_list.sort(key=int)
-        
-        if frame_list != []:
-            try:
+        try:
+            frame_list = os.listdir(frame_dir)
+            frame_list.sort(key=int)
+            if frame_list != []:
                 earliest_frame_file = frame_dir+frame_list[0]
                 fd = open(earliest_frame_file)
                 for feature_line in fd.readlines():
@@ -192,8 +207,8 @@ class SafeContainersCrawler(BaseCrawler):
                     features.append((key, ast.literal_eval(val), type))
                 fd.close()    
                 os.remove(earliest_frame_file)
-            except:
-                print sys.exc_info()[0]
+        except:
+            print sys.exc_info()[0]
         
         return features
             
@@ -239,7 +254,7 @@ class SafeContainersCrawler(BaseCrawler):
         :return: a Frame object
         """
         # Not implemented
-        sleep(timeout)      
+        time.sleep(timeout)      
         return None
 
     def crawl(self, ignore_plugin_exception=True):
