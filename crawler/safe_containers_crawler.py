@@ -40,32 +40,47 @@ class SafeContainersCrawler(BaseCrawler):
         self.host_namespace = host_namespace
         self.user_list = user_list
         self.frequency = frequency
+        #magic numbers
+        #self.plugincont_image = 'plugincont_image'
+        self.plugincont_image = 'crawler_plugins12'
+        self.plugincont_name = 'plugin_cont'
+        self.plugincont_username = 'user1'
+        self.plugincont.workdir = '/home/user1/'
+        self.plugincont_seccomp_profile_path = '/utils/plugincont/seccomp-no-ptrace.json'
+        self.plugincont_guestcont_mountpoint = '/rootfs_local'
+        self.plugincont_host_uid = '166536' #from  docker userns remapping
+        self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
 
     
+    def destroy_plugincont(self, guestcont):
+        client = docker.APIClient(base_url='unix://var/run/docker.sock') 
+        plugincont_id = guestcont.plugincont.id
+        client.stop(plugincont_id)
+        client.remove_container(plugincont_id)
+        guestcont.plugincont = None
+
     def create_plugincont(self, guestcont):
         #TODO: build plugin cont image from Dockerfile first
 
-        #plugincont_image = 'plugincont_image'
         #pip install docker=2.0.0          
         #client.containers.run("ruby", "tail -f /dev/null", pid_mode='container:d98cd4f1e518e671bc376ac429146937fbec9df7dbbfbb389e615a90c23ca27a', detach=True)
         # maybe userns_mode='host' 
         guestcont_id = guestcont.long_id
         guestcont_rootfs = utils.dockerutils.get_docker_container_rootfs_path(guestcont_id)
-        plugincont_image = 'crawler_plugins12'
         plugincont = None
-        seccomp_profile_path = os.getcwd() + '/utils/plugincont/seccomp-no-ptrace.json'
+        seccomp_profile_path = os.getcwd() + self.plugincont_seccomp_profile_path
         client = docker.from_env()          
         try:
             plugincont = client.containers.run(
-                image=plugincont_image, 
-                name='plugin_cont',
-                user='user1',
+                image=self.plugincont_image, 
+                name=self.plugincont_name,
+                user=self.plugincont_username,
                 command="/usr/bin/python2.7 crawler/crawler_lite.py --frequency="+frequency,
                 pid_mode='container:'+guestcont_id,
                 network_mode='container:'+guestcont_id,
                 cap_add=["SYS_PTRACE","DAC_READ_SEARCH"],
                 security_opt=['seccomp='+seccomp_profile_path],
-                volumes={guestcont_rootfs:{'bind':'/rootfs_local','mode':'ro'}},
+                volumes={guestcont_rootfs:{'bind':self.plugincont_guestcont_mountpoint,'mode':'ro'}},
                 detach=True)
         except:      
             print sys.exc_info()[0]
@@ -73,18 +88,35 @@ class SafeContainersCrawler(BaseCrawler):
 
     def _add_iptable_rules(self):
         # pip install python-iptables
-        rule = iptc.Rule()
-        rule.protocol = "all"
-        match = iptc.Match(rule, "owner")
-        match.uid_owner = "166536"  #uid of plugin cont's user1 on host; from  dokcer userns remapping
-        rule.add_match(match)
-        rule.target = iptc.Target(rule, "DROP")
-        chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "OUTPUT")
-        chain.insert_rule(rule)
-        #TODO
+        retVal = 0
+        try:
+            rule = iptc.Rule()
+            match = iptc.Match(rule, "owner")
+            match.uid_owner = self.plugincont_host_uid  
+            rule.add_match(match)
+            rule.dst = "!localhost"
+            rule.protocol = "all"
+            rule.target = iptc.Target(rule, "DROP")
+            chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "OUTPUT")
+            chain.insert_rule(rule)
+                
+            rule = iptc.Rule()
+            match = iptc.Match(rule, "cgroup")
+            match.cgroup =  self.plugincont_cgroup_netclsid)  
+            rule.add_match(match)
+            rule.src = "!localhost"
+            rule.target = iptc.Target(rule, "DROP")
+            chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "INPUT")
+            chain.insert_rule(rule)
+        except:
+            print sys.exc_info()[0]
+            retVal = -1
+        return retVal
 
     def _setup_netcls_cgroup(self, plugincont_id):
+        retVal = 0
         try:
+            #TODO cgroup path
             cgroup_netcls_path = '/sys/fs/cgroup/net_cls/docker/'+plugincont_id
             tasks_path = cgroup_netcls_path+'/tasks'
             block_path = cgroup_netcls_path+'/block'
@@ -95,7 +127,7 @@ class SafeContainersCrawler(BaseCrawler):
                 os.makedirs(block_path)
             
             fd = open(block_classid_path,'w')
-            fd.write('43')  #random cgroup net cls id
+            fd.write(self.plugincont_cgroup_netclsid)
             fd.close()
             
             fd = open(tasks_path,'r')
@@ -108,29 +140,34 @@ class SafeContainersCrawler(BaseCrawler):
             fd.close()
         except:      
             print sys.exc_info()[0]
+            retVal = -1
+        return retVal    
         
     def set_plugincont_iptables(self, plugincont_id):
+        retVal = 0
         try:
             client = docker.APIClient(base_url='unix://var/run/docker.sock')          
             plugincont_pid = client.inspect_container(plugincont_id)['State']['Pid']     
             #netns_path = '/var/run/netns'
             #if not os.path.isdir(netns_path):
             #    os.makedirs(netns_path)
-            self._setup_netcls_cgroup(plugincont_id)
-            run_as_another_namespace(plugincont_pid,
-                                     ['net'],
-                                     self._add_iptable_rules)
-
+            retVal = self._setup_netcls_cgroup(plugincont_id, plugincont_pid)
+            if retVal == 0:
+                retVal = run_as_another_namespace(plugincont_pid,
+                                         ['net'],
+                                         self._add_iptable_rules)
         except:      
             print sys.exc_info()[0]
-    
+            retVal = -1
+        return retVal    
     
     def setup_plugincont(self, guestcont):
         self.create_plugincont(guestcont)
         if guestcont.plugincont is not None:
             plugincont_id = guestcont.plugincont.id 
-            self.set_plugincont_iptables(plugincont_id)
-            # TODO:
+            if self.set_plugincont_iptables(plugincont_id) != 0:
+                self.destroy_plugincont(guestcont)                
+                guestcont.plugincont = None
 
     # Return list of features after reading frame from plugin cont
     def get_plugincont_features(self, guestcont):
@@ -142,7 +179,7 @@ class SafeContainersCrawler(BaseCrawler):
             
         plugincont_id = guestcont.plugincont.id
         rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
-        frame_dir = rootfs+'/home/user1/'
+        frame_dir = rootfs+self.plugincont.workdir
         frame_list = os.listdir(frame_dir)
         frame_list.sort(key=int)
         
