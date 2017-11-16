@@ -1,5 +1,7 @@
 import ast
 import sys
+import docker
+import iptc
 from containers import poll_containers, get_containers
 import plugins_manager
 from base_crawler import BaseCrawler, BaseFrame
@@ -41,7 +43,7 @@ class SafeContainersCrawler(BaseCrawler):
 
     
     def create_plugincont(self, guestcont):
-        #TODO: build plugin cont from Dockerfile first
+        #TODO: build plugin cont image from Dockerfile first
 
         #plugincont_image = 'plugincont_image'
         #pip install docker=2.0.0          
@@ -69,10 +71,65 @@ class SafeContainersCrawler(BaseCrawler):
             print sys.exc_info()[0]
         guestcont.plugincont = plugincont
 
+    def _add_iptable_rules(self):
+        # pip install python-iptables
+        rule = iptc.Rule()
+        rule.protocol = "all"
+        match = iptc.Match(rule, "owner")
+        match.uid_owner = "166536"  #uid of plugin cont's user1 on host; from  dokcer userns remapping
+        rule.add_match(match)
+        rule.target = iptc.Target(rule, "DROP")
+        chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "OUTPUT")
+        chain.insert_rule(rule)
+        #TODO
+
+    def _setup_netcls_cgroup(self, plugincont_id):
+        try:
+            cgroup_netcls_path = '/sys/fs/cgroup/net_cls/docker/'+plugincont_id
+            tasks_path = cgroup_netcls_path+'/tasks'
+            block_path = cgroup_netcls_path+'/block'
+            block_classid_path = block_path+'/net_cls.classid'
+            block_tasks_path = block_path+'/tasks'
+            
+            if not os.path.isdir(block_path):
+                os.makedirs(block_path)
+            
+            fd = open(block_classid_path,'w')
+            fd.write('43')  #random cgroup net cls id
+            fd.close()
+            
+            fd = open(tasks_path,'r')
+            plugincont_pids = fd.readlines()  #should be just one pid == plugincont_pid
+            fd.close()
+            
+            fd = open(block_tasks_path,'r')
+            for pid in plugincont_pids:
+                fd.write(pid)
+            fd.close()
+        except:      
+            print sys.exc_info()[0]
+        
+    def set_plugincont_iptables(self, plugincont_id):
+        try:
+            client = docker.APIClient(base_url='unix://var/run/docker.sock')          
+            plugincont_pid = client.inspect_container(plugincont_id)['State']['Pid']     
+            #netns_path = '/var/run/netns'
+            #if not os.path.isdir(netns_path):
+            #    os.makedirs(netns_path)
+            self._setup_netcls_cgroup(plugincont_id)
+            run_as_another_namespace(plugincont_pid,
+                                     ['net'],
+                                     self._add_iptable_rules)
+
+        except:      
+            print sys.exc_info()[0]
+    
+    
     def setup_plugincont(self, guestcont):
         self.create_plugincont(guestcont)
         if guestcont.plugincont is not None:
             plugincont_id = guestcont.plugincont.id 
+            self.set_plugincont_iptables(plugincont_id)
             # TODO:
 
     # Return list of features after reading frame from plugin cont
