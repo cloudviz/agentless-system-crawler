@@ -7,6 +7,7 @@ import os
 
 from worker import Worker
 from containers_crawler import ContainersCrawler
+from safe_containers_crawler import SafeContainersCrawler
 from utils import misc
 from crawlmodes import Modes
 from emitters_manager import EmittersManager

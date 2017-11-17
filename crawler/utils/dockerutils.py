@@ -30,8 +30,9 @@ def exec_dockerps():
     This call executes the `docker inspect` command every time it is invoked.
     """
     try:
-        client = docker.Client(
-            base_url='unix://var/run/docker.sock', version='auto')
+        # client = docker.Client(
+        #    base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(base_url='unix://var/run/docker.sock')
         containers = client.containers()
         inspect_arr = []
         for container in containers:
@@ -46,8 +47,9 @@ def exec_dockerps():
 
 def exec_docker_history(long_id):
     try:
-        client = docker.Client(base_url='unix://var/run/docker.sock',
-                               version='auto')
+        # client = docker.Client(base_url='unix://var/run/docker.sock',
+        #                       version='auto')
+        client = docker.APIClient(base_url='unix://var/run/docker.sock')                       
         image = client.inspect_container(long_id)['Image']
         history = client.history(image)
         return history
@@ -70,8 +72,9 @@ def _reformat_inspect(inspect):
 
 def exec_dockerinspect(long_id):
     try:
-        client = docker.Client(
-            base_url='unix://var/run/docker.sock', version='auto')
+        # client = docker.Client(
+        #    base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(base_url='unix://var/run/docker.sock') 
         inspect = client.inspect_container(long_id)
         _reformat_inspect(inspect)
     except docker.errors.DockerException as e:
@@ -107,8 +110,9 @@ def _get_docker_storage_driver():
     # Step 1, get it from "docker info"
 
     try:
-        client = docker.Client(
-            base_url='unix://var/run/docker.sock', version='auto')
+        # client = docker.Client(
+        #    base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(base_url='unix://var/run/docker.sock') 
         driver = client.info()['Driver']
     except (docker.errors.DockerException, KeyError):
         pass  # try to continue with the default of 'devicemapper'
@@ -193,8 +197,9 @@ def _get_docker_server_version():
     """Run the `docker info` command to get server version
     """
     try:
-        client = docker.Client(
-            base_url='unix://var/run/docker.sock', version='auto')
+        # client = docker.Client(
+        #    base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(base_url='unix://var/run/docker.sock') 
         return client.version()['Version']
     except (docker.errors.DockerException, KeyError) as e:
         logger.warning(str(e))
@@ -292,7 +297,7 @@ def _get_container_rootfs_path_aufs(long_id, inspect=None):
     if VERSION_SPEC.match(semantic_version.Version(_fix_version(
                                                    server_version))):
         aufs_path = None
-        mountid_path = ('/var/lib/docker/image/aufs/layerdb/mounts/' +
+        mountid_path = ('/var/lib/docker/165536.165536/image/aufs/layerdb/mounts/' +
                         long_id + '/mount-id')
         try:
             with open(mountid_path, 'r') as f:
@@ -301,11 +306,11 @@ def _get_container_rootfs_path_aufs(long_id, inspect=None):
             logger.warning(str(e))
         if not aufs_path:
             raise DockerutilsException('Failed to get rootfs on aufs')
-        rootfs_path = '/var/lib/docker/aufs/mnt/' + aufs_path
+        rootfs_path = '/var/lib/docker/165536.165536/aufs/mnt/' + aufs_path
     else:
         rootfs_path = None
-        for _path in ['/var/lib/docker/aufs/mnt/' + long_id,
-                      '/var/lib/docker/aufs/diff/' + long_id]:
+        for _path in ['/var/lib/docker/165536.165536/aufs/mnt/' + long_id,
+                      '/var/lib/docker/165536.165536/aufs/diff/' + long_id]:
             if os.path.isdir(_path) and os.listdir(_path):
                 rootfs_path = _path
                 break
@@ -383,8 +388,9 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
 
 def poll_container_create_events(timeout=0.1):
     try:
-        client = docker.Client(base_url='unix://var/run/docker.sock',
-                               version='auto')
+        # client = docker.Client(base_url='unix://var/run/docker.sock',
+        #                       version='auto')
+        client = docker.APIClient(base_url='unix://var/run/docker.sock') 
         filters = dict()
         filters['type'] = 'container'
         filters['event'] = 'start'
