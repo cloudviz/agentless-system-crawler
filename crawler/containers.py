@@ -10,7 +10,8 @@ logger = logging.getLogger('crawlutils')
 
 
 def list_all_containers(user_list='ALL', host_namespace='',
-                        ignore_raw_containers=True):
+                        ignore_raw_containers=True,
+                        group_by_pid_namespace=True):
     """
     Returns a list of all running containers in the host.
 
@@ -24,10 +25,13 @@ def list_all_containers(user_list='ALL', host_namespace='',
 
     for _container in get_docker_containers(host_namespace=host_namespace,
                                             user_list=user_list):
-        curr_ns = _container.process_namespace
-        if curr_ns not in visited_ns:
-            visited_ns.add(curr_ns)
+        if group_by_pid_namespace is False:
             yield _container
+        else:    
+            curr_ns = _container.process_namespace
+            if curr_ns not in visited_ns:
+                visited_ns.add(curr_ns)
+                yield _container
 
     # XXX get list of rkt containers
 
@@ -62,7 +66,8 @@ def get_containers(
     environment='cloudsight',
     host_namespace=misc.get_host_ipaddr(),
     user_list='ALL',
-    ignore_raw_containers=True
+    ignore_raw_containers=True,
+    group_by_pid_namespace=True
 ):
     """
     Returns a list of all containers running in the host.
@@ -79,7 +84,8 @@ def get_containers(
     """
     filtered_list = []
     containers_list = list_all_containers(user_list, host_namespace,
-                                          ignore_raw_containers)
+                                          ignore_raw_containers,
+                                          group_by_pid_namespace)
     for _container in containers_list:
         default_environment = 'cloudsight'
         if (environment != default_environment and

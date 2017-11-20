@@ -10,6 +10,7 @@ import utils.dockerutils
 from base_crawler import BaseCrawler, BaseFrame
 from containers import poll_containers, get_containers
 from utils.crawler_exceptions import ContainerWithoutCgroups
+from utils.namespace import run_as_another_namespace
 
 class ContainerFrame(BaseFrame):
 
@@ -43,10 +44,11 @@ class SafeContainersCrawler(BaseCrawler):
         self.host_namespace = host_namespace
         self.user_list = user_list
         self.frequency = frequency
+        self.pluginconts = dict()
         #magic numbers
         #self.plugincont_image = 'plugincont_image'
-        self.plugincont_image = 'crawler_plugins15'
-        self.plugincont_name = 'plugin_cont'
+        self.plugincont_image = 'crawler_plugins16'
+        self.plugincont_name_prefix = 'plugin_cont'
         self.plugincont_username = 'user1'
         self.plugincont_workdir = '/home/user1/features/'
         self.plugincont_seccomp_profile_path = os.getcwd() + '/crawler/utils/plugincont/seccomp-no-ptrace.json'
@@ -54,13 +56,11 @@ class SafeContainersCrawler(BaseCrawler):
         self.plugincont_host_uid = '166536' #from  docker userns remapping
         self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
 
-    
-    def destroy_plugincont(self, guestcont):
+   
+    def destroy_cont(self, cont_id):
         client = docker.APIClient(base_url='unix://var/run/docker.sock') 
-        plugincont_id = guestcont.plugincont.id
-        client.stop(plugincont_id)
-        client.remove_container(plugincont_id)
-        guestcont.plugincont = None
+        client.stop(cont_id)
+        client.remove_container(cont_id)
 
     def create_plugincont(self, guestcont):
         #TODO: build plugin cont image from Dockerfile first
@@ -71,13 +71,15 @@ class SafeContainersCrawler(BaseCrawler):
         guestcont_id = guestcont.long_id
         guestcont_rootfs = utils.dockerutils.get_docker_container_rootfs_path(guestcont_id)
         plugincont = None
+        plugincont_name = self.plugincont_name_prefix+'_'+guestcont_id
         seccomp_attr = json.dumps(json.load(open(self.plugincont_seccomp_profile_path)))
         #secomp_profile_path = os.getcwd() + self.plugincont_seccomp_profile_path
         client = docker.from_env()          
         try:
+            self.destroy_cont(plugincont_name)
             plugincont = client.containers.run(
                 image=self.plugincont_image, 
-                #name=self.plugincont_name,
+                name=plugincont_name,
                 user=self.plugincont_username,
                 command="/usr/bin/python2.7 /crawler/crawler/crawler_lite.py --frequency="+str(self.frequency),
                 #command="tail -f /dev/null",
@@ -88,9 +90,12 @@ class SafeContainersCrawler(BaseCrawler):
                 security_opt=['seccomp:'+seccomp_attr],
                 volumes={guestcont_rootfs:{'bind':self.plugincont_guestcont_mountpoint,'mode':'ro'}},
                 detach=True)
+            time.sleep(5)    
         except Exception as exc:      
             print exc
             print sys.exc_info()[0]
+        
+        self.pluginconts[str(guestcont_id)] = plugincont
         guestcont.plugincont = plugincont
 
     def _add_iptable_rules(self):
@@ -115,7 +120,8 @@ class SafeContainersCrawler(BaseCrawler):
             rule.target = iptc.Target(rule, "DROP")
             chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "INPUT")
             chain.insert_rule(rule)
-        except:
+        except Exception as exc:      
+            print exc
             print sys.exc_info()[0]
             retVal = -1
         return retVal
@@ -140,7 +146,7 @@ class SafeContainersCrawler(BaseCrawler):
         retVal = 0
         try:
             # cgroup_netcls_path = '/sys/fs/cgroup/net_cls/docker/'+plugincont_id
-            cgroup_netcls_path = _get_cgroup_dir(['net_cls','net_cls,net_prio'])+'/docker/'+plugincont_id
+            cgroup_netcls_path = self._get_cgroup_dir(['net_cls','net_cls,net_prio'])+'/docker/'+plugincont_id
             tasks_path = cgroup_netcls_path+'/tasks'
             block_path = cgroup_netcls_path+'/block'
             block_classid_path = block_path+'/net_cls.classid'
@@ -157,11 +163,12 @@ class SafeContainersCrawler(BaseCrawler):
             plugincont_pids = fd.readlines()  #should be just one pid == plugincont_pid
             fd.close()
             
-            fd = open(block_tasks_path,'r')
+            fd = open(block_tasks_path,'w')
             for pid in plugincont_pids:
                 fd.write(pid)
             fd.close()
-        except:      
+        except Exception as exc:      
+            print exc
             print sys.exc_info()[0]
             retVal = -1
         return retVal    
@@ -174,27 +181,35 @@ class SafeContainersCrawler(BaseCrawler):
             #netns_path = '/var/run/netns'
             #if not os.path.isdir(netns_path):
             #    os.makedirs(netns_path)
-            retVal = self._setup_netcls_cgroup(plugincont_id, plugincont_pid)
-            if retVal == 0:
-                retVal = run_as_another_namespace(plugincont_pid,
-                                         ['net'],
-                                         self._add_iptable_rules)
-        except:      
+            retVal = self._setup_netcls_cgroup(plugincont_id)
+            #if retVal == 0:
+            #    retVal = run_as_another_namespace(plugincont_pid,
+            #                             ['net'],
+            #                             self._add_iptable_rules)
+        except Exception as exc:      
+            print exc
             print sys.exc_info()[0]
             retVal = -1
         return retVal    
     
     def setup_plugincont(self, guestcont):
+        guestcont_id = str(guestcont.long_id)
+        if guestcont_id in self.pluginconts.keys():
+            guestcont.plugincont = self.pluginconts[guestcont_id]
+            return
+
         self.create_plugincont(guestcont)
         if guestcont.plugincont is not None:
             plugincont_id = guestcont.plugincont.id 
             if self.set_plugincont_iptables(plugincont_id) != 0:
                 #TODO: uncomment following
-                #self.destroy_plugincont(guestcont)                
+                #self.destroy_cont(plugincont_id)                
                 guestcont.plugincont = None
 
     # Return list of features after reading frame from plugin cont
     def get_plugincont_features(self, guestcont):
+        #import pdb
+        #pdb.set_trace()
         features = []
         if guestcont.plugincont is None:
             self.setup_plugincont(guestcont)
@@ -203,6 +218,7 @@ class SafeContainersCrawler(BaseCrawler):
             
         plugincont_id = guestcont.plugincont.id
         rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
+        print plugincont_id, rootfs
         frame_dir = rootfs+self.plugincont_workdir
         try:
             frame_list = os.listdir(frame_dir)
@@ -211,11 +227,12 @@ class SafeContainersCrawler(BaseCrawler):
                 earliest_frame_file = frame_dir+frame_list[0]
                 fd = open(earliest_frame_file)
                 for feature_line in fd.readlines():
-                    (type, key, val) = feature_line.strip().split()
+                    (type, key, val) = feature_line.strip().split('\t')
                     features.append((key, ast.literal_eval(val), type))
                 fd.close()    
                 os.remove(earliest_frame_file)
-        except:
+        except Exception as exc:      
+            print exc
             print sys.exc_info()[0]
         
         return features
@@ -224,8 +241,6 @@ class SafeContainersCrawler(BaseCrawler):
     def crawl_container(self, container, ignore_plugin_exception=True):
         frame = ContainerFrame(self.features, container)
         try:
-            import pdb
-            pdb.set_trace()
             frame.add_features(self.get_plugincont_features(container))
         except Exception as exc:
             if not ignore_plugin_exception:
@@ -257,8 +272,6 @@ class SafeContainersCrawler(BaseCrawler):
 
         # collect plugin crawl output from inside plugin sidecar container
         try:
-            #import pdb
-            #pdb.set_trace()
             frame.add_features(self.get_plugincont_features(container))
         except Exception as exc:
             if not ignore_plugin_exception:
@@ -287,6 +300,8 @@ class SafeContainersCrawler(BaseCrawler):
         """
         containers_list = get_containers(
             user_list=self.user_list,
-            host_namespace=self.host_namespace)
+            host_namespace=self.host_namespace,
+            group_by_pid_namespace=False)
         for container in containers_list:
-            yield self.crawl_container(container, ignore_plugin_exception)
+            if not container.name.startswith(self.plugincont_name_prefix):
+                yield self.crawl_container(container, ignore_plugin_exception)
