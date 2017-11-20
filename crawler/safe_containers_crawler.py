@@ -47,7 +47,7 @@ class SafeContainersCrawler(BaseCrawler):
         self.pluginconts = dict()
         #magic numbers
         #self.plugincont_image = 'plugincont_image'
-        self.plugincont_image = 'crawler_plugins16'
+        self.plugincont_image = 'crawler_plugins17'
         self.plugincont_name_prefix = 'plugin_cont'
         self.plugincont_username = 'user1'
         self.plugincont_workdir = '/home/user1/features/'
@@ -106,8 +106,7 @@ class SafeContainersCrawler(BaseCrawler):
             match = iptc.Match(rule, "owner")
             match.uid_owner = self.plugincont_host_uid  
             rule.add_match(match)
-            rule.dst = "!localhost"
-            rule.protocol = "all"
+            rule.dst = "!127.0.0.1"
             rule.target = iptc.Target(rule, "DROP")
             chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "OUTPUT")
             chain.insert_rule(rule)
@@ -116,7 +115,7 @@ class SafeContainersCrawler(BaseCrawler):
             match = iptc.Match(rule, "cgroup")
             match.cgroup =  self.plugincont_cgroup_netclsid 
             rule.add_match(match)
-            rule.src = "!localhost"
+            rule.src = "!127.0.0.1"
             rule.target = iptc.Target(rule, "DROP")
             chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "INPUT")
             chain.insert_rule(rule)
@@ -182,10 +181,10 @@ class SafeContainersCrawler(BaseCrawler):
             #if not os.path.isdir(netns_path):
             #    os.makedirs(netns_path)
             retVal = self._setup_netcls_cgroup(plugincont_id)
-            #if retVal == 0:
-            #    retVal = run_as_another_namespace(plugincont_pid,
-            #                             ['net'],
-            #                             self._add_iptable_rules)
+            if retVal == 0:
+                retVal = run_as_another_namespace(str(plugincont_pid),
+                                         ['net'],
+                                         self._add_iptable_rules)
         except Exception as exc:      
             print exc
             print sys.exc_info()[0]
@@ -228,7 +227,7 @@ class SafeContainersCrawler(BaseCrawler):
                 fd = open(earliest_frame_file)
                 for feature_line in fd.readlines():
                     (type, key, val) = feature_line.strip().split('\t')
-                    features.append((key, ast.literal_eval(val), type))
+                    features.append((ast.literal_eval(key), ast.literal_eval(val), type))
                 fd.close()    
                 os.remove(earliest_frame_file)
         except Exception as exc:      
