@@ -57,10 +57,19 @@ class SafeContainersCrawler(BaseCrawler):
         self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
 
    
-    def destroy_cont(self, cont_id):
-        client = docker.APIClient(base_url='unix://var/run/docker.sock') 
-        client.stop(cont_id)
-        client.remove_container(cont_id)
+    def destroy_cont(self, id=None, name=None):
+        client = docker.APIClient(base_url='unix://var/run/docker.sock')
+        if name is None and id is None:
+            return
+        if name is not None:
+            _id = name
+            filter = {'name':name}
+        else:
+            _id = id
+            filter = {'id':id}
+        if client.containers(all=True,filters=filter) != []:
+            client.stop(_id)
+            client.remove_container(_id)
 
     def create_plugincont(self, guestcont):
         #TODO: build plugin cont image from Dockerfile first
@@ -76,7 +85,7 @@ class SafeContainersCrawler(BaseCrawler):
         #secomp_profile_path = os.getcwd() + self.plugincont_seccomp_profile_path
         client = docker.from_env()          
         try:
-            self.destroy_cont(plugincont_name)
+            self.destroy_cont(name=plugincont_name)
             plugincont = client.containers.run(
                 image=self.plugincont_image, 
                 name=plugincont_name,
@@ -191,6 +200,13 @@ class SafeContainersCrawler(BaseCrawler):
             retVal = -1
         return retVal    
     
+    def destroy_plugincont(self, guestcont):
+        guestcont_id = str(guestcont.long_id)
+        plugincont_id = guestcont.plugincont.id 
+        self.destroy_cont(id=plugincont_id)                
+        guestcont.plugincont = None
+        self.pluginconts.pop(str(guestcont_id))
+
     def setup_plugincont(self, guestcont):
         guestcont_id = str(guestcont.long_id)
         if guestcont_id in self.pluginconts.keys():
@@ -201,9 +217,7 @@ class SafeContainersCrawler(BaseCrawler):
         if guestcont.plugincont is not None:
             plugincont_id = guestcont.plugincont.id 
             if self.set_plugincont_iptables(plugincont_id) != 0:
-                #TODO: uncomment following
-                #self.destroy_cont(plugincont_id)                
-                guestcont.plugincont = None
+                self.destroy_plugincont(guestcont)
 
     # Return list of features after reading frame from plugin cont
     def get_plugincont_features(self, guestcont):
@@ -217,7 +231,6 @@ class SafeContainersCrawler(BaseCrawler):
             
         plugincont_id = guestcont.plugincont.id
         rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
-        print plugincont_id, rootfs
         frame_dir = rootfs+self.plugincont_workdir
         try:
             frame_list = os.listdir(frame_dir)
