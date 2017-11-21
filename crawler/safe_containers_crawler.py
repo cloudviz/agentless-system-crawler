@@ -47,7 +47,7 @@ class SafeContainersCrawler(BaseCrawler):
         self.pluginconts = dict()
         #magic numbers
         #self.plugincont_image = 'plugincont_image'
-        self.plugincont_image = 'crawler_plugins17'
+        self.plugincont_image = 'crawler_plugins18'
         self.plugincont_name_prefix = 'plugin_cont'
         self.plugincont_username = 'user1'
         self.plugincont_workdir = '/home/user1/features/'
