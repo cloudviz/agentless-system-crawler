@@ -1,0 +1,8 @@
+[Core]
+Name = Https Emitter
+Module = https_emitter
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Plugin to post frame data to https server

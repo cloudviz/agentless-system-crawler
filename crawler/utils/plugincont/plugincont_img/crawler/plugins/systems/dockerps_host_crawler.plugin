@@ -1,0 +1,8 @@
+[Core]
+Name = dockerps_host
+Module = dockerps_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Dockerps crawling function for hosts"

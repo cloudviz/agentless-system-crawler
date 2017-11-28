@@ -1,0 +1,8 @@
+[Core]
+Name = process_vm
+Module = process_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Process crawling function for VMs

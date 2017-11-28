@@ -1,0 +1,8 @@
+[Core]
+Name = interface_host
+Module = interface_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Interface crawling function for hosts"

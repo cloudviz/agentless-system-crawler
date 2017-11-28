@@ -1,0 +1,9 @@
+[Core]
+Name = application_nginx_host
+Module = nginx_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "nginx httpd server"
+

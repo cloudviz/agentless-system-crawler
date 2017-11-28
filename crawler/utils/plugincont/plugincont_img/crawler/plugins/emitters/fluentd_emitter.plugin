@@ -1,0 +1,8 @@
+[Core]
+Name = Fluentd Emitter
+Module = fluentd_emitter
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Plugin to emit frame to Fluentd

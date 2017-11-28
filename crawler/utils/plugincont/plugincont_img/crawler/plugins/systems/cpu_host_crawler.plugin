@@ -1,0 +1,8 @@
+[Core]
+Name = cpu_host
+Module = cpu_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Cpu crawling function for hosts"
