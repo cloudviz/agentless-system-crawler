@@ -290,14 +290,26 @@ def _get_container_rootfs_path_btrfs(long_id, inspect=None):
     return rootfs_path
 
 
+def _get_docker_root_dir():
+    try:
+        client = docker.from_env()
+        docker_info = client.info()
+        root_dir = str(docker_info['DockerRootDir'])
+        return root_dir
+    except docker.errors.APIError as e:
+        logger.warning(str(e))
+        raise DockerutilsException('Failed to get docker info')
+
 def _get_container_rootfs_path_aufs(long_id, inspect=None):
 
     rootfs_path = None
 
+    root_dir_prefix = _get_docker_root_dir()
+
     if VERSION_SPEC.match(semantic_version.Version(_fix_version(
                                                    server_version))):
         aufs_path = None
-        mountid_path = ('/var/lib/docker/165536.165536/image/aufs/layerdb/mounts/' +
+        mountid_path = (root_dir_prefix + '/image/aufs/layerdb/mounts/' +
                         long_id + '/mount-id')
         try:
             with open(mountid_path, 'r') as f:
@@ -306,11 +318,11 @@ def _get_container_rootfs_path_aufs(long_id, inspect=None):
             logger.warning(str(e))
         if not aufs_path:
             raise DockerutilsException('Failed to get rootfs on aufs')
-        rootfs_path = '/var/lib/docker/165536.165536/aufs/mnt/' + aufs_path
+        rootfs_path = root_dir_prefix + '/aufs/mnt/' + aufs_path
     else:
         rootfs_path = None
-        for _path in ['/var/lib/docker/165536.165536/aufs/mnt/' + long_id,
-                      '/var/lib/docker/165536.165536/aufs/diff/' + long_id]:
+        for _path in [root_dir_prefix + '/aufs/mnt/' + long_id,
+                      root_dir_prefix + '/aufs/diff/' + long_id]:
             if os.path.isdir(_path) and os.listdir(_path):
                 rootfs_path = _path
                 break

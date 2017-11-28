@@ -14,6 +14,7 @@ COPY \
 RUN dpkg -i /tmp/python-socket-datacollector_*_all.deb && \
     apt-get -y update && \
     apt-get -y install libpcap0.8 && \
+    apt-get -y install libpcap-dev && \
     dpkg -i /tmp/softflowd_0.9.*_amd64.deb && \
     pip install pyroute2 py-radix requests-unixsocket json-rpc && \
     dpkg -i /tmp/python-conntrackprobe_*_all.deb && \

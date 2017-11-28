@@ -44,13 +44,20 @@ class SafeContainersCrawler(BaseCrawler):
         self.environment = environment
         self.host_namespace = host_namespace
         self.user_list = user_list
-        self.pluginconts_manager = PluginContainersManager(frequency)
+        self.pluginconts_manager = None
+        try:
+            self.pluginconts_manager = PluginContainersManager(frequency)
+        except ValueError as err:
+            print(err.args)
    
     # Return list of features after reading frame from plugin cont
     def get_plugincont_features(self, guestcont):
         #import pdb
         #pdb.set_trace()
         features = []
+        if self.pluginconts_manager is None:
+            return features
+
         if guestcont.plugincont is None:
             self.pluginconts_manager.setup_plugincont(guestcont)
             if guestcont.plugincont is None:
@@ -134,6 +141,8 @@ class SafeContainersCrawler(BaseCrawler):
         :param ignore_plugin_exception: just ignore exceptions in a plugin
         :return: a list generator of Frame objects
         """
+        if self.pluginconts_manager is None:
+            return
         containers_list = get_containers(
             user_list=self.user_list,
             host_namespace=self.host_namespace,

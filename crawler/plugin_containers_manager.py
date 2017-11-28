@@ -19,7 +19,6 @@ class PluginContainersManager():
         self.frequency = frequency
         self.pluginconts = dict()
         self.plugincont_image = 'plugincont_image'
-        #self.plugincont_image = 'crawler_plugins18'
         self.plugincont_name_prefix = 'plugin_cont'
         self.plugincont_username = 'user1'
         self.plugincont_framedir = '/home/user1/features/'
@@ -31,18 +30,11 @@ class PluginContainersManager():
         self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
         self.docker_client = docker.from_env()
         self.docker_APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')          
-        self.build_plugincont_img()
-
-    def get_plugincont_framedir(self, guestcont):
-        frame_dir = None
-        if guestcont is not None and guestcont.plugincont is not None:
-            plugincont_id = guestcont.plugincont.id
-            rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
-            frame_dir = rootfs+self.plugincont_framedir
-        return frame_dir    
+        if self.build_plugincont_img() != 0:
+            raise ValueError('Failed to build image')
 
     def destroy_cont(self, id=None, name=None):
-        client = self.docker_APIClient
+        client = self.docker_APIclient
         if name is None and id is None:
             return
         if name is not None:
@@ -54,10 +46,56 @@ class PluginContainersManager():
         if client.containers(all=True,filters=filter) != []:
             client.stop(_id)
             client.remove_container(_id)
+    
+    def set_plugincont_py_cap(self, plugincont_id):
+        retVal = 0
+        verify = False
+        try:
+            rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
+            py_path = rootfs+self.plugincont_py_path
+            libcap = ctypes.cdll.LoadLibrary("libcap.so")
+            caps = libcap.cap_from_text('cap_dac_read_search,cap_sys_chroot,cap_sys_ptrace+ep')
+            retVal = libcap.cap_set_file(py_path,caps)
+            if verify is True:
+                libcap.cap_to_text.restype = ctypes.c_char_p
+                caps_set = libcap.cap_get_file(py_path,caps)
+                caps_set_str = libcap.cap_to_text(caps_set, None)
+                assert 'cap_dac_read_search' in caps_set_str
+                assert 'cap_sys_chroot' in caps_set_str
+                assert 'cap_sys_ptrace' in caps_set_str
+        except Exception as exc:      
+            print exc
+            print sys.exc_info()[0]
+            retVal = -1
+        return retVal    
 
     def build_plugincont_img(self):
+        retVal = 0
         build_status = list(self.docker_APIclient.build(path=self.plugincont_image_path, tag=self.plugincont_image))
         assert 'Successfully built' in build_status[-1]
+        try:
+            plugincont = self.docker_client.containers.run(
+                image=self.plugincont_image, 
+                command="tail -f /dev/null",
+                detach=True)
+            time.sleep(5)    
+            retVal = self.set_plugincont_py_cap(plugincont.id)
+            if retVal == 0:
+                self.docker_APIclient.commit(plugincont.id,repository=self.plugincont_image) 
+            self.destroy_cont(id=plugincont.id)                
+        except Exception as exc:      
+            print exc
+            print sys.exc_info()[0]
+            retVal = -1
+        return retVal    
+    
+    def get_plugincont_framedir(self, guestcont):
+        frame_dir = None
+        if guestcont is not None and guestcont.plugincont is not None:
+            plugincont_id = guestcont.plugincont.id
+            rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
+            frame_dir = rootfs+self.plugincont_framedir
+        return frame_dir    
 
     def create_plugincont(self, guestcont):
         guestcont_id = guestcont.long_id
@@ -65,7 +103,6 @@ class PluginContainersManager():
         plugincont = None
         plugincont_name = self.plugincont_name_prefix+'_'+guestcont_id
         seccomp_attr = json.dumps(json.load(open(self.plugincont_seccomp_profile_path)))
-        #secomp_profile_path = os.getcwd() + self.plugincont_seccomp_profile_path
         client = self.docker_client
         try:
             self.destroy_cont(name=plugincont_name)
@@ -73,12 +110,10 @@ class PluginContainersManager():
                 image=self.plugincont_image, 
                 name=plugincont_name,
                 user=self.plugincont_username,
-                command="/usr/bin/python2.7 /crawler/crawler/crawler_lite.py --frequency="+str(self.frequency),
-                #command="tail -f /dev/null",
+                command="/usr/bin/python2.7 /crawler/crawler_lite.py --frequency="+str(self.frequency),
                 pid_mode='container:'+guestcont_id,
                 network_mode='container:'+guestcont_id,
                 cap_add=["SYS_PTRACE","DAC_READ_SEARCH"],
-                #security_opt=['seccomp:'+seccomp_profile_path],
                 security_opt=['seccomp:'+seccomp_attr],
                 volumes={guestcont_rootfs:{'bind':self.plugincont_guestcont_mountpoint,'mode':'ro'}},
                 detach=True)
@@ -166,7 +201,7 @@ class PluginContainersManager():
     def set_plugincont_iptables(self, plugincont_id):
         retVal = 0
         try:
-            client = self.docker_APIClient
+            client = self.docker_APIclient
             plugincont_pid = client.inspect_container(plugincont_id)['State']['Pid']     
             #netns_path = '/var/run/netns'
             #if not os.path.isdir(netns_path):
@@ -189,28 +224,6 @@ class PluginContainersManager():
         guestcont.plugincont = None
         self.pluginconts.pop(str(guestcont_id))
 
-    def set_plugincont_py_cap(self, plugincont_id):
-        retVal = 0
-        verify = False
-        try:
-            rootfs = utils.dockerutils.get_docker_container_rootfs_path(plugincont_id)
-            py_path = rootfs+self.plugincont_py_path
-            libcap = ctypes.cdll.LoadLibrary("libcap.so")
-            caps = libcap.cap_from_text('cap_dac_read_search,cap_sys_chroot,cap_sys_ptrace+ep')
-            retVal = libcap.cap_set_file(py_path,caps)
-            if verify is True:
-                libcap.cap_to_text.restype = ctypes.c_char_p
-                caps_set = libcap.cap_get_file(py_path,caps)
-                caps_set_str = libcap.cap_to_text(caps_set, None)
-                assert 'cap_dac_read_search' in caps_set_str
-                assert 'cap_sys_chroot' in caps_set_str
-                assert 'cap_sys_ptrace' in caps_set_str
-        except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
-            retVal = -1
-        return retVal    
-
     def setup_plugincont(self, guestcont):
         guestcont_id = str(guestcont.long_id)
         if guestcont_id in self.pluginconts.keys():
@@ -218,7 +231,6 @@ class PluginContainersManager():
             return
 
         self.create_plugincont(guestcont)
-        
         if guestcont.plugincont is None:
             return
         
@@ -227,7 +239,4 @@ class PluginContainersManager():
             self.destroy_plugincont(guestcont)
             return
         
-        if self.set_plugincont_py_cap(plugincont_id) != 0:
-            self.destroy_plugincont(guestcont)
-            return
 
