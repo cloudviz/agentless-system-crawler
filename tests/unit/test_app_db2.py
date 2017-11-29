@@ -19,7 +19,7 @@ class MockedDB2Container1(object):
     def __init__(self, container_id):
         ports = "[ {\"containerPort\" : \"50000\"} ]"
         self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
-                        {"annotation.io.kubernetes.container.ports": ports}}}
+                                                           {"annotation.io.kubernetes.container.ports": ports}}}
 
 
 class MockedDB2Container2(object):

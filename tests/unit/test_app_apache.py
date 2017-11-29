@@ -86,7 +86,7 @@ class MockedApacheContainer1(object):
     ):
         ports = "[ {\"containerPort\" : \"80\"} ]"
         self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
-                        {"annotation.io.kubernetes.container.ports": ports}}}
+                                                           {"annotation.io.kubernetes.container.ports": ports}}}
 
 
 class MockedApacheContainer2(object):

@@ -47,7 +47,7 @@ class MockedNginxContainer1(object):
     def __init__(self, container_id):
         ports = "[ {\"containerPort\" : \"80\"} ]"
         self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
-                        {"annotation.io.kubernetes.container.ports": ports}}}
+                                                           {"annotation.io.kubernetes.container.ports": ports}}}
 
 
 class MockedNginxContainer2(object):

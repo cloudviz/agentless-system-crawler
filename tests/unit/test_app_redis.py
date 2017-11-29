@@ -133,7 +133,7 @@ class MockedRedisContainer1(object):
     def __init__(self, container_id):
         ports = "[ {\"containerPort\" : \"6379\"} ]"
         self.inspect = {"State": {"Pid": 1234}, "Config": {"Labels":
-                        {"annotation.io.kubernetes.container.ports": ports}}}
+                                                           {"annotation.io.kubernetes.container.ports": ports}}}
 
 
 class MockedRedisContainer2(object):
