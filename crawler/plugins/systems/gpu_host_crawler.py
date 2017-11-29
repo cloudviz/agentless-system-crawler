@@ -59,7 +59,7 @@ class GPUHostCrawler(IHostCrawler):
         except:
             logger.debug(sys.exc_info()[0])
             return []
-    
+ 
     def _get_container_label(self, envs):
         for env in envs:
             label = env.split("=")
@@ -68,7 +68,7 @@ class GPUHostCrawler(IHostCrawler):
             if key == "TRAINING_ID":
                 return val
         return None
- 
+
     def _get_containerid_from_pid(self, pid):
         # possible race conditions / stale info
         for inspect in self.inspect_arr:
@@ -85,7 +85,6 @@ class GPUHostCrawler(IHostCrawler):
                 label = self._get_container_label(envs)
                 if not label:
                     label = pod_name
-                #cont_idx = labels.get('training_id', pod_name)
                 name = "{}.{}".format(namespace, label)
                 return name
         return 'NA.NA'
