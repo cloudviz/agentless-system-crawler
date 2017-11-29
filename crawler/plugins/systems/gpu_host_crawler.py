@@ -59,7 +59,7 @@ class GPUHostCrawler(IHostCrawler):
         except:
             logger.debug(sys.exc_info()[0])
             return []
- 
+
     def _get_container_label(self, envs):
         for env in envs:
             label = env.split("=")
