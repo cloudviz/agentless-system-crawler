@@ -21,7 +21,7 @@ class PluginContainersManager():
         self.pluginconts = dict()
         self.plugincont_image = 'plugincont_image'
         self.plugincont_name_prefix = 'plugin_cont'
-        self.plugincont_username = 'user1'
+        self.plugincont_username = 'plugincont_user'
         self.plugincont_framedir = '/home/user1/features/'
         self.plugincont_py_path = '/usr/bin/python2.7'
         self.plugincont_seccomp_profile_path = os.getcwd() + '/crawler/utils/plugincont/seccomp-no-ptrace.json'
@@ -29,34 +29,76 @@ class PluginContainersManager():
         self.plugincont_guestcont_mountpoint = '/rootfs_local'
         self.docker_client = docker.from_env()
         self.docker_APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')          
-        if self.get_plugincont_host_uid() == -1:
+        if self.set_plugincont_uid() == -1:
             raise ValueError('Failed to verify docker userns-remap settings')
-        if self.get_plugincont_cgroup_netclsid() == -1:
+        if self.set_plugincont_cgroup_netclsid() == -1:
             raise ValueError('Failed to set cgroup netclsid')
         if self.build_plugincont_img() != 0:
             raise ValueError('Failed to build image')
 
-    def isInt(s):
+    def is_int(self, s):
         try: 
             int(s)
             return True
         except ValueError:
             return False
 
-    def get_plugincont_host_uid(self):
-        # from docker userns remapping
+    def _get_next_uid(self):
+        # TODO: check uid is within [UID_MIN,UID_MAX] in /etc/login.defs
+        # alternate approach: useradd nextid; id -u nextid; userdel nextid
+        # assumption the unused uid on host is also an unused uid in container
+        uid = 1010
+        uids_in_use = []
         try:
+            fd = open('/etc/passwd','r')
+            for users in fd.readlines():
+                uids_in_use.append(users.split(':')[2])
+            fd.close()    
+            while str(uid) in uids_in_use:
+                uid = uid + 1
+        except Exception as exc:      
+            print exc
+            print sys.exc_info()[0]
+            uid = -1
+        return uid    
+
+    def set_plugincont_dockerfile_uid(self, uid):
+        retVal = 0
+        uid = str(uid)
+        user = self.plugincont_username
+        try:
+            shutil.copyfile(self.plugincont_image_path+'/Dockerfile.template', self.plugincont_image_path+'/Dockerfile')
+            fd = open(self.plugincont_image_path+'/Dockerfile','w')
+            fd.write('RUN groupadd -r ' + user + ' -g ' + uid)
+            fd.write('RUN useradd -u ' + uid + ' -m ' + user + ' -g ' + user)
+            fd.write('RUN usermod -a -G ' + user + ' ' + user)
+            fd.write('RUN chsh -s /bin/bash ' + user)
+            fd.close()
+        except Exception as exc:      
+            print exc
+            print sys.exc_info()[0]
+            retVal = -1
+        return retVal
+
+    def set_plugincont_uid(self):
+        self.plugincont_host_uid = -1
+        try:
+            uid = self._get_next_uid()
+            if uid <= 0:
+                return
+            if self.set_plugincont_dockerfile_uid(uid) != 0:
+                return
             docker_root_dir = _get_docker_root_dir()    # /var/lib/docker/165536.16553
             leaf_dir = docker_root_dir.split('/')[-1]   # 165536.165536
-            possible_uid = leaf_dir.split('.')[0]       # 165536
-            if isInt(possible_uid) is True:
-                self.plugincont_host_uid = int(possible_uid)
+            possible_sub_uid = leaf_dir.split('.')[0]   # 165536
+            if self.is_int(possible_sub_uid) is True:   # from docker userns remapping
+                self.plugincont_host_uid = int(possible_sub_uid) + uid
         except Exception as exc:      
             print exc
             print sys.exc_info()[0]
             self.plugincont_host_uid = -1
 
-    def get_plugincont_cgroup_netclsid(self):
+    def set_plugincont_cgroup_netclsid(self):
         # self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
         res_clsid = -1
         try:

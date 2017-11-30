@@ -23,10 +23,5 @@ ENV PYTHONPATH=/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-pa
 
 ADD crawler /crawler
 
-RUN groupadd -r user1 -g 1000 && \
-    useradd -u 1000 -m user1 -g user1 && \
-    usermod -a -G user1 user1 && \
-    chsh -s /bin/bash user1
-
 RUN sed -i s/" and isfile_strict(file):"/:/ /usr/local/lib/python2.7/site-packages/psutil/_pslinux.py
 
