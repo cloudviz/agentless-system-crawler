@@ -12,6 +12,7 @@ from base_crawler import BaseCrawler, BaseFrame
 from containers import poll_containers, get_containers
 from utils.crawler_exceptions import ContainerWithoutCgroups
 from utils.namespace import run_as_another_namespace
+from dockerutils import _get_docker_root_dir
 
 class PluginContainersManager():
 
@@ -26,12 +27,54 @@ class PluginContainersManager():
         self.plugincont_seccomp_profile_path = os.getcwd() + '/crawler/utils/plugincont/seccomp-no-ptrace.json'
         self.plugincont_image_path = os.getcwd() + '/crawler/utils/plugincont/plugincont_img'
         self.plugincont_guestcont_mountpoint = '/rootfs_local'
-        self.plugincont_host_uid = '166536' #from  docker userns remapping
-        self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
         self.docker_client = docker.from_env()
         self.docker_APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')          
+        if self.get_plugincont_host_uid() == -1:
+            raise ValueError('Failed to verify docker userns-remap settings')
+        if self.get_plugincont_cgroup_netclsid() == -1:
+            raise ValueError('Failed to set cgroup netclsid')
         if self.build_plugincont_img() != 0:
             raise ValueError('Failed to build image')
+
+    def isInt(s):
+        try: 
+            int(s)
+            return True
+        except ValueError:
+            return False
+
+    def get_plugincont_host_uid(self):
+        # from docker userns remapping
+        try:
+            docker_root_dir = _get_docker_root_dir()    # /var/lib/docker/165536.16553
+            leaf_dir = docker_root_dir.split('/')[-1]   # 165536.165536
+            possible_uid = leaf_dir.split('.')[0]       # 165536
+            if isInt(possible_uid) is True:
+                self.plugincont_host_uid = int(possible_uid)
+        except Exception as exc:      
+            print exc
+            print sys.exc_info()[0]
+            self.plugincont_host_uid = -1
+
+    def get_plugincont_cgroup_netclsid(self):
+        # self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id
+        res_clsid = -1
+        try:
+            cgroup_netcls_path = self._get_cgroup_dir(['net_cls','net_cls,net_prio'])
+            for root, dirs, files in  os.walk(cgroup_netcls_path):
+                for file in files:
+                    if file.endswith('net_cls.classid'):
+                        fd = open(root+'/'+file,'r')
+                        clsid = int(fd.readline())
+                        if res_clsid <= clsid:
+                            res_clsid = clsid + 1
+                        fd.close()
+            res_clsid = res_clsid + 2           
+        except Exception as exc:      
+            print exc
+            print sys.exc_info()[0]
+            res_clsid = -1
+        self.plugincont_cgroup_netclsid = res_clsid
 
     def destroy_cont(self, id=None, name=None):
         client = self.docker_APIclient
