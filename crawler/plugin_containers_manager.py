@@ -65,7 +65,7 @@ class PluginContainersManager():
                 for file in files:
                     if file.endswith('net_cls.classid'):
                         fd = open(root+'/'+file,'r')
-                        clsid = int(fd.readline())
+                        clsid = int(fd.readline(), 16)
                         if res_clsid <= clsid:
                             res_clsid = clsid + 1
                         fd.close()
