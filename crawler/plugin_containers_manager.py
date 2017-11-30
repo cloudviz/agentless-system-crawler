@@ -5,6 +5,7 @@ import time
 import json
 import docker
 import iptc
+import shutil
 import ctypes
 import plugins_manager
 import utils.dockerutils
@@ -12,7 +13,6 @@ from base_crawler import BaseCrawler, BaseFrame
 from containers import poll_containers, get_containers
 from utils.crawler_exceptions import ContainerWithoutCgroups
 from utils.namespace import run_as_another_namespace
-from dockerutils import _get_docker_root_dir
 
 class PluginContainersManager():
 
@@ -22,7 +22,7 @@ class PluginContainersManager():
         self.plugincont_image = 'plugincont_image'
         self.plugincont_name_prefix = 'plugin_cont'
         self.plugincont_username = 'plugincont_user'
-        self.plugincont_framedir = '/home/user1/features/'
+        self.plugincont_framedir = '/home/' + self.plugincont_username + '/features/'
         self.plugincont_py_path = '/usr/bin/python2.7'
         self.plugincont_seccomp_profile_path = os.getcwd() + '/crawler/utils/plugincont/seccomp-no-ptrace.json'
         self.plugincont_image_path = os.getcwd() + '/crawler/utils/plugincont/plugincont_img'
@@ -47,6 +47,7 @@ class PluginContainersManager():
         # TODO: check uid is within [UID_MIN,UID_MAX] in /etc/login.defs
         # alternate approach: useradd nextid; id -u nextid; userdel nextid
         # assumption the unused uid on host is also an unused uid in container
+        # exact ranges maybe found in /etc/subuid
         uid = 1010
         uids_in_use = []
         try:
@@ -57,8 +58,7 @@ class PluginContainersManager():
             while str(uid) in uids_in_use:
                 uid = uid + 1
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             uid = -1
         return uid    
 
@@ -68,15 +68,14 @@ class PluginContainersManager():
         user = self.plugincont_username
         try:
             shutil.copyfile(self.plugincont_image_path+'/Dockerfile.template', self.plugincont_image_path+'/Dockerfile')
-            fd = open(self.plugincont_image_path+'/Dockerfile','w')
-            fd.write('RUN groupadd -r ' + user + ' -g ' + uid)
-            fd.write('RUN useradd -u ' + uid + ' -m ' + user + ' -g ' + user)
-            fd.write('RUN usermod -a -G ' + user + ' ' + user)
-            fd.write('RUN chsh -s /bin/bash ' + user)
+            fd = open(self.plugincont_image_path+'/Dockerfile','a')
+            fd.write('RUN groupadd -r ' + user + ' -g ' + uid + '\n')
+            fd.write('RUN useradd -u ' + uid + ' -m ' + user + ' -g ' + user + '\n')
+            fd.write('RUN usermod -a -G ' + user + ' ' + user + '\n')
+            fd.write('RUN chsh -s /bin/bash ' + user + '\n')
             fd.close()
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal
 
@@ -88,14 +87,14 @@ class PluginContainersManager():
                 return
             if self.set_plugincont_dockerfile_uid(uid) != 0:
                 return
-            docker_root_dir = _get_docker_root_dir()    # /var/lib/docker/165536.16553
+            self.plugincont_host_uid = uid
+            docker_root_dir = utils.dockerutils._get_docker_root_dir()    # /var/lib/docker/165536.16553
             leaf_dir = docker_root_dir.split('/')[-1]   # 165536.165536
             possible_sub_uid = leaf_dir.split('.')[0]   # 165536
             if self.is_int(possible_sub_uid) is True:   # from docker userns remapping
                 self.plugincont_host_uid = int(possible_sub_uid) + uid
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             self.plugincont_host_uid = -1
 
     def set_plugincont_cgroup_netclsid(self):
@@ -113,8 +112,7 @@ class PluginContainersManager():
                         fd.close()
             res_clsid = res_clsid + 2           
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             res_clsid = -1
         self.plugincont_cgroup_netclsid = res_clsid
 
@@ -149,8 +147,7 @@ class PluginContainersManager():
                 assert 'cap_sys_chroot' in caps_set_str
                 assert 'cap_sys_ptrace' in caps_set_str
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal    
 
@@ -169,8 +166,7 @@ class PluginContainersManager():
                 self.docker_APIclient.commit(plugincont.id,repository=self.plugincont_image) 
             self.destroy_cont(id=plugincont.id)                
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal    
     
@@ -204,8 +200,7 @@ class PluginContainersManager():
                 detach=True)
             time.sleep(5)    
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
         
         self.pluginconts[str(guestcont_id)] = plugincont
         guestcont.plugincont = plugincont
@@ -215,7 +210,7 @@ class PluginContainersManager():
         try:
             rule = iptc.Rule()
             match = iptc.Match(rule, "owner")
-            match.uid_owner = self.plugincont_host_uid  
+            match.uid_owner = str(self.plugincont_host_uid)
             rule.add_match(match)
             rule.dst = "!127.0.0.1"
             rule.target = iptc.Target(rule, "DROP")
@@ -224,15 +219,14 @@ class PluginContainersManager():
                 
             rule = iptc.Rule()
             match = iptc.Match(rule, "cgroup")
-            match.cgroup =  self.plugincont_cgroup_netclsid 
+            match.cgroup =  str(self.plugincont_cgroup_netclsid) 
             rule.add_match(match)
             rule.src = "!127.0.0.1"
             rule.target = iptc.Target(rule, "DROP")
             chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "INPUT")
             chain.insert_rule(rule)
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal
 
@@ -266,7 +260,7 @@ class PluginContainersManager():
                 os.makedirs(block_path)
             
             fd = open(block_classid_path,'w')
-            fd.write(self.plugincont_cgroup_netclsid)
+            fd.write(str(self.plugincont_cgroup_netclsid))
             fd.close()
             
             fd = open(tasks_path,'r')
@@ -278,8 +272,7 @@ class PluginContainersManager():
                 fd.write(pid)
             fd.close()
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal    
         
@@ -297,8 +290,7 @@ class PluginContainersManager():
                                          ['net'],
                                          self._add_iptable_rules)
         except Exception as exc:      
-            print exc
-            print sys.exc_info()[0]
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal    
     

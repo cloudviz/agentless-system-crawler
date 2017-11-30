@@ -12,7 +12,7 @@ from icrawl_plugin import IContainerCrawler
 plugins_dir = '/crawler/plugins/systems/' # might eventually become /home/user1/crawler/plugins/...
 guestcont_plugins_file = '/rootfs_local/crawlplugins'
 plugins_file = '/rootfs_local/crawlplugins' # should eventually be /home/user1/crawlplugins
-frame_dir = '/home/user1/features/'
+frame_dir = os.path.expanduser('~') + '/features/' # '/home/plugincont_user/features/'
 plugin_objs = []
 active_plugins = []
 frquency = -1
