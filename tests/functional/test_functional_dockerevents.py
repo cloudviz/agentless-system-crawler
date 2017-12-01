@@ -20,7 +20,7 @@ VERSION_SPEC = semantic_version.Spec('>=1.8.1')
 class CrawlerDockerEventTests(unittest.TestCase):
 
     def setUp(self):
-        self.docker = docker.Client(
+        self.docker = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         try:
             if len(self.docker.containers()) != 0:

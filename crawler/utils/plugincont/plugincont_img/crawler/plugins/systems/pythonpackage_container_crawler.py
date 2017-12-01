@@ -13,7 +13,7 @@ logger = logging.getLogger('crawlutils')
 class PythonPackageCrawler(IContainerCrawler):
 
     def get_feature(self):
-        return 'python-package'
+        return 'pythonpackage'
 
     def _crawl_files(self, path, extensions):
         output = []
@@ -58,7 +58,7 @@ class PythonPackageCrawler(IContainerCrawler):
                 yield (
                     pkg_name,
                     {"pkgname": pkg_name, "pkgversion": pkg_version},
-                    'python-package')
+                    'pythonpackage')
 
     def _get_packages_by_cmd(self):
         # better coverage with pkg_resources.working_set than
@@ -86,7 +86,7 @@ class PythonPackageCrawler(IContainerCrawler):
                 yield (
                     pkg_name,
                     {"pkgname": pkg_name, "pkgversion": pkg_version},
-                    'python-package')
+                    'pythonpackage')
 
     def _crawl_without_setns(self, container_id):
         return self._get_packages_by_extension('/rootfs_local')
@@ -110,5 +110,5 @@ class PythonPackageCrawler(IContainerCrawler):
         if avoid_setns:
             return self._crawl_without_setns(container_id)
         else:  # in all other cases, including wrong mode set
-            self.get_packages_generic = False  # can be made an arg to crawl()
+            self.get_packages_generic = True  # can be made an arg to crawl()
             return self._crawl_in_system()

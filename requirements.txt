@@ -12,4 +12,4 @@ configobj==4.7.0
 morph==0.1.2
 fluent-logger==0.4.6
 requests_unixsocket==0.1.5
-python-iptables
+python-iptables==0.12.0

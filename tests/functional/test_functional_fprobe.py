@@ -97,7 +97,7 @@ class FprobeFunctionalTests(unittest.TestCase):
     image_name = 'alpine:latest'
 
     def setUp(self):
-        self.docker = docker.Client(
+        self.docker = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         try:
             if len(self.docker.containers()) != 0:

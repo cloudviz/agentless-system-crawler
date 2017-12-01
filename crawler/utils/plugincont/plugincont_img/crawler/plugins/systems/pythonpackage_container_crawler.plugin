@@ -1,5 +1,5 @@
 [Core]
-Name = python_pkg
+Name = pythonpackage
 Module = pythonpackage_container_crawler
 
 [Documentation]

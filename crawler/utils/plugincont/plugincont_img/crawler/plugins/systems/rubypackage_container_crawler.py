@@ -11,7 +11,7 @@ logger = logging.getLogger('crawlutils')
 class RubyPackageCrawler(IContainerCrawler):
 
     def get_feature(self):
-        return 'ruby-package'
+        return 'rubypackage'
 
     def _crawl_files(self, path, extension):
         output = []
@@ -43,7 +43,7 @@ class RubyPackageCrawler(IContainerCrawler):
                 yield (
                     pkg_name,
                     {"pkgname": pkg_name, "pkgversion": pkg_version},
-                    'ruby-package')
+                    'rubypackage')
 
     def _get_packages_by_cmd(self):
         proc = subprocess.Popen(
@@ -62,7 +62,7 @@ class RubyPackageCrawler(IContainerCrawler):
                         yield (
                             pkg_name,
                             {"pkgname": pkg_name, "pkgversion": pkg_version},
-                            'ruby-package')
+                            'rubypackage')
 
     def _crawl_without_setns(self, container_id):
         return self._get_packages_by_extension('/rootfs_local')
