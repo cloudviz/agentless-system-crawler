@@ -43,7 +43,7 @@ def get_dpkg_packages(
             # changed to below per Suriya's request
 
             feature_key = '{0}'.format(name, version)
-            yield (feature_key, PackageFeature(None, name,
+            yield (feature_key, PackageFeature("null", name,
                                                size, version,
                                                architecture))
 

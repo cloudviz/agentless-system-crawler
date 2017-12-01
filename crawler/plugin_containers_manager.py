@@ -84,9 +84,9 @@ class PluginContainersManager():
         try:
             uid = self._get_next_uid()
             if uid <= 0:
-                return
+                return -1
             if self.set_plugincont_dockerfile_uid(uid) != 0:
-                return
+                return -1
             self.plugincont_host_uid = uid
             docker_root_dir = utils.dockerutils._get_docker_root_dir()    # /var/lib/docker/165536.16553
             leaf_dir = docker_root_dir.split('/')[-1]   # 165536.165536
@@ -96,6 +96,7 @@ class PluginContainersManager():
         except Exception as exc:      
             print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             self.plugincont_host_uid = -1
+        return self.plugincont_host_uid    
 
     def set_plugincont_cgroup_netclsid(self):
         # self.plugincont_cgroup_netclsid = '43'  #random cgroup net cls id

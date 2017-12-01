@@ -52,8 +52,6 @@ class SafeContainersCrawler(BaseCrawler):
    
     # Return list of features after reading frame from plugin cont
     def get_plugincont_features(self, guestcont):
-        #import pdb
-        #pdb.set_trace()
         features = []
         if self.pluginconts_manager is None:
             return features
