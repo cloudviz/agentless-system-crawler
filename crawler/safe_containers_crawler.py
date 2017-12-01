@@ -81,7 +81,7 @@ class SafeContainersCrawler(BaseCrawler):
         return features
             
 
-    def crawl_container(self, container, ignore_plugin_exception=True):
+    def crawl_container_mini(self, container, ignore_plugin_exception=True):
         frame = ContainerFrame(self.features, container)
         try:
             frame.add_features(self.get_plugincont_features(container))
@@ -90,7 +90,7 @@ class SafeContainersCrawler(BaseCrawler):
                 raise exc
         return frame
 
-    def crawl_container_org(self, container, ignore_plugin_exception=True):
+    def crawl_container(self, container, ignore_plugin_exception=True):
         """
         Crawls a specific container and returns a Frame for it.
 
