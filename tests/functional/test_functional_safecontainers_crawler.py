@@ -152,7 +152,46 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         assert 'interface-lo.if_octets.tx' in output
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
-        assert 'apt.pkgsize' in output
+        f.close()
+    
+    def testCrawlContainerNoPlugins(self):
+        rootfs = get_docker_container_rootfs_path(self.container['Id'])
+        fd = open(rootfs+'/crawlplugins','w')
+        fd.write('noplugin\n')
+        fd.close()
+        
+        env = os.environ.copy()
+        mypath = os.path.dirname(os.path.realpath(__file__))
+        os.makedirs(self.tempd + '/out')
+
+        # crawler itself needs to be root
+        process = subprocess.Popen(
+            [
+                '/usr/bin/python', mypath + '/../../crawler/crawler.py',
+                '--url', 'file://' + self.tempd + '/out/crawler',
+                '--features', 'none',
+                '--crawlContainers', self.container['Id'],
+                '--crawlmode', 'OUTCONTAINERSAFE',
+            ],
+            env=env)
+        stdout, stderr = process.communicate()
+        assert process.returncode == 0
+
+        print stderr
+        print stdout
+
+        subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
+
+        files = os.listdir(self.tempd + '/out')
+        assert len(files) == 1
+
+        f = open(self.tempd + '/out/' + files[0], 'r')
+        output = f.read()
+        print output  # only printed if the test fails
+        assert 'metadata' in output
+        assert 'interface-lo' not in output
+        assert 'cpu-0' not in output
+        assert 'memory' not in output
         f.close()
 
     def testCrawlContainerKafka(self):
@@ -183,9 +222,44 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         message = consumer.consume()
         assert '"cmd":"tail -f /dev/null"' in message.value
     
-    def _testCrawlContainerKafka(self):
+    def testCrawlContainerBadPlugin(self):
         # TODO: verify sandbox restraints here
-        pass
+        rootfs = get_docker_container_rootfs_path(self.container['Id'])
+        fd = open(rootfs+'/crawlplugins','w')
+        fd.write('evil\n')
+        fd.close()
+        
+        env = os.environ.copy()
+        mypath = os.path.dirname(os.path.realpath(__file__))
+        os.makedirs(self.tempd + '/out')
+
+        # crawler itself needs to be root
+        process = subprocess.Popen(
+            [
+                '/usr/bin/python', mypath + '/../../crawler/crawler.py',
+                '--url', 'file://' + self.tempd + '/out/crawler',
+                '--features', 'none',
+                '--crawlContainers', self.container['Id'],
+                '--crawlmode', 'OUTCONTAINERSAFE',
+            ],
+            env=env)
+        stdout, stderr = process.communicate()
+        assert process.returncode == 0
+
+        print stderr
+        print stdout
+
+        subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
+
+        files = os.listdir(self.tempd + '/out')
+        assert len(files) == 1
+
+        f = open(self.tempd + '/out/' + files[0], 'r')
+        output = f.read()
+        print output  # only printed if the test fails
+        assert 'killstatus' in output
+        assert 'expected_failed' in output
+        f.close()
 
 if __name__ == '__main__':
     unittest.main()
