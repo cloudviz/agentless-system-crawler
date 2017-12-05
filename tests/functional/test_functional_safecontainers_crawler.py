@@ -215,6 +215,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
             env=env)
         time.sleep(30)
 
+        print self.docker.containers()
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
@@ -284,6 +285,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
+        print self.docker.containers()
         print stderr
         print stdout
 
