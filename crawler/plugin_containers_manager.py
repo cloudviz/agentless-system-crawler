@@ -27,9 +27,11 @@ class PluginContainersManager():
         self.plugincont_image_path = os.getcwd() + \
             '/crawler/utils/plugincont/plugincont_img'
         self.plugincont_guestcont_mountpoint = '/rootfs_local'
-        self.docker_client = docker.from_env()
+        #self.docker_client = docker.from_env()
+        self.docker_client = docker.DockerClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         self.docker_APIclient = docker.APIClient(
-            base_url='unix://var/run/docker.sock')
+            base_url='unix://var/run/docker.sock', version='auto')
         if self.set_plugincont_uid() == -1:
             raise ValueError('Failed to verify docker userns-remap settings')
         if self.set_plugincont_cgroup_netclsid() == -1:
