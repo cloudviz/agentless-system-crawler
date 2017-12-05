@@ -87,9 +87,9 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         fd.close()
 
     def tearDown(self):
+        selg.fix_test_artifacts()
         self.remove_crawled_container()
         self.remove_kafka_container()
-
         shutil.rmtree(self.tempd)
 
     def remove_kafka_container(self):
@@ -306,7 +306,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         assert 'expected_failed' in output
         f.close()
 
-    def testFixArtifacts(self):
+    def fix_test_artifacts(self):
         plugincont_image_path = os.getcwd() + \
             '/crawler/utils/plugincont/plugincont_img'
         shutil.copyfile(plugincont_image_path + '/requirements.txt.template',
