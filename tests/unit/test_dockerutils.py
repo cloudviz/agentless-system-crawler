@@ -14,8 +14,8 @@ class MockedClient():
         return [{'Id': 'good_id'}]
 
     def info(self):
-        return {'Driver': 'btrfs'}
-
+        return {'Driver': 'btrfs', 'DockerRootDir': '/var/lib/docker'}
+    
     def version(self):
         return {'Version': '1.10.1'}
 
