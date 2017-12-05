@@ -27,7 +27,6 @@ class PluginContainersManager():
         self.plugincont_image_path = os.getcwd() + \
             '/crawler/utils/plugincont/plugincont_img'
         self.plugincont_guestcont_mountpoint = '/rootfs_local'
-        #self.docker_client = docker.from_env()
         self.docker_client = docker.DockerClient(
             base_url='unix://var/run/docker.sock', version='auto')
         self.docker_APIclient = docker.APIClient(
