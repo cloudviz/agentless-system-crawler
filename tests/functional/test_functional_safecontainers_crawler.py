@@ -100,7 +100,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         self.docker.stop(container=self.container['Id'])
         self.docker.remove_container(container=self.container['Id'])
 
-    def testCrawlContainer1(self):
+    def _testCrawlContainer1(self):
         crawler = SafeContainersCrawler(
             features=[], user_list=self.container['Id'])
         frames = list(crawler.crawl())
@@ -120,7 +120,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         assert 'rubypackage' in output
         assert 'rake' in output
 
-    def testCrawlContainer2(self):
+    def _testCrawlContainer2(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -136,6 +136,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
                 '--crawlmode', 'OUTCONTAINERSAFE',
             ],
             env=env)
+        time.sleep(30)
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
@@ -175,6 +176,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
                 '--crawlmode', 'OUTCONTAINERSAFE',
             ],
             env=env)
+        time.sleep(30)
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
@@ -205,12 +207,14 @@ class SafeContainersCrawlerTests(unittest.TestCase):
             [
                 '/usr/bin/python', mypath + '/../../crawler/crawler.py',
                 '--url', 'kafka://localhost:9092/test',
-                '--features', 'os,process',
+                '--features', 'none',
                 '--crawlContainers', self.container['Id'],
-                '--crawlmode', 'OUTCONTAINER',
+                '--crawlmode', 'OUTCONTAINERSAFE',
                 '--numprocesses', '1'
             ],
             env=env)
+        time.sleep(30)
+
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
@@ -221,7 +225,21 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         topic = kafka.topics['test']
         consumer = topic.get_simple_consumer()
         message = consumer.consume()
+        print message.value
         assert '"cmd":"tail -f /dev/null"' in message.value
+        assert 'interface-lo' in message.value
+        assert 'if_octets_tx' in message.value
+        assert 'cpu-0' in message.value
+        assert 'cpu_nice' in message.value
+        assert 'memory' in message.value
+        assert 'memory_buffered' in message.value
+        assert 'os' in message.value
+        assert 'linux' in message.value
+        assert 'process' in message.value
+        assert 'tail' in message.value
+        assert 'plugincont_user' in message.value
+        assert 'rubypackage' in message.value
+        assert 'rake' in message.value
 
     def _setup_plugincont_testing1(self):
         plugincont_name = '/plugin_cont_' + self.container['Id']
@@ -262,6 +280,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
                 '--crawlmode', 'OUTCONTAINERSAFE',
             ],
             env=env)
+        time.sleep(30)    
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
