@@ -2,16 +2,11 @@ import ast
 import os
 import sys
 import time
-import json
-import docker
-import iptc
 import plugins_manager
-import utils.dockerutils
 from base_crawler import BaseCrawler, BaseFrame
 from plugin_containers_manager import PluginContainersManager
-from containers import poll_containers, get_containers
-from utils.crawler_exceptions import ContainerWithoutCgroups
-from utils.namespace import run_as_another_namespace
+from containers import get_containers
+
 
 class ContainerFrame(BaseFrame):
 
@@ -49,7 +44,7 @@ class SafeContainersCrawler(BaseCrawler):
             self.pluginconts_manager = PluginContainersManager(frequency)
         except ValueError as err:
             print(err.args)
-   
+
     # Return list of features after reading frame from plugin cont
     def get_plugincont_features(self, guestcont):
         features = []
@@ -60,24 +55,24 @@ class SafeContainersCrawler(BaseCrawler):
             self.pluginconts_manager.setup_plugincont(guestcont)
             if guestcont.plugincont is None:
                 return features
-        frame_dir = self.pluginconts_manager.get_plugincont_framedir(guestcont)    
+        frame_dir = self.pluginconts_manager.get_plugincont_framedir(guestcont)
         try:
             frame_list = os.listdir(frame_dir)
             frame_list.sort(key=int)
             if frame_list != []:
-                earliest_frame_file = frame_dir+frame_list[0]
+                earliest_frame_file = frame_dir + frame_list[0]
                 fd = open(earliest_frame_file)
                 for feature_line in fd.readlines():
                     (type, key, val) = feature_line.strip().split('\t')
-                    features.append((ast.literal_eval(key), ast.literal_eval(val), type))
-                fd.close()    
+                    features.append(
+                        (ast.literal_eval(key), ast.literal_eval(val), type))
+                fd.close()
                 os.remove(earliest_frame_file)
-        except Exception as exc:      
+        except Exception as exc:
             print exc
             print sys.exc_info()[0]
-        
+
         return features
-            
 
     def crawl_container_mini(self, container, ignore_plugin_exception=True):
         frame = ContainerFrame(self.features, container)
@@ -129,7 +124,7 @@ class SafeContainersCrawler(BaseCrawler):
         :return: a Frame object
         """
         # Not implemented
-        time.sleep(timeout)      
+        time.sleep(timeout)
         return None
 
     def crawl(self, ignore_plugin_exception=True):
@@ -146,5 +141,6 @@ class SafeContainersCrawler(BaseCrawler):
             host_namespace=self.host_namespace,
             group_by_pid_namespace=False)
         for container in containers_list:
-            if not container.name.startswith(self.pluginconts_manager.plugincont_name_prefix):
+            plugincont_prefix = self.pluginconts_manager.plugincont_name_prefix
+            if not container.name.startswith(plugincont_prefix):
                 yield self.crawl_container(container, ignore_plugin_exception)

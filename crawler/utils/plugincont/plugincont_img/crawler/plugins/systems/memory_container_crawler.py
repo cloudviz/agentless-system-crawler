@@ -37,7 +37,7 @@ class MemoryContainerCrawler(IContainerCrawler):
 
         used = buffered = cached = free = 'unknown'
         with open(self.get_memory_cgroup_path('memory.stat'
-                                                   ), 'r') as f:
+                                              ), 'r') as f:
             for line in f:
                 (key, value) = line.strip().split(' ')
                 if key == 'total_cache':

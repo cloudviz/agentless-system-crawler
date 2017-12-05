@@ -27,7 +27,7 @@ def list_all_containers(user_list='ALL', host_namespace='',
                                             user_list=user_list):
         if group_by_pid_namespace is False:
             yield _container
-        else:    
+        else:
             curr_ns = _container.process_namespace
             if curr_ns not in visited_ns:
                 visited_ns.add(curr_ns)

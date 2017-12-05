@@ -30,7 +30,8 @@ def exec_dockerps():
     This call executes the `docker inspect` command every time it is invoked.
     """
     try:
-        client = docker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         containers = client.containers()
         inspect_arr = []
         for container in containers:
@@ -45,7 +46,8 @@ def exec_dockerps():
 
 def exec_docker_history(long_id):
     try:
-        client = docker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         image = client.inspect_container(long_id)['Image']
         history = client.history(image)
         return history
@@ -68,7 +70,8 @@ def _reformat_inspect(inspect):
 
 def exec_dockerinspect(long_id):
     try:
-        client = docker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         inspect = client.inspect_container(long_id)
         _reformat_inspect(inspect)
     except docker.errors.DockerException as e:
@@ -104,7 +107,8 @@ def _get_docker_storage_driver():
     # Step 1, get it from "docker info"
 
     try:
-        client = docker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         driver = client.info()['Driver']
     except (docker.errors.DockerException, KeyError):
         pass  # try to continue with the default of 'devicemapper'
@@ -189,7 +193,8 @@ def _get_docker_server_version():
     """Run the `docker info` command to get server version
     """
     try:
-        client = docker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         return client.version()['Version']
     except (docker.errors.DockerException, KeyError) as e:
         logger.warning(str(e))
@@ -289,6 +294,7 @@ def _get_docker_root_dir():
     except docker.errors.APIError as e:
         logger.warning(str(e))
         raise DockerutilsException('Failed to get docker info')
+
 
 def _get_container_rootfs_path_aufs(long_id, inspect=None):
 
@@ -390,7 +396,8 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
 
 def poll_container_create_events(timeout=0.1):
     try:
-        client = docker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         filters = dict()
         filters['type'] = 'container'
         filters['event'] = 'start'

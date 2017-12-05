@@ -50,9 +50,9 @@ def crawl_metrics():
                 # http://lukasz.langa.pl/5/error-opening-file-for-reading-permission-denied/
                 print "got psutil.AccessDenied for pid:", pid
             ioinfo = namedtuple('ioinfo', ['read_count', 'write_count',
-                         'read_bytes', 'write_bytes'])
+                                           'read_bytes', 'write_bytes'])
             ioinfo.read_bytes = 0
-            ioinfo.write_bytes = 0 
+            ioinfo.write_bytes = 0
 
         cpu_percent = _crawl_metrics_cpu_percent(p)
 

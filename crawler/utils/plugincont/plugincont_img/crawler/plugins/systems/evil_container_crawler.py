@@ -1,5 +1,5 @@
 import logging
-
+import os
 import psutil
 
 from icrawl_plugin import IContainerCrawler
@@ -18,7 +18,11 @@ class EvilContainerCrawler(IContainerCrawler):
         return self.crawl_in_system()
 
     def crawl_in_system(self):
-        return self.kill_proc()
+        yield self.kill_proc()
+        yield self.trace_proc()
+        yield self.write_guest_rootfs()
+        yield self.rm_guest_rootfs()
+        yield self.nw()
 
     def kill_proc(self):
         for p in psutil.process_iter():
@@ -35,86 +39,121 @@ class EvilContainerCrawler(IContainerCrawler):
                             p.username)
                 if username == 'plugincont_user':
                     continue
-                p.kill()                             
+                p.kill()
             except psutil.AccessDenied:
-                yield (
-                    name,
-                    {"pid": pid, "username": username, "killstatus": "expected_failed"},
+                return (
+                    'kill_proc',
+                    {"pname": name, "pid": pid, "username":
+                        username, "kill_status": "expected_failed"},
                     'evil'
-                    )
-                break    
+                )
+                break
             except:
                 continue
-            yield (
-                name,
-                {"pid": pid, "username": username, "killstatus": "unexpected_succeeded"},
+            return (
+                'kill_proc',
+                {"pname": name, "pid": pid, "username":
+                    username, "kill_status": "unexpected_succeeded"},
                 'evil'
-                )
-            break    
+            )
+            break
 
-    def _crawl_single_process(self, p):
-        """Returns a ProcessFeature"""
-        create_time = (
-            p.create_time() if hasattr(
-                p.create_time,
-                '__call__') else p.create_time)
-
-        name = (p.name() if hasattr(p.name, '__call__'
-                                    ) else p.name)
-        cmdline = (p.cmdline() if hasattr(p.cmdline, '__call__'
-                                          ) else p.cmdline)
-        pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
-        status = (p.status() if hasattr(p.status, '__call__'
-                                        ) else p.status)
-        if status == psutil.STATUS_ZOMBIE:
-            cwd = 'unknown'  # invalid
-        else:
+    def trace_proc(self):
+        for p in psutil.process_iter():
+            status = (p.status() if hasattr(p.status, '__call__'
+                                            ) else p.status)
+            if status == psutil.STATUS_ZOMBIE:
+                continue
+            name = (p.name() if hasattr(p.name, '__call__'
+                                        ) else p.name)
+            pid = (p.pid() if hasattr(p.pid, '__call__') else p.pid)
             try:
-                cwd = (p.cwd() if hasattr(p, 'cwd') and
-                       hasattr(p.cwd, '__call__') else p.getcwd())
-            except Exception:
-                logger.error('Error crawling process %s for cwd'
-                             % pid, exc_info=True)
-                cwd = 'unknown'
-        ppid = (p.ppid() if hasattr(p.ppid, '__call__'
-                                    ) else p.ppid)
+                username = (p.username() if hasattr(p, 'username') and
+                            hasattr(p.username, '__call__') else
+                            p.username)
+            except:
+                username = 'unknown'
+            try:
+                import ptrace
+                import ptrace.debugger
+                import ptrace.error
+                debugger = ptrace.debugger.PtraceDebugger()
+                process = debugger.addProcess(int(pid), False)
+                ret = (
+                    'trace_proc',
+                    {"pname": name, "pid": pid, "username": username,
+                        "trace_status": "unexpected_succeeded"},
+                    'evil'
+                )
+                process.detach()
+                break
+            except ptrace.error.PtraceError:
+                ret = (
+                    'trace_proc',
+                    {"pname": name, "pid": pid, "username":
+                        username, "trace_status": "expected_failed"},
+                    'evil'
+                )
+                break
+        return ret
+
+    def write_guest_rootfs(self):
+        real_root = os.open('/', os.O_RDONLY)
+        os.chroot('/rootfs_local')
+        filename = '/bin/ls'
         try:
-            if (hasattr(p, 'num_threads') and
-                    hasattr(p.num_threads, '__call__')):
-                num_threads = p.num_threads()
-            else:
-                num_threads = p.get_num_threads()
-        except:
-            num_threads = 'unknown'
+            fd = open(filename, 'w')
+            ret = (
+                'write_to_file',
+                {"filename": filename, "write_status": "unexpected_succeeded"},
+                'evil'
+            )
+            fd.close()
+        except IOError:
+            ret = (
+                'write_to_file',
+                {"filename": filename, "write_status": "expected_failed"},
+                'evil'
+            )
+        os.fchdir(real_root)
+        os.chroot('.')
+        return ret
 
+    def rm_guest_rootfs(self):
+        real_root = os.open('/', os.O_RDONLY)
+        os.chroot('/rootfs_local')
+        filename = '/bin/ls'
         try:
-            username = (p.username() if hasattr(p, 'username') and
-                        hasattr(p.username, '__call__') else
-                        p.username)
-        except:
-            username = 'unknown'
+            os.remove(filename)
+            ret = (
+                'rm_file',
+                {"filename": filename, "rm_status": "unexpected_succeeded"},
+                'evil'
+            )
+            fd.close()
+        except OSError:
+            ret = (
+                'rm_file',
+                {"filename": filename, "rm_status": "expected_failed"},
+                'evil'
+            )
+        os.fchdir(real_root)
+        os.chroot('.')
+        return ret
 
-        if username == 'nobody':
-            return
-
-        openfiles = []
-        try:
-            for f in p.get_open_files():
-                openfiles.append(f.path)
-            openfiles.sort()
-        except psutil.AccessDenied:
-            print "got psutil.AccessDenied"
-            openfiles = []
-
-        feature_key = '{0}/{1}'.format(name, pid)
-        return (feature_key, ProcessFeature(
-            str(' '.join(cmdline)),
-            create_time,
-            cwd,
-            name,
-            openfiles,
-            pid,
-            ppid,
-            num_threads,
-            username,
-        ), 'process')
+    def nw(self):
+        hostname = 'www.google.com'
+        r = os.system("wget " + hostname)
+        if r != 0:
+            ret = (
+                'nw',
+                {"host": hostname, "nw_status": "expected_failed"},
+                'evil'
+            )
+        else:
+            ret = (
+                'nw',
+                {"host": hostname, "nw_status": "unexpected_succeeded"},
+                'evil'
+            )
+        return ret

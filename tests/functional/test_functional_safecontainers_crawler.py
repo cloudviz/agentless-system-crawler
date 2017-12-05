@@ -34,7 +34,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         root.addHandler(ch)
 
         self.docker = docker.APIClient(base_url='unix://var/run/docker.sock',
-                                    version='auto')
+                                       version='auto')
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
@@ -77,13 +77,13 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         self.docker.start(container=self.container['Id'])
         time.sleep(5)
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
-        fd = open(rootfs+'/crawlplugins','w')
+        fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('cpu\n')
         fd.write('os\n')
         fd.write('memory\n')
         fd.write('interface\n')
         fd.write('process\n')
-        fd.write('pythonpackage\n')
+        fd.write('rubypackage\n')
         fd.close()
 
     def tearDown(self):
@@ -101,7 +101,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         self.docker.remove_container(container=self.container['Id'])
 
     def testCrawlContainer1(self):
-        crawler = SafeContainersCrawler(features=[],user_list=self.container['Id'])
+        crawler = SafeContainersCrawler(
+            features=[], user_list=self.container['Id'])
         frames = list(crawler.crawl())
         output = str(frames[0])
         print output  # only printed if the test fails
@@ -116,8 +117,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         assert 'process' in output
         assert 'tail' in output
         assert 'plugincont_user' in output
-        assert 'pythonpackage' in output
-        assert 'Python' in output
+        assert 'rubypackage' in output
+        assert 'rake' in output
 
     def testCrawlContainer2(self):
         env = os.environ.copy()
@@ -153,13 +154,13 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         assert 'cpu-0.cpu-idle' in output
         assert 'memory.memory-used' in output
         f.close()
-    
+
     def testCrawlContainerNoPlugins(self):
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
-        fd = open(rootfs+'/crawlplugins','w')
+        fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('noplugin\n')
         fd.close()
-        
+
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -221,14 +222,32 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         consumer = topic.get_simple_consumer()
         message = consumer.consume()
         assert '"cmd":"tail -f /dev/null"' in message.value
-    
-    def testCrawlContainerBadPlugin(self):
-        # TODO: verify sandbox restraints here
+
+    def _setup_plugincont_testing1(self):
+        plugincont_name = '/plugin_cont_' + self.container['Id']
+        for container in self.docker.containers():
+            if plugincont_name in container['Names']:
+                plugincont_id = container['Id']
+        exec_instance = self.docker.exec_create(
+            container=plugincont_id,
+            user='root',
+            cmd='pip install python-ptrace')
+        self.docker.exec_start(exec_instance.get("Id"))
+
+    def _setup_plugincont_testing2(self):
+        plugincont_image_path = os.getcwd() + \
+            '/crawler/utils/plugincont/plugincont_img'
+        shutil.copyfile(plugincont_image_path + '/requirements.txt.testing',
+                        plugincont_image_path + '/requirements.txt')
+
+    def testCrawlContainerEvilPlugin(self):
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
-        fd = open(rootfs+'/crawlplugins','w')
+        fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('evil\n')
         fd.close()
-        
+
+        self._setup_plugincont_testing2()
+
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -257,9 +276,22 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
         print output  # only printed if the test fails
-        assert 'killstatus' in output
+        assert 'kill_status' in output
+        assert 'trace_status' in output
+        assert 'write_status' in output
+        assert 'rm_status' in output
+        assert 'nw_status' in output
+        assert 'unexpected_succeeded' not in output
         assert 'expected_failed' in output
         f.close()
+
+    def testFixArtifacts(self):
+        plugincont_image_path = os.getcwd() + \
+            '/crawler/utils/plugincont/plugincont_img'
+        shutil.copyfile(plugincont_image_path + '/requirements.txt.template',
+                        plugincont_image_path + '/requirements.txt')
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
