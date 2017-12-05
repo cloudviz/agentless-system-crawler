@@ -287,7 +287,8 @@ def _get_container_rootfs_path_btrfs(long_id, inspect=None):
 
 def _get_docker_root_dir():
     try:
-        client = docker.from_env()
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         docker_info = client.info()
         root_dir = str(docker_info['DockerRootDir'])
         return root_dir
