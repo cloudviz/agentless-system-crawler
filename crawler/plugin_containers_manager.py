@@ -239,7 +239,7 @@ class PluginContainersManager():
             print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal
-    
+
     def _add_iptable_rules_out(self):
         retVal = 0
         try:
@@ -255,13 +255,13 @@ class PluginContainersManager():
             print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal
-    
+
     def _add_iptable_rules(self):
         retVal1 = 0
         retVal2 = 0
         retVal1 = self._add_iptable_rules_in()
         retVal2 = self._add_iptable_rules_out()
-        return (retVal1 + retVal2)/2
+        return (retVal1 + retVal2) / 2
 
     def _get_cgroup_dir(self, devlist=[]):
         for dev in devlist:

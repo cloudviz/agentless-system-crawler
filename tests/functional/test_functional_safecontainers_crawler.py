@@ -55,29 +55,28 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         self.start_kafka_container()
 
     def setup_plugincont_testing2(self):
+        plugincont_image_path = os.getcwd() + \
+            '/crawler/utils/plugincont/plugincont_img'
+        shutil.copyfile(
+            plugincont_image_path + '/requirements.txt.testing',
+            plugincont_image_path + '/requirements.txt')
         _platform = platform.linux_distribution()
-        if _platform[0] == 'Ubuntu' and _platform[1] >= '16.04':
-            self.seccomp = True
-            plugincont_image_path = os.getcwd() + \
-                '/crawler/utils/plugincont/plugincont_img'
-            shutil.copyfile(
-                plugincont_image_path + '/requirements.txt.testing',
-                plugincont_image_path + '/requirements.txt')
-        else:
+        if _platform[0] != 'Ubuntu1' or _platform[1] < '16.04':
             self.seccomp = False
             src_file = os.getcwd() + \
                 '/crawler/plugin_containers_manager.py'
             os.system("sed -i.bak '/security_opt=/d; "
-                      "/self._add_iptable_rules_out/d' " + src_file)
+                      "/self._add_iptable_rules_in/d' " + src_file)
+        else:
+            self.seccomp = True
 
     def fix_test_artifacts(self):
-        if self.seccomp is True:
-            plugincont_image_path = os.getcwd() + \
-                '/crawler/utils/plugincont/plugincont_img'
-            shutil.copyfile(
-                plugincont_image_path + '/requirements.txt.template',
-                plugincont_image_path + '/requirements.txt')
-        else:
+        plugincont_image_path = os.getcwd() + \
+            '/crawler/utils/plugincont/plugincont_img'
+        shutil.copyfile(
+            plugincont_image_path + '/requirements.txt.template',
+            plugincont_image_path + '/requirements.txt')
+        if self.seccomp is False:
             src_file = os.getcwd() + \
                 '/crawler/plugin_containers_manager.py.bak'
             dst_file = os.getcwd() + \
