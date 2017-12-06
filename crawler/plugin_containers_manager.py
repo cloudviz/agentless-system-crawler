@@ -224,18 +224,9 @@ class PluginContainersManager():
         self.pluginconts[str(guestcont_id)] = plugincont
         guestcont.plugincont = plugincont
 
-    def _add_iptable_rules(self):
+    def _add_iptable_rules_in(self):
         retVal = 0
         try:
-            rule = iptc.Rule()
-            match = iptc.Match(rule, "owner")
-            match.uid_owner = str(self.plugincont_host_uid)
-            rule.add_match(match)
-            rule.dst = "!127.0.0.1"
-            rule.target = iptc.Target(rule, "DROP")
-            chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "OUTPUT")
-            chain.insert_rule(rule)
-
             rule = iptc.Rule()
             match = iptc.Match(rule, "cgroup")
             match.cgroup = str(self.plugincont_cgroup_netclsid)
@@ -248,6 +239,29 @@ class PluginContainersManager():
             print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
             retVal = -1
         return retVal
+    
+    def _add_iptable_rules_out(self):
+        retVal = 0
+        try:
+            rule = iptc.Rule()
+            match = iptc.Match(rule, "owner")
+            match.uid_owner = str(self.plugincont_host_uid)
+            rule.add_match(match)
+            rule.dst = "!127.0.0.1"
+            rule.target = iptc.Target(rule, "DROP")
+            chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "OUTPUT")
+            chain.insert_rule(rule)
+        except Exception as exc:
+            print sys.exc_info()[0], exc, sys.exc_info()[-1].tb_lineno
+            retVal = -1
+        return retVal
+    
+    def _add_iptable_rules(self):
+        retVal1 = 0
+        retVal2 = 0
+        retVal1 = self._add_iptable_rules_in()
+        retVal2 = self._add_iptable_rules_out()
+        return (retVal1 + retVal2)/2
 
     def _get_cgroup_dir(self, devlist=[]):
         for dev in devlist:

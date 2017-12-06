@@ -67,7 +67,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
             self.seccomp = False
             src_file = os.getcwd() + \
                 '/crawler/plugin_containers_manager.py'
-            os.system('sed -i.bak /security_opt=/d ' + src_file)
+            os.system("sed -i.bak '/security_opt=/d; "
+                      "/self._add_iptable_rules_out/d' " + src_file)
 
     def fix_test_artifacts(self):
         if self.seccomp is True:
