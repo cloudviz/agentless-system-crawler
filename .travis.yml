@@ -33,7 +33,7 @@ before_install:
     - cp -r psvmi/offsets offsets
     - cp psvmi/header.h .
     # for safe plugin mode
-    - sudo apt-get install libcap-dev
+    - sudo apt-get install libcap-dev iptables libxtables11
 
 # command to install dependencies
 # XXX: Now mock complains if we don't `sudo pip install`.
