@@ -61,7 +61,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
             plugincont_image_path + '/requirements.txt.testing',
             plugincont_image_path + '/requirements.txt')
         _platform = platform.linux_distribution()
-        if _platform[0] != 'Ubuntu1' or _platform[1] < '16.04':
+        if _platform[0] != 'Ubuntu' or _platform[1] < '16.04':
             self.seccomp = False
             src_file = os.getcwd() + \
                 '/crawler/plugin_containers_manager.py'
