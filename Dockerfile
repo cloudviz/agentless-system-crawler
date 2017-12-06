@@ -16,7 +16,7 @@ RUN dpkg -i /tmp/python-socket-datacollector_*_all.deb && \
     apt-get -y install libpcap0.8 && \
     apt-get -y install libcap-dev && \
     apt-get -y install iptables && \
-    apt-get -y install libxtables11 && \
+    apt-get -y install iptables-dev && \
     dpkg -i /tmp/softflowd_0.9.*_amd64.deb && \
     pip install pyroute2 py-radix requests-unixsocket json-rpc && \
     dpkg -i /tmp/python-conntrackprobe_*_all.deb && \
