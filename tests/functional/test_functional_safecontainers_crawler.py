@@ -8,13 +8,15 @@ import shutil
 import subprocess
 import sys
 import pykafka
-
+import semantic_version
 # Tests for crawlers in kraken crawlers configuration.
 
 from safe_containers_crawler import SafeContainersCrawler
 from worker import Worker
 from emitters_manager import EmittersManager
 from utils.dockerutils import get_docker_container_rootfs_path
+from utils.dockerutils import _fix_version
+from utils.dockerutils import _get_docker_server_version
 
 import logging
 
@@ -44,11 +46,19 @@ class SafeContainersCrawlerTests(unittest.TestCase):
             print ("Error connecting to docker daemon, are you in the docker"
                    "group? You need to be in the docker group.")
 
+        self.version_check()
         self.start_crawled_container()
-
         # start a kakfa+zookeeper container to send data to (to test our
         # kafka emitter)
         self.start_kafka_container()
+
+    def version_check(self):
+        self.version_ok = False
+        VERSION_SPEC = semantic_version.Spec('>=1.12.1')
+        server_version = _get_docker_server_version()
+        if VERSION_SPEC.match(semantic_version.Version(_fix_version(
+                                                       server_version))):
+            self.version_ok = True                                               
 
     def start_kafka_container(self):
         self.docker.pull(repository='spotify/kafka', tag='latest')
@@ -87,7 +97,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         fd.close()
 
     def tearDown(self):
-        selg.fix_test_artifacts()
+        self.fix_test_artifacts()
         self.remove_crawled_container()
         self.remove_kafka_container()
         shutil.rmtree(self.tempd)
@@ -101,6 +111,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         self.docker.remove_container(container=self.container['Id'])
 
     def _testCrawlContainer1(self):
+        if self.version_ok is False:
+            pass
         crawler = SafeContainersCrawler(
             features=[], user_list=self.container['Id'])
         frames = list(crawler.crawl())
@@ -121,6 +133,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         assert 'rake' in output
 
     def _testCrawlContainer2(self):
+        if self.version_ok is False:
+            pass
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -157,6 +171,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         f.close()
 
     def testCrawlContainerNoPlugins(self):
+        if self.version_ok is False:
+            pass
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
         fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('noplugin\n')
@@ -198,6 +214,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         f.close()
 
     def testCrawlContainerKafka(self):
+        if self.version_ok is False:
+            pass
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -260,6 +278,8 @@ class SafeContainersCrawlerTests(unittest.TestCase):
                         plugincont_image_path + '/requirements.txt')
 
     def testCrawlContainerEvilPlugin(self):
+        if self.version_ok is False:
+            pass
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
         fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('evil\n')
