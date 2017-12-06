@@ -9,6 +9,7 @@ import subprocess
 import sys
 import pykafka
 import semantic_version
+import platform
 # Tests for crawlers in kraken crawlers configuration.
 
 from safe_containers_crawler import SafeContainersCrawler
@@ -47,10 +48,41 @@ class SafeContainersCrawlerTests(unittest.TestCase):
                    "group? You need to be in the docker group.")
 
         self.version_check()
+        self.setup_plugincont_testing2()
         self.start_crawled_container()
         # start a kakfa+zookeeper container to send data to (to test our
         # kafka emitter)
         self.start_kafka_container()
+
+    def setup_plugincont_testing2(self):
+        _platform = platform.linux_distribution()
+        if _platform[0] == 'Ubuntu' or _platform[1] >= '16.04':
+            self.seccomp = True
+            plugincont_image_path = os.getcwd() + \
+                '/crawler/utils/plugincont/plugincont_img'
+            shutil.copyfile(
+                plugincont_image_path + '/requirements.txt.testing',
+                plugincont_image_path + '/requirements.txt')
+        else:
+            self.seccomp = False
+            src_file = os.getcwd() + \
+                '/crawler/plugin_containers_manager.py'
+            os.system('sed -i.bak /security_opt=/d ' + src_file)
+
+    def fix_test_artifacts(self):
+        if self.seccomp is True:
+            plugincont_image_path = os.getcwd() + \
+                '/crawler/utils/plugincont/plugincont_img'
+            shutil.copyfile(
+                plugincont_image_path + '/requirements.txt.template',
+                plugincont_image_path + '/requirements.txt')
+        else:
+            src_file = os.getcwd() + \
+                '/crawler/plugin_containers_manager.py.bak'
+            dst_file = os.getcwd() + \
+                '/crawler/plugin_containers_manager.py'
+            shutil.move(src_file, dst_file)
+        pass
 
     def version_check(self):
         self.version_ok = False
@@ -58,7 +90,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         server_version = _get_docker_server_version()
         if VERSION_SPEC.match(semantic_version.Version(_fix_version(
                                                        server_version))):
-            self.version_ok = True                                               
+            self.version_ok = True
 
     def start_kafka_container(self):
         self.docker.pull(repository='spotify/kafka', tag='latest')
@@ -113,6 +145,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
     def _testCrawlContainer1(self):
         if self.version_ok is False:
             pass
+            return
         crawler = SafeContainersCrawler(
             features=[], user_list=self.container['Id'])
         frames = list(crawler.crawl())
@@ -135,6 +168,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
     def _testCrawlContainer2(self):
         if self.version_ok is False:
             pass
+            return
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -173,6 +207,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
     def testCrawlContainerNoPlugins(self):
         if self.version_ok is False:
             pass
+            return
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
         fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('noplugin\n')
@@ -214,8 +249,11 @@ class SafeContainersCrawlerTests(unittest.TestCase):
         f.close()
 
     def testCrawlContainerKafka(self):
+        # import pdb
+        # pdb.set_trace()
         if self.version_ok is False:
             pass
+            return
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -271,21 +309,14 @@ class SafeContainersCrawlerTests(unittest.TestCase):
             cmd='pip install python-ptrace')
         self.docker.exec_start(exec_instance.get("Id"))
 
-    def _setup_plugincont_testing2(self):
-        plugincont_image_path = os.getcwd() + \
-            '/crawler/utils/plugincont/plugincont_img'
-        shutil.copyfile(plugincont_image_path + '/requirements.txt.testing',
-                        plugincont_image_path + '/requirements.txt')
-
     def testCrawlContainerEvilPlugin(self):
         if self.version_ok is False:
             pass
+            return
         rootfs = get_docker_container_rootfs_path(self.container['Id'])
         fd = open(rootfs + '/crawlplugins', 'w')
         fd.write('evil\n')
         fd.close()
-
-        self._setup_plugincont_testing2()
 
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
@@ -301,7 +332,7 @@ class SafeContainersCrawlerTests(unittest.TestCase):
                 '--crawlmode', 'OUTCONTAINERSAFE',
             ],
             env=env)
-        time.sleep(30)    
+        time.sleep(30)
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
@@ -316,22 +347,19 @@ class SafeContainersCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
+        f.close()
         print output  # only printed if the test fails
         assert 'kill_status' in output
         assert 'trace_status' in output
         assert 'write_status' in output
         assert 'rm_status' in output
         assert 'nw_status' in output
-        assert 'unexpected_succeeded' not in output
         assert 'expected_failed' in output
-        f.close()
-
-    def fix_test_artifacts(self):
-        plugincont_image_path = os.getcwd() + \
-            '/crawler/utils/plugincont/plugincont_img'
-        shutil.copyfile(plugincont_image_path + '/requirements.txt.template',
-                        plugincont_image_path + '/requirements.txt')
-        pass
+        ctr = output.count('unexpected_succeeded')
+        if self.seccomp is True:
+            assert ctr == 0
+        else:
+            assert ctr == 1
 
 
 if __name__ == '__main__':

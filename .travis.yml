@@ -1,7 +1,5 @@
 sudo: required
 language: python
-distribution: ubuntu
-version: 16.04
 services:
   - docker
 
