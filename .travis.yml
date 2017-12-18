@@ -38,11 +38,13 @@ before_install:
 # XXX: Now mock complains if we don't `sudo pip install`.
 
 install:
+  - bandit -r crawler
   - sudo -H pip install --ignore-installed -r requirements-test.txt
   - echo "fix whitespace errors with 'autopep8 --select E1 --recursive --in-place .'" && flake8  --select E1
 
 # command to run tests
 script:
+  - bandit -r crawler
   - flake8 --count --max-complexity=10 --statistics crawler
   - sudo -H python setup.py test --addopts '--cov=.'
 
