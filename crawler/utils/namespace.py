@@ -10,8 +10,8 @@ import types
 import signal
 import ctypes
 from .crawler_exceptions import (CrawlTimeoutError,
-                                CrawlError,
-                                NamespaceFailedSetns)
+                                 CrawlError,
+                                 NamespaceFailedSetns)
 
 logger = logging.getLogger('crawlutils')
 
