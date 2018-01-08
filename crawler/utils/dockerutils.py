@@ -12,7 +12,7 @@ import re
 
 from utils import misc
 from .crawler_exceptions import (DockerutilsNoJsonLog,
-                                DockerutilsException)
+                                 DockerutilsException)
 from .timeout_utils import (Timeout, TimeoutError)
 from .dockerevent import DockerContainerEvent
 
