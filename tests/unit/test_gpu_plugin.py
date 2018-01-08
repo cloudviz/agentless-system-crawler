@@ -25,7 +25,7 @@ class GPUPluginTests(unittest.TestCase):
         for gpu_metrics in fc.crawl():
             print(gpu_metrics)
             assert gpu_metrics == (
-                '127/0/0/1.gpu0.NA',
+                '127/0/0/1.gpu0.NA.NA',
                 {
                     "memory": {"total": 12205, "used": 0, "free": 12205},
                     "temperature": 31,

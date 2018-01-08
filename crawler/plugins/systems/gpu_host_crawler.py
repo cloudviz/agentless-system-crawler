@@ -60,6 +60,15 @@ class GPUHostCrawler(IHostCrawler):
             logger.debug(sys.exc_info()[0])
             return []
 
+    def _get_container_label(self, envs):
+        for env in envs:
+            label = env.split("=")
+            key = label[0]
+            val = label[1]
+            if key == "TRAINING_ID":
+                return val
+        return None
+
     def _get_containerid_from_pid(self, pid):
         # possible race conditions / stale info
         for inspect in self.inspect_arr:
@@ -69,12 +78,16 @@ class GPUHostCrawler(IHostCrawler):
             cont_child_pids = self._get_children_pids(cont_pid)
             if pid in cont_child_pids:
                 labels = inspect['Config']['Labels']
+                envs = inspect['Config']['Env']
                 namespace = labels.get('io.kubernetes.pod.namespace', 'NA')
                 pod_name = labels.get('io.kubernetes.pod.name', cont_name)
-                cont_idx = labels.get('training_id', pod_name)
-                name = "{}.{}".format(namespace, cont_idx)
+                # following change is specific to DlaaS usecase
+                label = self._get_container_label(envs)
+                if not label:
+                    label = pod_name
+                name = "{}.{}".format(namespace, label)
                 return name
-        return 'NA'
+        return 'NA.NA'
 
     def _get_container_id(self, gpuhandle):
         cont_ids = []
@@ -82,7 +95,7 @@ class GPUHostCrawler(IHostCrawler):
         try:
             proc_objs = pynvml.nvmlDeviceGetComputeRunningProcesses(gpuhandle)
             if not proc_objs:
-                return ['NA']
+                return ['NA.NA']
             for proc_obj in proc_objs:
                 pids.append(proc_obj.pid)
             for pid in pids:
