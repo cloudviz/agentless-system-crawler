@@ -21,6 +21,7 @@ class OSContainerCrawler(IContainerCrawler):
         else:  # in all other cases, including wrong mode set
             real_root = os.open('/', os.O_RDONLY)
             os.chroot('/rootfs_local')
+            os.chdir('/')
             os_info = crawl_os() 
             os.fchdir(real_root)
             os.chroot('.')

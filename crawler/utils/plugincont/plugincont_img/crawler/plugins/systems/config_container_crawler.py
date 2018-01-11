@@ -56,6 +56,7 @@ class ConfigContainerCrawler(IContainerCrawler):
         else:  # in all other cases, including wrong mode set
             real_root = os.open('/', os.O_RDONLY)
             os.chroot('/rootfs_local')
+            os.chdir('/')
             config_list = list(crawl_config_files(root_dir,
                                                   exclude_dirs,
                                                   None,

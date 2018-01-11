@@ -70,6 +70,7 @@ class RubyPackageCrawler(IContainerCrawler):
     def _crawl_in_system(self):
         real_root = os.open('/', os.O_RDONLY)
         os.chroot('/rootfs_local')
+        os.chdir('/')
         
         if self.get_packages_generic is True:
             mountpoint = '/'

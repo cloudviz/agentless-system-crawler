@@ -31,6 +31,7 @@ class PackageContainerCrawler(IContainerCrawler):
                 print "in package plugin" 
                 real_root = os.open('/', os.O_RDONLY)
                 os.chroot('/rootfs_local')
+                os.chdir('/')
                 pkg_list = list(crawl_packages(None, root_dir, 0, False))
                 os.fchdir(real_root)
                 os.chroot('.')
