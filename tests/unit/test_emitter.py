@@ -36,6 +36,7 @@ def mocked_formatter1(frame):
     iostream.write('def\r\n')
     return iostream
 
+
 def mocked_formatter2(frame):
     iostream = cStringIO.StringIO()
     metadata = {}
@@ -49,14 +50,42 @@ def mocked_formatter2(frame):
                     json.dumps(metadata, separators=(',', ':'))))
     return iostream
 
+
 def mocked_get_sas_token():
     return ('sas-token', 'cloudoe', 'access-group')
+
+
+def mocked_parse_crawl_metadata_default(content=''):
+    namespace = "default/testpod/12345"
+    timestamp = "1234"
+    features = "os,cpu"
+    system_type = "container"
+    return (namespace, timestamp, features, system_type)
+
+
+def mocked_parse_crawl_metadata_icp_container(content=''):
+    namespace = "icp/kube-system/testpod/12345"
+    timestamp = "1234"
+    features = "os,cpu"
+    system_type = "container"
+    return (namespace, timestamp, features, system_type)
+
+
+def mocked_parse_crawl_metadata_icp_image(content=''):
+    namespace = "icp/kube-system/image:tag"
+    timestamp = "1234"
+    features = "os,cpu"
+    system_type = "container"
+    return (namespace, timestamp, features, system_type)
+
 
 class RandomKafkaException(Exception):
     pass
 
+
 def raise_value_error(*args, **kwargs):
     raise ValueError()
+
 
 def mock_call_with_retries(function, max_retries=10,
                            exception_type=Exception,
@@ -544,6 +573,105 @@ class EmitterTests(unittest.TestCase):
         emitter.emit('frame')
         # there are no retries for encoding errors
         self.assertEqual(mock_post.call_count, 1)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('__builtin__.open', mock.mock_open(read_data="1"))
+    def test_emitter_sas_interval(self, mock_post, mock_format, mocked_get_sas_token):
+        with mock.patch('os.path.exists') as m:
+            m.return_value = True
+            emitter = SasEmitter()
+            emitter.init(url='sas://1.1.1.1/good')
+            emitter.emit('frame')
+            self.assertEqual(emitter.emit_interval, 1)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch('__builtin__.open', mock.mock_open(read_data="a"))
+    def test_emitter_sas_interval_type_error(self, mock_post, mock_format, mocked_get_sas_token):
+        with mock.patch('os.path.exists') as m:
+            m.return_value = True
+            emitter = SasEmitter()
+            emitter.init(url='sas://1.1.1.1/good')
+            emitter.emit('frame')
+            self.assertEqual(emitter.emit_interval, 0)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    def test_emitter_sas_interval_no_such_file(self, mock_post, mock_format, mocked_get_sas_token):
+        with mock.patch('os.path.exists') as m:
+            m.return_value = False
+            emitter = SasEmitter()
+            emitter.init(url='sas://1.1.1.1/good')
+            emitter.emit('frame')
+            self.assertEqual(emitter.emit_interval, 0)
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch.object(SasEmitter, '_SasEmitter__parse_crawl_metadata',
+                       side_effect=mocked_parse_crawl_metadata_default)
+    def test_emitter_sas_metadata_default(self, *args):
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        emitter.emit('frame')
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch.object(SasEmitter, '_SasEmitter__parse_crawl_metadata',
+                       side_effect=mocked_parse_crawl_metadata_icp_container)
+    def test_emitter_sas_metadata_icp_container(self, *args):
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        emitter.emit('frame')
+
+    @mock.patch('plugins.emitters.sas_emitter.SasEmitter.get_sas_tokens',
+                side_effect=mocked_get_sas_token)
+    @mock.patch('iemit_plugin.IEmitter.format',
+                side_effect=mocked_formatter2)
+    @mock.patch('plugins.emitters.sas_emitter.requests.post',
+                side_effect=mocked_requests_post)
+    @mock.patch.object(SasEmitter, '_SasEmitter__parse_crawl_metadata',
+                       side_effect=mocked_parse_crawl_metadata_icp_image)
+    def test_emitter_sas_metadata_icp_image(self, *args):
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        emitter.emit('frame')
+
+    @mock.patch.dict(os.environ, {'SOURCE_TYPE': 'image'})
+    def test_emitter_sas_source_type(self, *args):
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        params = emitter.gen_params(namespace="123", features="os", timestamp="12345",
+                                    access_group="kube-system", source_type="test")
+        self.assertEqual(params.get("source_type"), "image")
+
+    @mock.patch.dict(os.environ, {'SOURCE_TYPE': 'wrongstring'})
+    def test_emitter_sas_source_type_assert(self, *args):
+        emitter = SasEmitter()
+        emitter.init(url='sas://1.1.1.1/good')
+        with self.assertRaises(AssertionError):
+            emitter.gen_params(namespace="123", features="os", timestamp="12345",
+                               access_group="kube-system", source_type="test")
 
     @mock.patch('plugins.emitters.kafka_emitter.KafkaEmitter.connect_to_broker',
                 side_effect=MockedKafkaConnect, autospec=True)

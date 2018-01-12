@@ -1,0 +1,8 @@
+[Core]
+Name = ICp Environment
+Module = icp_environment
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = ICp environment
