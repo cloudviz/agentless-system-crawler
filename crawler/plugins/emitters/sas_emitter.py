@@ -147,6 +147,7 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
         headers = {'content-type': 'application/csv'}
         headers.update({'Cloud-OE-ID': cloudoe})
         headers.update({'X-Auth-Token': token})
+        headers.update({'Authorization': 'Bearer ' + token})
 
         params = self.gen_params(namespace=namespace, features=features,
                                  timestamp=timestamp, source_type=system_type,
