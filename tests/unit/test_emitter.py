@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import cStringIO
 import gzip
 import unittest
@@ -10,7 +12,7 @@ import requests.exceptions
 import plugins_manager
 
 from base_crawler import BaseFrame
-from capturing import Capturing
+from .capturing import Capturing
 from emitters_manager import EmittersManager
 from plugins.emitters.file_emitter import FileEmitter
 from plugins.emitters.base_http_emitter import BaseHttpEmitter
@@ -177,7 +179,7 @@ class EmitterTests(unittest.TestCase):
         with Capturing() as _output:
             self._test_emitter_csv_simple_stdout()
         output = "%s" % _output
-        print _output
+        print(_output)
         assert len(_output) == 2
         assert "dummy_feature" in output
         assert "metadata" in output
@@ -203,7 +205,7 @@ class EmitterTests(unittest.TestCase):
         with open('/tmp/test_emitter.0') as f:
             _output = f.readlines()
             output = "%s" % _output
-            print output
+            print(output)
             assert len(_output) == 2
             assert "dummy_feature" in output
             assert "metadata" in output
@@ -224,7 +226,7 @@ class EmitterTests(unittest.TestCase):
         with gzip.open('/tmp/test_emitter.0.gz') as f:
             _output = f.readlines()
             output = "%s" % _output
-            print output
+            print(output)
             assert len(_output) == 9
             assert "metadata" in output
 
@@ -243,7 +245,7 @@ class EmitterTests(unittest.TestCase):
         with open('/tmp/test_emitter.0') as f:
             _output = f.readlines()
             output = "%s" % _output
-            print output
+            print(output)
             assert len(_output) == 9
             assert "metadata" in output
 
@@ -263,7 +265,7 @@ class EmitterTests(unittest.TestCase):
         with open('/tmp/test_emitter.0') as f:
             _output = f.readlines()
             output = "%s" % _output
-            print output
+            print(output)
             assert 'memory-0.test3 12345' in output
             assert len(_output) == 8
 
@@ -381,7 +383,7 @@ class EmitterTests(unittest.TestCase):
         with open('/tmp/test_emitter.0') as f:
             _output = f.readlines()
             output = "%s" % _output
-            print output
+            print(output)
             assert len(_output) == 2
             assert "metadata" not in output
             assert (
@@ -746,7 +748,7 @@ class EmitterTests(unittest.TestCase):
         emitter.emit_per_line = False
         emitter.emit(frame)
         emitted_json = emitter.fluentd_sender._emitted
-        print emitted_json
+        print(emitted_json)
         assert emitted_json["feature1"]["feature_key"] == "dummy_feature_key"
         assert emitted_json["feature1"]["feature_type"] == "dummy_feature_type"
         assert emitted_json["feature1"]["feature_val"] == {'test': 'bla',

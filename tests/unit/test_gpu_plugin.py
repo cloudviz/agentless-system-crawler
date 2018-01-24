@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import sys
 import mock
@@ -22,7 +23,7 @@ class GPUPluginTests(unittest.TestCase):
     def test_os_gpu_host_crawler_plugin(self, *args):
         fc = GPUHostCrawler()
         for gpu_metrics in fc.crawl():
-            print gpu_metrics
+            print(gpu_metrics)
             assert gpu_metrics == (
                 '127/0/0/1.gpu0.NA.NA',
                 {

@@ -1,13 +1,14 @@
+from __future__ import absolute_import
 import logging
 
 from yapsy.PluginManager import PluginManager
 import urlparse
-import config_parser
-from icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
-from iemit_plugin import IEmitter
-from runtime_environment import IRuntimeEnvironment
-from utils import misc
-from utils.crawler_exceptions import RuntimeEnvironmentPluginNotFound
+from . import config_parser
+from .icrawl_plugin import IContainerCrawler, IVMCrawler, IHostCrawler
+from .iemit_plugin import IEmitter
+from .runtime_environment import IRuntimeEnvironment
+from .utils import misc
+from .utils.crawler_exceptions import RuntimeEnvironmentPluginNotFound
 
 logger = logging.getLogger('crawlutils')
 

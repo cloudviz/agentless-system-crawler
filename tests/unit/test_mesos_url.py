@@ -1,3 +1,4 @@
+from __future__ import print_function
 # test.py
 from mock import patch, Mock
 
@@ -10,7 +11,7 @@ def mytest(mock_urlopen):
     a.read.side_effect = ['{}', None]
     mock_urlopen.return_value = a
     res = fetch_stats("0.22.0")
-    print res
+    print(res)
     if res is None:
         assert res
 

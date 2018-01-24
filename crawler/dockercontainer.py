@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 import glob
 import json
 import logging
@@ -9,20 +10,20 @@ import shutil
 
 from requests.exceptions import HTTPError
 
-import plugins_manager
-from container import Container
-from utils import misc, namespace
+from . import plugins_manager
+from .container import Container
+from .utils import misc, namespace
 
-from utils.crawler_exceptions import (ContainerInvalidEnvironment,
-                                      ContainerNonExistent,
-                                      DockerutilsNoJsonLog,
-                                      DockerutilsException,
-                                      ContainerWithoutCgroups)
-from utils.dockerutils import (exec_dockerps,
-                               get_docker_container_json_logs_path,
-                               get_docker_container_rootfs_path,
-                               exec_dockerinspect,
-                               poll_container_create_events)
+from .utils.crawler_exceptions import (ContainerInvalidEnvironment,
+                                       ContainerNonExistent,
+                                       DockerutilsNoJsonLog,
+                                       DockerutilsException,
+                                       ContainerWithoutCgroups)
+from .utils.dockerutils import (exec_dockerps,
+                                get_docker_container_json_logs_path,
+                                get_docker_container_rootfs_path,
+                                exec_dockerinspect,
+                                poll_container_create_events)
 
 try:
     basestring        # Python 2

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import tempfile
 import os
@@ -100,7 +101,7 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
             user_list=vm_list)
         frames = list(crawler.crawl())
         output = str(frames[0])
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'interface-lo' in output
         assert 'if_octets_tx=' in output
         assert 'memory' in output
@@ -126,8 +127,8 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         subprocess.call(['/bin/chmod', '-R', '777', self.tempd])
 
@@ -136,7 +137,7 @@ class VirtualMachinesCrawlerTests(unittest.TestCase):
 
         f = open(self.tempd + '/out/' + files[0], 'r')
         output = f.read()
-        print output  # only printed if the test fails
+        print(output)  # only printed if the test fails
         assert 'psvmi_test_init' in output
         assert 'Linux' in output
         assert 'memory_used' in output

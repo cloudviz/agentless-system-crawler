@@ -41,14 +41,14 @@ class GPUHostCrawler(IHostCrawler):
             import pynvml as pynvml
             pynvml.nvmlInit()
             return 0
-        except pynvml.NVMLError, err:
+        except pynvml.NVMLError as err:
             logger.debug('Failed to initialize NVML: ', err)
             return -1
 
     def _shutdown_nvml(self):
         try:
             pynvml.nvmlShutdown()
-        except pynvml.NVMLError, err:
+        except pynvml.NVMLError as err:
             logger.debug('Failed to shutdown NVML: ', err)
 
     def _get_children_pids(self, pid):
@@ -101,7 +101,7 @@ class GPUHostCrawler(IHostCrawler):
             for pid in pids:
                 cont_ids.append(self._get_containerid_from_pid(pid))
             return cont_ids
-        except pynvml.NVMLError, err:
+        except pynvml.NVMLError as err:
             logger.debug('Failed to get pid on gpu: ', err)
 
     def _get_feature_key(self, gpuhandle, gpuid):

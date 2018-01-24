@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import docker
 import os
@@ -118,8 +119,8 @@ class LogsLinkerTests(unittest.TestCase):
         stdout, stderr = process.communicate()
         assert process.returncode == 0
 
-        print stderr
-        print stdout
+        print(stderr)
+        print(stdout)
 
         with open(docker_log, 'r') as log:
             assert 'hi' in log.read()

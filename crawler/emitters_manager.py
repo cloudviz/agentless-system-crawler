@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 
-import plugins_manager
-from base_crawler import BaseFrame
-from utils.crawler_exceptions import EmitterUnsupportedProtocol
+from . import plugins_manager
+from .base_crawler import BaseFrame
+from .utils.crawler_exceptions import EmitterUnsupportedProtocol
 
 logger = logging.getLogger('crawlutils')
 

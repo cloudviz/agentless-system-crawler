@@ -1,6 +1,7 @@
-from containers import poll_containers, get_containers
-import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
+from __future__ import absolute_import
+from .containers import poll_containers, get_containers
+from . import plugins_manager
+from .base_crawler import BaseCrawler, BaseFrame
 
 
 class ContainerFrame(BaseFrame):

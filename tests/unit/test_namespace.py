@@ -1,3 +1,4 @@
+from __future__ import print_function
 import Queue
 import time
 import unittest
@@ -46,7 +47,7 @@ class MockedLibc:
         pass
 
     def prctl(self, *args):
-        print args
+        print(args)
 
 
 class MockedLibcNoSetns:
@@ -64,7 +65,7 @@ class MockedLibcNoSetns:
         pass
 
     def prctl(self, *args):
-        print args
+        print(args)
 
 
 class MockedLibcFailedOpen:
@@ -82,7 +83,7 @@ class MockedLibcFailedOpen:
         pass
 
     def prctl(self, *args):
-        print args
+        print(args)
 
 
 class MockedLibcFailedSetns:
@@ -100,7 +101,7 @@ class MockedLibcFailedSetns:
         pass
 
     def prctl(self, *args):
-        print args
+        print(args)
 
 
 class MockedLibcFailedClose:
@@ -118,7 +119,7 @@ class MockedLibcFailedClose:
         return -1
 
     def prctl(self, *args):
-        print args
+        print(args)
 
 
 class MockedQueue:

@@ -1,5 +1,6 @@
 #!usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 import os
 
@@ -10,10 +11,10 @@ import itertools
 import re
 
 from utils import misc
-from crawler_exceptions import (DockerutilsNoJsonLog,
-                                DockerutilsException)
-from timeout_utils import (Timeout, TimeoutError)
-from dockerevent import DockerContainerEvent
+from .crawler_exceptions import (DockerutilsNoJsonLog,
+                                 DockerutilsException)
+from .timeout_utils import (Timeout, TimeoutError)
+from .dockerevent import DockerContainerEvent
 
 # version at which docker image layer organization changed
 VERSION_SPEC = semantic_version.Spec('>=1.10.0')

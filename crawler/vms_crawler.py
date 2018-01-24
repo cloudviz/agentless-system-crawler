@@ -1,6 +1,7 @@
-import plugins_manager
-from base_crawler import BaseCrawler, BaseFrame
-from virtual_machine import get_virtual_machines
+from __future__ import absolute_import
+from . import plugins_manager
+from .base_crawler import BaseCrawler, BaseFrame
+from .virtual_machine import get_virtual_machines
 
 
 class VirtualMachineFrame(BaseFrame):

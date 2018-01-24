@@ -1,10 +1,12 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import argparse
 import os
 
-from base_crawler import BaseCrawler
-from worker import Worker
-from containers import get_containers
-from utils import misc
+from .base_crawler import BaseCrawler
+from .worker import Worker
+from .containers import get_containers
+from .utils import misc
 
 
 class DockerContainersLogsLinker(BaseCrawler):
@@ -57,7 +59,7 @@ if __name__ == '__main__':
 
     euid = os.geteuid()
     if euid != 0:
-        print 'Need to run this as root.'
+        print('Need to run this as root.')
         exit(1)
 
     parser = argparse.ArgumentParser()

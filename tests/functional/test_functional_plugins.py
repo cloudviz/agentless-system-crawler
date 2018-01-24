@@ -1,3 +1,4 @@
+from __future__ import print_function
 import shutil
 import tempfile
 import unittest
@@ -57,7 +58,7 @@ class HostAndContainerPluginsFunctionalTests(unittest.TestCase):
     def test_crawl_outcontainer_cpu(self):
         fc = CpuContainerCrawler()
         for key, feature, t in fc.crawl(self.container['Id']):
-            print key, feature
+            print(key, feature)
         cores = len(list(fc.crawl(self.container['Id'])))
         assert cores > 0
 

@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 import logging
 import os
 import shutil
 import tempfile
 
-from crawler_exceptions import CrawlError, CrawlUnsupportedPackageManager
+from .crawler_exceptions import CrawlError, CrawlUnsupportedPackageManager
 from utils import osinfo
 from utils.features import PackageFeature
 from utils.misc import subprocess_run
