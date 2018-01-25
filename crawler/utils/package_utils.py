@@ -244,7 +244,7 @@ def _get_package_manager(root_dir):
         pkg_manager = 'dpkg'
     elif os_distro in ['redhat', 'red hat', 'rhel', 'fedora', 'centos']:
         pkg_manager = 'rpm'
-    if os_distro in ['alpine']:
+    elif os_distro in ['alpine']:
         pkg_manager = 'apk'
     elif os.path.exists(os.path.join(root_dir, 'var/lib/dpkg')):
         pkg_manager = 'dpkg'
