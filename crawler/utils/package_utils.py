@@ -203,12 +203,11 @@ def crawl_packages(
         reload_needed=True):
 
     # package attributes: ["installed", "name", "size", "version"]
-
     logger.debug('Crawling Packages')
 
-    pkg_manager = _get_package_manager(root_dir)
-
     try:
+        pkg_manager = _get_package_manager(root_dir)
+
         if pkg_manager == 'dpkg':
             dbpath = dbpath or 'var/lib/dpkg'
             for (key, feature) in get_dpkg_packages(
