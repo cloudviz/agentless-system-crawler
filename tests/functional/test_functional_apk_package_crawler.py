@@ -47,7 +47,7 @@ class ContainersCrawlerTests(unittest.TestCase):
 
     def start_crawled_container(self):
         # start a container to be crawled
-        self.docker.pull(repository='apline', tag='latest')
+        self.docker.pull(repository='alpine', tag='latest')
         self.container = self.docker.create_container(
             image='alpine:latest', command='/bin/sleep 60')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
