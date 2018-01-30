@@ -1,0 +1,9 @@
+P:first-package
+V:111.1.1
+A:x86_64
+S:111
+
+P:second-package
+V:222.2.2
+A:x86_64
+S:222

@@ -142,6 +142,59 @@ def _rpm_reload_db(
 
     return reloaded_db_dir
 
+# from UK crawler codebase
+
+
+def apk_parser(filename):
+    try:
+        db_contents = open(filename).read()
+        packages = db_contents.split('\n\n')
+        logger.debug('Found {} APK packages'.format(len(packages)))
+        for package in packages:
+            if package:
+                attributes = package.split('\n')
+                name = ""
+                version = ""
+                architecture = ""
+                size = ""
+                for attribute in attributes:
+                    if (attribute.startswith('P:')):
+                        name = attribute[2:]
+                    elif (attribute.startswith('V:')):
+                        version = attribute[2:]
+                    elif (attribute.startswith('A:')):
+                        architecture = attribute[2:]
+                    elif (attribute.startswith('S:')):
+                        size = attribute[2:]
+                yield (name, PackageFeature(None, name,
+                                            size, version,
+                                            architecture))
+    except IOError as e:
+        logger.error('Failed to read APK database to obtain packages. '
+                     'Check if %s is present.  [Exception: %s: %s]'
+                     ' ' % (filename, type(e).__name__, e.strerror))
+        raise
+
+
+def get_apk_packages(
+        root_dir='/',
+        dbpath='lib/apk/db'):
+
+    if os.path.isabs(dbpath):
+        logger.warning(
+            'dbpath: ' +
+            dbpath +
+            ' is defined absolute. Ignoring prefix: ' +
+            root_dir +
+            '.')
+
+    # Update for a different route.
+    dbpath = os.path.join(root_dir, dbpath)
+
+    for feature_key, package_feature in apk_parser(
+            os.path.join(dbpath, 'installed')):
+        yield (feature_key, package_feature)
+
 
 def crawl_packages(
         dbpath=None,
@@ -150,12 +203,11 @@ def crawl_packages(
         reload_needed=True):
 
     # package attributes: ["installed", "name", "size", "version"]
-
     logger.debug('Crawling Packages')
 
-    pkg_manager = _get_package_manager(root_dir)
-
     try:
+        pkg_manager = _get_package_manager(root_dir)
+
         if pkg_manager == 'dpkg':
             dbpath = dbpath or 'var/lib/dpkg'
             for (key, feature) in get_dpkg_packages(
@@ -165,6 +217,11 @@ def crawl_packages(
             dbpath = dbpath or 'var/lib/rpm'
             for (key, feature) in get_rpm_packages(
                     root_dir, dbpath, installed_since, reload_needed):
+                yield (key, feature, 'package')
+        elif pkg_manager == 'apk':
+            dbpath = dbpath or 'lib/apk/db'
+            for (key, feature) in get_apk_packages(
+                    root_dir, dbpath):
                 yield (key, feature, 'package')
         else:
             logger.warning('Unsupported package manager for Linux distro')
@@ -186,6 +243,8 @@ def _get_package_manager(root_dir):
         pkg_manager = 'dpkg'
     elif os_distro in ['redhat', 'red hat', 'rhel', 'fedora', 'centos']:
         pkg_manager = 'rpm'
+    elif os_distro in ['alpine']:
+        pkg_manager = 'apk'
     elif os.path.exists(os.path.join(root_dir, 'var/lib/dpkg')):
         pkg_manager = 'dpkg'
     elif os.path.exists(os.path.join(root_dir, 'var/lib/rpm')):
