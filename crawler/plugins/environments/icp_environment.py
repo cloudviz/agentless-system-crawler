@@ -15,7 +15,7 @@ META_CONFIG = 'Config'
 META_LABELS = 'Labels'
 META_UUID = 'Id'
 META_HOSTNAME = 'Hostname'
-META_REPO = 'RepoTag'
+META_REPOS = 'RepoTags'
 
 K8S_NS_LABEL = "io.kubernetes.pod.namespace"
 K8S_POD_LABEL = "io.kubernetes.pod.name"
@@ -43,8 +43,16 @@ class ICpEnvironment(IRuntimeEnvironment):
                 podname = labels.get(K8S_POD_LABEL)
                 # for reg crawler
                 if regpod_pattern.search(podname):
-                    # repotag format == "repository/k8s-ns/imagename:tag"
-                    repotag = container_meta.get(META_REPO)
+                    # expected repotag is "repository/k8s-ns/imagename:tag"
+                    repotags = container_meta.get(META_REPOS)
+                    repotag_format = ""
+                    for repotag in repotags:
+                        if len(repotag.split("/")) == 3:
+                            repotag_format = repotag.split("/")
+                            break
+                    # check format
+                    e_msg = "can not find proper repotag in this image"
+                    assert repotag_format != "", e_msg
                     peaces = repotag.split("/")
                     ns_image_tag = peaces[1] + "/" + peaces[2]
                     crawler_k8s_ns = CRAWLER_IMAGE_NAMESPACE_FORMAT.format(
