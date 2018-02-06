@@ -62,7 +62,7 @@ class MockedClient():
         }
 
     def inspect_image(self, image_id):
-        return {'RepoTags': 'registry/abc/def:latest'}
+        return {'RepoTags': ['registry/abc/def:latest', 'debian:latest']}
 
     def history(self, image_id):
         return [{'History': 'xxx'}]
@@ -100,7 +100,8 @@ class DockerUtilsTests(unittest.TestCase):
 
         assert c == {'Name': '/pensive_rosalind',
                      'Created': epoch_seconds,
-                     'RepoTag': 'r',
+                     'RepoTag': 'registry/abc/def:latest',
+                     'RepoTags': ['registry/abc/def:latest', 'debian:latest'],
                      'State': {'Status': 'running',
                                'Running': True,
                                'Pid': '11186'},
@@ -147,7 +148,8 @@ class DockerUtilsTests(unittest.TestCase):
 
         assert i == {'Name': '/pensive_rosalind',
                      'Created': epoch_seconds,
-                     'RepoTag': 'r',
+                     'RepoTag': 'registry/abc/def:latest',
+                     'RepoTags': ['registry/abc/def:latest', 'debian:latest'],
                      'State': {'Status': 'running',
                                'Running': True,
                                'Pid': '11186'},
