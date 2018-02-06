@@ -19,12 +19,8 @@ def crawl_os():
         os_kernel = 'unknown'
 
     result = osinfo.get_osinfo(mount_point='/')
-    if result:
-        os_distro = result['os']
-        os_version = result['version']
-    else:
-        os_distro = 'unknown'
-        os_version = 'unknown'
+    os_distro = result['os'] if 'os' in result else 'unknown'
+    os_version = result['version'] if 'version' in result else 'unknown'
 
     ips = utils.misc.get_host_ip4_addresses()
 
@@ -45,12 +41,8 @@ def crawl_os():
 
 def crawl_os_mountpoint(mountpoint='/'):
     result = osinfo.get_osinfo(mount_point=mountpoint)
-    if result:
-        os_distro = result['os']
-        os_version = result['version']
-    else:
-        os_distro = 'unknown'
-        os_version = 'unknown'
+    os_distro = result['os'] if 'os' in result else 'unknown'
+    os_version = result['version'] if 'version' in result else 'unknown'
 
     feature_key = 'linux'
     feature_attributes = OSFeature(  # boot time unknown for img
