@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import time
+import sys
 
 import requests
 
@@ -102,7 +103,6 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
             # remove "icp/" string from namespace
             namespace = namespace[4:]
             assert namespace[0] != "/"
-        logger.info("emit frame (namespace=%s)", namespace)
 
         params.update({'namespace': namespace})
         params.update({'access_group': access_group})
@@ -161,6 +161,17 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
             from requests.packages.urllib3.exceptions \
                 import InsecureRequestWarning
             requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+        # skip it in live-crawler if namespace includes reg-crawler format
+        if ':' in params.get('namespace') \
+                and params.get('source_type') == 'container':
+            logger.info("frame does not satisfy SAS required format")
+            logger.info("source_type=container, namespace=%s",
+                        params.get('namespace'))
+            return
+
+        logger.info("emit frame (namespace=%s)", params.get('namespace'))
+        logger.info("content size: {0} byte".format(sys.getsizeof(content)))
 
         # set interval to avoid burst emit
         if int(self.emit_interval) > 0:
