@@ -85,8 +85,7 @@ def poll_docker_containers(timeout, user_list=None, host_namespace=''):
     try:
         # We are currently throttling docker events
         # so instead of polling we will just sleep for timeout  interval
-        time.sleep(timeout)
-        
+        time.sleep(timeout) 
         # cEvent = poll_container_create_events(timeout)
 
         # if not cEvent:
