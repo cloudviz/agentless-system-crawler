@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import shutil
+import time
 
 from requests.exceptions import HTTPError
 
@@ -83,14 +84,17 @@ def poll_docker_containers(timeout, user_list=None, host_namespace=''):
         return None
 
     try:
-        cEvent = poll_container_create_events(timeout)
+        # We are currently throttling docker events 
+        # so instead of polling we will just sleep for timeout  interval
+        time.sleep(timeout)
+        #cEvent = poll_container_create_events(timeout)
 
-        if not cEvent:
-            return None
-        c = DockerContainer(cEvent.get_containerid(), inspect=None,
-                            host_namespace=host_namespace)
-        if c.namespace:
-            return c
+        #if not cEvent:
+        #    return None
+        #c = DockerContainer(cEvent.get_containerid(), inspect=None,
+        #                    host_namespace=host_namespace)
+        #if c.namespace:
+        #    return c
     except ContainerInvalidEnvironment as e:
         logger.exception(e)
 
