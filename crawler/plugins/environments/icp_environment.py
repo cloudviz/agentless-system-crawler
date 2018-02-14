@@ -41,6 +41,9 @@ class ICpEnvironment(IRuntimeEnvironment):
             labels = container_meta.get(META_CONFIG).get(META_LABELS)
             if labels:
                 podname = labels.get(K8S_POD_LABEL)
+                if not podname:
+                    logger.warning("%s is not k8s managed Container" % long_id)
+                    return crawler_k8s_ns
                 # for reg crawler
                 if regpod_pattern.search(podname):
                     # expected repotag is "repository/k8s-ns/imagename:tag"
