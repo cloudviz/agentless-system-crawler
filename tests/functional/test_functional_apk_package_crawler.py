@@ -31,7 +31,7 @@ class ContainersCrawlerTests(unittest.TestCase):
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-        self.docker = docker.Client(base_url='unix://var/run/docker.sock',
+        self.docker = docker.APIClient(base_url='unix://var/run/docker.sock',
                                     version='auto')
         try:
             if len(self.docker.containers()) != 0:
