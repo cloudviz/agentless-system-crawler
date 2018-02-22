@@ -209,6 +209,9 @@ class PluginContainersManager():
                 command="/usr/bin/python2.7 /crawler/crawler_lite.py "
                         "--frequency=" + str(self.frequency),
                 pids_limit=10,
+                mem_limit='256m',
+                cpu_period=100000,
+                cpu_quota=25000,
                 pid_mode='container:' + guestcont_id,
                 network_mode='container:' + guestcont_id,
                 cap_add=["SYS_PTRACE", "DAC_READ_SEARCH"],
