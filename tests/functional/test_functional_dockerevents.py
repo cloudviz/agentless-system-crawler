@@ -71,7 +71,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
     In this case, crawler would miss the create event, but it should be able to
     discover already running containers and snapshot them
     '''
-    def testCrawlContainer0(self):
+    def _noexec_testCrawlContainer0(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -114,7 +114,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
     crawler should get intrupptted and start snapshotting container immediately.
 
     '''
-    def testCrawlContainer1(self):
+    def _noexec_testCrawlContainer1(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')
@@ -169,7 +169,7 @@ class CrawlerDockerEventTests(unittest.TestCase):
     And then we will wait for crawler's next iteration to ensure, w/o docker event,
     crawler will timeout and snapshot container periodically
     '''
-    def testCrawlContainer2(self):
+    def _noexec_testCrawlContainer2(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
         os.makedirs(self.tempd + '/out')

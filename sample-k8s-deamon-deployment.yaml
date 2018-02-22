@@ -22,7 +22,7 @@ spec:
           securityContext:
             privileged: true
           # crawler image path from image registry 
-          image: shri4u/crawler
+          image: cloudviz/agentless-system-crawler
           name: crawler
           command: ["python2.7", "crawler.py", 
                     "--crawlmode", "OUTCONTAINER", 

@@ -1,0 +1,24 @@
+C:Q128iBSO2PpkDnOWZqp3Watn4H20U=
+P:test-package
+V:999.9.9
+A:x86_64
+S:999
+I:581632
+T:the musl c library (libc) implementation
+U:http://www.musl-libc.org/
+L:MIT
+o:musl
+m:Timo Teräs <timo.teras@iki.fi>
+t:1485463794
+c:2e4493888fff74afc6a6ef6257aeea469df32af5
+p:so:libc.musl-x86_64.so.1=1
+F:lib
+R:libc.musl-x86_64.so.1
+a:0:0:777
+Z:Q17yJ3JFNypA4mxhJJr0ou6CzsJVI=
+R:ld-musl-x86_64.so.1
+a:0:0:755
+Z:Q1OSxgRxSfAKG2m68kTiuRMQclyD8=
+F:usr
+F:usr/lib
+

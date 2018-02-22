@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import time
+import sys
 
 import requests
 
@@ -39,6 +40,18 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
         self.access_group_filepath = kwargs.get("access_group_filepath", "")
         self.cloudoe_filepath = kwargs.get("cloudoe_filepath", "")
         self.ssl_verification = kwargs.get("ssl_verification", "")
+        self.emit_interval_fpath = kwargs.get("emit_interval_filepath", "")
+        # set emit interval
+        if os.path.exists(self.emit_interval_fpath):
+            try:
+                with open(self.emit_interval_fpath) as fp:
+                    interval = fp.read().rstrip('\n')
+                interval_time = int(interval)
+                self.emit_interval = interval_time
+            except (ValueError, IOError):
+                self.emit_interval = 0
+        else:
+            self.emit_interval = 0
 
         iostream = self.format(frame)
         if compress:
@@ -58,6 +71,7 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
     Current model of secret deployment in k8s is through mounting
     'secret' inside crawler container.
     '''
+
     def get_sas_tokens(self):
         assert(os.path.exists(self.token_filepath))
         assert(os.path.exists(self.access_group_filepath))
@@ -77,6 +91,34 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
 
         return(token, cloudoe, access_group)
 
+    def gen_params(self, namespace='', features='', timestamp='',
+                   access_group='', source_type=''):
+        params = {}
+
+        # reformat namespace and access_group for icp env
+        parsed_namespace = namespace.split("/")
+        if len(parsed_namespace) >= 2 and parsed_namespace[0] == "icp":
+            # set an adequate k8s namespace
+            access_group = parsed_namespace[1]
+            # remove "icp/" string from namespace
+            namespace = namespace[4:]
+            assert namespace[0] != "/"
+
+        params.update({'namespace': namespace})
+        params.update({'access_group': access_group})
+        params.update({'features': features})
+        params.update({'timestamp': timestamp})
+
+        # load source_type if env exists
+        # live crawler should be set it as 'container' and
+        # reg crawler should be set it as 'image'
+        if 'SOURCE_TYPE' in os.environ:
+            source_type = os.environ['SOURCE_TYPE']
+            assert source_type == 'image' or source_type == 'container'
+        params.update({'source_type': source_type})
+
+        return params
+
     '''
     SAS requires following crawl metadata about entity
     being crawled.
@@ -87,6 +129,7 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
     This function parses the crawled metadata feature and
     gets these information.
     '''
+
     def __parse_crawl_metadata(self, content=''):
         metadata_str = content.split('\n')[0].split()[2]
         metadata_json = json.loads(metadata_str)
@@ -104,28 +147,36 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
         headers = {'content-type': 'application/csv'}
         headers.update({'Cloud-OE-ID': cloudoe})
         headers.update({'X-Auth-Token': token})
+        headers.update({'Authorization': 'Bearer ' + token})
 
-        params = {}
-        params.update({'access_group': access_group})
-        params.update({'namespace': namespace})
-        params.update({'features': features})
-        params.update({'timestamp': timestamp})
-
-        # load source_type from env variables
-        # if not set, it uses system_type as a default value
-        # live crawler should be set it as 'container' and
-        # reg crawler should be set it as 'image'
-        if 'SOURCE_TYPE' in os.environ:
-            source_type = os.environ['SOURCE_TYPE']
-            params.update({'source_type': source_type})
-        else:
-            params.update({'source_type': system_type})
+        params = self.gen_params(namespace=namespace, features=features,
+                                 timestamp=timestamp, source_type=system_type,
+                                 access_group=access_group)
 
         self.url = self.url.replace('sas:', 'https:')
 
         verify = True
         if self.ssl_verification == "False":
             verify = False
+            from requests.packages.urllib3.exceptions \
+                import InsecureRequestWarning
+            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+        # skip it in live-crawler if namespace includes reg-crawler format
+        if ':' in params.get('namespace') \
+                and params.get('source_type') == 'container':
+            logger.info("frame does not satisfy SAS required format")
+            logger.info("source_type=container, namespace=%s",
+                        params.get('namespace'))
+            return
+
+        logger.info("emit frame (namespace=%s)", params.get('namespace'))
+        logger.info("content size: {0} byte".format(sys.getsizeof(content)))
+
+        # set interval to avoid burst emit
+        if int(self.emit_interval) > 0:
+            logger.debug("wait %s sec...", self.emit_interval)
+            time.sleep(int(self.emit_interval))
 
         for attempt in range(self.max_retries):
             try:

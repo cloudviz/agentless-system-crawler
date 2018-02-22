@@ -79,11 +79,14 @@ def exec_dockerinspect(long_id):
         raise DockerutilsException('Failed to exec dockerinspect')
 
     try:
+        repotags = client.inspect_image(inspect['Image'])['RepoTags']
         # get the first RepoTag
-        inspect['RepoTag'] = client.inspect_image(
-            inspect['Image'])['RepoTags'][0]
+        inspect['RepoTag'] = repotags[0]
+        # keep multiple RepoTags
+        inspect['RepoTags'] = repotags
     except (docker.errors.DockerException, KeyError, IndexError):
         inspect['RepoTag'] = ''
+        inspect['RepoTags'] = ''
 
     return inspect
 
