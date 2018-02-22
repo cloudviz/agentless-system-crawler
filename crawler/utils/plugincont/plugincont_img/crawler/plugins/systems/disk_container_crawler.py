@@ -1,9 +1,7 @@
 import logging
 
-import utils.dockerutils
 from icrawl_plugin import IContainerCrawler
 from utils.disk_utils import crawl_disk_partitions
-from utils.namespace import run_as_another_namespace, ALL_NAMESPACES
 
 logger = logging.getLogger('crawlutils')
 

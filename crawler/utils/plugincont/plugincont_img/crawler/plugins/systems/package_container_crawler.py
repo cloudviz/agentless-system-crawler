@@ -3,10 +3,7 @@ import os
 
 from icrawl_plugin import IContainerCrawler
 from utils.crawler_exceptions import CrawlError
-from utils.dockerutils import (exec_dockerinspect,
-                               get_docker_container_rootfs_path)
 from utils.misc import join_abs_paths
-from utils.namespace import run_as_another_namespace, ALL_NAMESPACES
 from utils.package_utils import crawl_packages
 
 logger = logging.getLogger('crawlutils')

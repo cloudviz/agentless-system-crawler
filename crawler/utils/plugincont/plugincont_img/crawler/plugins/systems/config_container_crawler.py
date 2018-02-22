@@ -1,10 +1,8 @@
 import logging
 import os
-import utils.dockerutils
 import utils.misc
 from icrawl_plugin import IContainerCrawler
 from utils.config_utils import crawl_config_files
-from utils.namespace import run_as_another_namespace
 
 logger = logging.getLogger('crawlutils')
 

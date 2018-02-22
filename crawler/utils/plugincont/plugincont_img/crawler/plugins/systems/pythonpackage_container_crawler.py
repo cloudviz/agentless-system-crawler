@@ -3,7 +3,6 @@ import os
 import re
 import subprocess
 
-import utils.dockerutils
 
 from icrawl_plugin import IContainerCrawler
 

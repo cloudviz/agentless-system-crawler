@@ -1,8 +1,6 @@
 import logging
 import os
-import utils.dockerutils
 from icrawl_plugin import IContainerCrawler
-from utils.namespace import run_as_another_namespace, ALL_NAMESPACES
 from utils.os_utils import crawl_os, crawl_os_mountpoint
 
 logger = logging.getLogger('crawlutils')

@@ -3,10 +3,8 @@ import time
 
 import psutil
 
-from dockercontainer import DockerContainer
 from icrawl_plugin import IContainerCrawler
 from utils.features import InterfaceFeature
-from utils.namespace import run_as_another_namespace
 
 logger = logging.getLogger('crawlutils')
 

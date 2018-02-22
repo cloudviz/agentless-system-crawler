@@ -7,6 +7,8 @@ import argparse
 import shutil
 import cStringIO
 import json
+import logging
+logging.basicConfig()
 from icrawl_plugin import IContainerCrawler
 
 plugins_dir = '/crawler/plugins/systems/' # might eventually become /home/user1/crawler/plugins/...

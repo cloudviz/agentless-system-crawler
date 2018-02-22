@@ -2,7 +2,6 @@ import logging
 import os
 import psutil
 
-from dockercontainer import DockerContainer
 from icrawl_plugin import IContainerCrawler
 from utils.features import MemoryFeature
 
