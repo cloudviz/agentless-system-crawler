@@ -32,7 +32,7 @@ class ContainersCrawlerTests(unittest.TestCase):
         root.addHandler(ch)
 
         self.docker = docker.APIClient(base_url='unix://var/run/docker.sock',
-                                    version='auto')
+                                       version='auto')
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
