@@ -45,6 +45,7 @@ class CpuContainerCrawler(IContainerCrawler):
                 if os.path.ismount(path):
                     return path
 
+        for dev in devlist:
             # Try getting the mount point from /proc/mounts
             for l in open('/proc/mounts', 'r'):
                 _type, mnt, _, _, _, _ = l.split(' ')
@@ -52,7 +53,6 @@ class CpuContainerCrawler(IContainerCrawler):
                     return mnt
 
         raise ValueError('Can not find the cgroup dir')
-
 
     def get_cpu_cgroup_path(self, node='cpuacct.usage'):
         # In kernels 4.x, the node is actually called 'cpu,cpuacct'
@@ -79,6 +79,10 @@ class CpuContainerCrawler(IContainerCrawler):
                 cpu.steal,
                 100 - int(cpu.idle),
             )
+
+        real_root = os.open('/', os.O_RDONLY)
+        os.chroot('/sysfs_local')
+        os.chdir('/')
 
         if per_cpu:
             stat_file_name = 'cpuacct.usage_percpu'
@@ -121,6 +125,9 @@ class CpuContainerCrawler(IContainerCrawler):
                 if m:
                     cpu_user_system[m.group(1)] = \
                         float(m.group(2))
+
+        os.fchdir(real_root)
+        os.chroot('.')
 
         for (index, cpu_usage_ns) in enumerate(cpu_usage_t1):
             usage_secs = (float(cpu_usage_t2[index]) -

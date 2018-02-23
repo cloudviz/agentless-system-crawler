@@ -33,6 +33,9 @@ class MemoryContainerCrawler(IContainerCrawler):
         return os.path.join(self._get_cgroup_dir(['memory']), node)
 
     def crawl(self, container_id, avoid_setns=False, **kwargs):
+        real_root = os.open('/', os.O_RDONLY)
+        os.chroot('/sysfs_local')
+        os.chdir('/')
 
         used = buffered = cached = free = 'unknown'
         with open(self.get_memory_cgroup_path('memory.stat'
@@ -51,6 +54,9 @@ class MemoryContainerCrawler(IContainerCrawler):
         with open(self.get_memory_cgroup_path(
                 'memory.usage_in_bytes'), 'r') as f:
             used = int(f.readline().strip())
+
+        os.fchdir(real_root)
+        os.chroot('.')
 
         host_free = psutil.virtual_memory().free
         container_total = used + min(host_free, limit - used)

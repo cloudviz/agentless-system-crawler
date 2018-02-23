@@ -27,6 +27,7 @@ class PluginContainersManager():
         self.plugincont_image_path = os.getcwd() + \
             '/crawler/utils/plugincont/plugincont_img'
         self.plugincont_guestcont_mountpoint = '/rootfs_local'
+        self.plugincont_guestcont_sysfs_mountpoint = '/sysfs_local'
         self.docker_client = docker.DockerClient(
             base_url='unix://var/run/docker.sock', version='auto')
         self.docker_APIclient = docker.APIClient(
@@ -195,6 +196,11 @@ class PluginContainersManager():
         guestcont_id = guestcont.long_id
         guestcont_rootfs = utils.dockerutils.get_docker_container_rootfs_path(
             guestcont_id)
+        guestcont_sysfs_mem = os.path.join(
+            self._get_cgroup_dir(['memory']), 'docker', guestcont_id)
+        guestcont_sysfs_cpu = os.path.join(
+            self._get_cgroup_dir(['cpuacct', 'cpu,cpuacct']),
+            'docker', guestcont_id)
         plugincont = None
         plugincont_name = self.plugincont_name_prefix + '_' + guestcont_id
         seccomp_attr = json.dumps(
@@ -219,7 +225,13 @@ class PluginContainersManager():
                 volumes={
                     guestcont_rootfs: {
                         'bind': self.plugincont_guestcont_mountpoint,
-                        'mode': 'ro'}},
+                        'mode': 'ro'},
+                    guestcont_sysfs_mem: {
+                        'bind': self.plugincont_guestcont_sysfs_mountpoint + ''
+                        '/sys/fs/cgroup/memory'},
+                    guestcont_sysfs_cpu: {
+                        'bind': self.plugincont_guestcont_sysfs_mountpoint + ''
+                        '/sys/fs/cgroup/cpu,cpuacct'}},
                 detach=True)
             time.sleep(5)
         except Exception as exc:
