@@ -1,0 +1,14 @@
+[Core]
+Name = SAS Https Emitter
+Module = sas_emitter
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Plugin to post frame data to SAS (security analytics service) https server
+
+[Options]
+token_filepath = /etc/sas-secrets/token
+access_group_filepath = /etc/sas-secrets/access_group
+cloudoe_filepath = /etc/sas-secrets/cloudoe
+ssl_verifcation = False

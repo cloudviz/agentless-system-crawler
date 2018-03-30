@@ -1,0 +1,8 @@
+[Core]
+Name = connection_vm
+Module = connection_vm_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Connection crawling function for VMs"

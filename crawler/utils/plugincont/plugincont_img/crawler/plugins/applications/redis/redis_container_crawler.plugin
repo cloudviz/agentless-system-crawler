@@ -1,0 +1,8 @@
+[Core]
+Name = application_redis_container
+Module = redis_container_crawler
+
+[Documentation]
+Author = Tatsuhiro Chiba (chiba@jp.ibm.com)
+Version = 0.1
+Description = Redis crawling function for containers on the host

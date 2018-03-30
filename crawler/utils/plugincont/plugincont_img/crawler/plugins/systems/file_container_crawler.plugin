@@ -1,0 +1,8 @@
+[Core]
+Name = file_container
+Module = file_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = File crawling function for containers

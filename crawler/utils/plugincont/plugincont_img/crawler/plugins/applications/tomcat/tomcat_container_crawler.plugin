@@ -1,0 +1,12 @@
+[Core]
+Name = application_tomcat_container
+Module = tomcat_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Tomcat crawling function for containers on the host
+
+[Options]
+user = administrator user name, Default is tomcat
+password = administrator password, Default is password

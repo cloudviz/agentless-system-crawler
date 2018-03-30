@@ -162,7 +162,7 @@ class DockerContainer(Container):
         self.volumes = inspect.get('Volumes')
         self.image_name = inspect['Config']['Image']
         self.inspect = inspect
-
+        self.plugincont = None
         self.process_namespace = (process_namespace or
                                   namespace.get_pid_namespace(self.pid))
 

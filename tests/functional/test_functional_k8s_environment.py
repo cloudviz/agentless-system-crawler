@@ -24,6 +24,7 @@ POD_UID = "io.kubernetes.pod.uid"
 POD_NS = "io.kubernetes.pod.namespace"
 K8S_DELIMITER = "/"
 
+
 class ContainersCrawlerTests(unittest.TestCase):
 
     def setUp(self):
@@ -36,8 +37,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-        self.docker = docker.Client(base_url='unix://var/run/docker.sock',
-                                    version='auto')
+        self.docker = docker.APIClient(base_url='unix://var/run/docker.sock',
+                                       version='auto')
         self.k8s_labels = dict()
         self.k8s_labels[CONT_NAME] = "simson"
         self.k8s_labels[POD_NAME] = "pod-test"
@@ -58,7 +59,7 @@ class ContainersCrawlerTests(unittest.TestCase):
         # start a container to be crawled
         self.docker.pull(repository='ubuntu', tag='latest')
         self.container = self.docker.create_container(
-            image='ubuntu:latest', labels = self.k8s_labels, command='/bin/sleep 60')
+            image='ubuntu:latest', labels=self.k8s_labels, command='/bin/sleep 60')
         self.tempd = tempfile.mkdtemp(prefix='crawlertest.')
         self.docker.start(container=self.container['Id'])
 
@@ -94,6 +95,7 @@ class ContainersCrawlerTests(unittest.TestCase):
     '''
     Test for graphite o/p format.
     '''
+
     def testCrawlContainer2(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
@@ -141,6 +143,7 @@ class ContainersCrawlerTests(unittest.TestCase):
     '''
     Test for csv o/p format
     '''
+
     def testCrawlContainer3(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))
@@ -191,6 +194,7 @@ class ContainersCrawlerTests(unittest.TestCase):
     '''
     Test for json o/p format
     '''
+
     def testCrawlContainer4(self):
         env = os.environ.copy()
         mypath = os.path.dirname(os.path.realpath(__file__))

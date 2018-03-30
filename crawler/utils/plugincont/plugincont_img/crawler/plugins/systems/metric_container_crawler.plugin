@@ -1,0 +1,8 @@
+[Core]
+Name = metric_container
+Module = metric_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Metric crawling function for containers"

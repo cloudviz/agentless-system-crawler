@@ -36,7 +36,7 @@ class LogsLinkerTests(unittest.TestCase):
             pass
 
     def startContainer(self):
-        self.docker = docker.Client(
+        self.docker = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         self.docker.pull(repository='ubuntu', tag='latest')
         self.container = self.docker.create_container(

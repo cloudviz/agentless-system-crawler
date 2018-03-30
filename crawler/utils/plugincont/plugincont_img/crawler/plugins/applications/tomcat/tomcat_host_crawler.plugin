@@ -1,0 +1,12 @@
+[Core]
+Name = application_tomcat_host
+Module = tomcat_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Apache httpd server"
+
+[Options]
+user = administrator user name, Default is tomcat
+password = administrator password, Default is password

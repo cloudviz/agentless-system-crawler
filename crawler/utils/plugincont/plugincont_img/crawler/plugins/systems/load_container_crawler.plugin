@@ -1,0 +1,8 @@
+[Core]
+Name = load_container
+Module = load_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Load crawling function for containers"
