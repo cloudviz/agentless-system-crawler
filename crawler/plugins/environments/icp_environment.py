@@ -21,10 +21,20 @@ K8S_NS_LABEL = "io.kubernetes.pod.namespace"
 K8S_POD_LABEL = "io.kubernetes.pod.name"
 K8S_CONTAINER_NAME_LABEL = "io.kubernetes.container.name"
 
-CRAWLER_CONT_NAMESPACE_FORMAT = "icp/{K8S_NS}/{K8S_POD}/{K8S_CONT_ID}"
-CRAWLER_IMAGE_NAMESPACE_FORMAT = "icp/{IMAGE_NAME}"
+CRAWLER_NAMESPACE_FORMAT = "{K8S_NS}/{K8S_POD}/{K8S_CONT_NAME}/{K8S_CONT_ID}"
+CRAWLER_IMAGE_NAMESPACE_FORMAT = "{REPO_NS}/{IMAGE_NAME}:{IMAGE_TAG}"
 
+# all of reg crawler target pod name is set to `regpod-checking`
 regpod_pattern = re.compile("regpod-checking")
+
+"""
+ICP environment plugin is used by live crawler and registry crawler on ICP.
+The role is to set adequate namespace depending on two source_types.
+For container source type, it makes same namespace as kubernetes plugin.
+For image source type, namespace is directly passed from --namespace arg.
+That is because a launched container with the image may have many RepoTags,
+so the plugin can not decide which repotag is suitable.
+"""
 
 
 class ICpEnvironment(IRuntimeEnvironment):
@@ -42,30 +52,17 @@ class ICpEnvironment(IRuntimeEnvironment):
             if labels:
                 podname = labels.get(K8S_POD_LABEL)
                 if not podname:
-                    logger.warning("%s is not k8s managed Container" % long_id)
+                    logger.warning("%s is not icp managed container" % long_id)
                     return crawler_k8s_ns
-                # for reg crawler
+                # (1). for reg crawler
                 if regpod_pattern.search(podname):
-                    # expected repotag is "repository/k8s-ns/imagename:tag"
-                    repotags = container_meta.get(META_REPOS)
-                    repotag_format = ""
-                    for repotag in repotags:
-                        if len(repotag.split("/")) == 3:
-                            repotag_format = repotag.split("/")
-                            break
-                    # check format
-                    e_msg = "can not find proper repotag in this image"
-                    assert repotag_format != "", e_msg
-                    peaces = repotag.split("/")
-                    ns_image_tag = peaces[1] + "/" + peaces[2]
-                    crawler_k8s_ns = CRAWLER_IMAGE_NAMESPACE_FORMAT.format(
-                        IMAGE_NAME=ns_image_tag
-                    )
-                # for live crawler
+                    crawler_k8s_ns = options.get("host_namespace")
+                # (2). for live crawler
                 else:
-                    crawler_k8s_ns = CRAWLER_CONT_NAMESPACE_FORMAT.format(
+                    crawler_k8s_ns = CRAWLER_NAMESPACE_FORMAT.format(
                         K8S_NS=labels.get(K8S_NS_LABEL, ""),
                         K8S_POD=labels.get(K8S_POD_LABEL, ""),
+                        K8S_CONT_NAME=labels.get(K8S_CONTAINER_NAME_LABEL, ""),
                         K8S_CONT_ID=long_id
                     )
         except KeyError:

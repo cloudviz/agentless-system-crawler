@@ -95,14 +95,10 @@ class SasEmitter(BaseHttpEmitter, IEmitter):
                    access_group='', source_type=''):
         params = {}
 
-        # reformat namespace and access_group for icp env
+        # extract access_group info from namespace
         parsed_namespace = namespace.split("/")
-        if len(parsed_namespace) >= 2 and parsed_namespace[0] == "icp":
-            # set an adequate k8s namespace
-            access_group = parsed_namespace[1]
-            # remove "icp/" string from namespace
-            namespace = namespace[4:]
-            assert namespace[0] != "/"
+        if len(parsed_namespace) > 1:
+            access_group = parsed_namespace[0]
 
         params.update({'namespace': namespace})
         params.update({'access_group': access_group})
