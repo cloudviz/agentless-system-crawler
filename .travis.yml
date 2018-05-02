@@ -26,7 +26,8 @@ before_install:
     - sudo apt-get -qqy --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install docker-engine=${DOCKER_VERSION}
     - docker -v
     # might as well upgrade pip to support TLS and get rid of the warnings
-    - sudo -H pip install --upgrade pip
+    # sudo -H pip install --upgrade pip
+    - sudo -H pip install -I pip==9.0.1
     - sudo -H pip install codecov pytest-cov==2.3.0 pytest==2.9.2
     # psvmi specific
     - sudo apt-get install qemu-kvm
