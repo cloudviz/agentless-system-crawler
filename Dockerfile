@@ -19,6 +19,8 @@ RUN dpkg -i /tmp/python-socket-datacollector_*_all.deb && \
     dpkg -i /tmp/python-conntrackprobe_*_all.deb && \
     rm -f /tmp/*.deb
 
+RUN apt-get upgrade -y
+
 ENV PYTHONPATH=/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages
 
 ADD crawler /crawler
