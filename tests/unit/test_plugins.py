@@ -1535,6 +1535,8 @@ class PluginTests(unittest.TestCase):
                 50,
                 60,
                 70)])
+    @mock.patch('plugins.systems.cpu_container_crawler.CpuContainerCrawler._get_scaling_factor',
+                side_effect=lambda a,b: 1.0)
     @mock.patch('plugins.systems.cpu_container_crawler.time.sleep')
     @mock.patch('plugins.systems.cpu_container_crawler.open',
                 side_effect=mocked_cpu_cgroup_open)

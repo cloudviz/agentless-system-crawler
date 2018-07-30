@@ -42,16 +42,26 @@ class CpuContainerCrawler(IContainerCrawler):
         if per_cpu:
             return 1.0
 
-        fd = open(container.get_cpu_cgroup_path('cpu.cfs_quota_us'), 'r')
-        quota = float(fd.read().strip())
-        fd.close()
-        if quota == -1:
-            return 1.0
+        # support for cgroups v1 below. cgroups v2 not yet supported.
+        try:
+            quota_path = container.get_cpu_cgroup_path('cpu.cfs_quota_us')
+            period_path = container.get_cpu_cgroup_path('cpu.cfs_period_us')
 
-        fd = open(container.get_cpu_cgroup_path('cpu.cfs_period_us'), 'r')
-        period = float(fd.read().strip())
-        fd.close()
-        return float(quota / period)
+            fd = open(quota_path, 'r')
+            quota = float(fd.read().strip())
+            fd.close()
+
+            if quota == -1:
+                return 1.0
+
+            fd = open(period_path, 'r')
+            period = float(fd.read().strip())
+            fd.close()
+            return float(quota / period)
+        except:
+            logger.debug('Missing CPU cgroup cfs feature; %s'
+                         % container.long_id)
+            return 1.0
 
     def get_feature(self):
         return 'cpu'
@@ -135,6 +145,8 @@ class CpuContainerCrawler(IContainerCrawler):
                 usage_percent = usage_secs / scaling_factor / interval * 100.0
                 idle = 100 - usage_percent
 
+            if idle < 0:
+                idle = 0
             # Approximation 1
 
             user_plus_sys_hz = cpu_user_system['user'] \
