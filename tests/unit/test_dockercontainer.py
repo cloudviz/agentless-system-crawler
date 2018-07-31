@@ -459,8 +459,12 @@ class DockerDockerContainerTests(unittest.TestCase):
                 side_effect=mocked_get_rootfs)
     @mock.patch('dockercontainer.os.path.ismount',
                 side_effect=lambda x: True if x == '/cgroup/memory' else False)
+    @mock.patch('dockercontainer.os.path.exists',
+                side_effect=lambda x:
+                True if x == '/cgroup/memory/docker' else False)
     def test_memory_cgroup(
             self,
+            mocked_exists,
             mocked_ismount,
             mock_get_rootfs,
             mock_inspect,
@@ -481,8 +485,12 @@ class DockerDockerContainerTests(unittest.TestCase):
     @mock.patch('dockercontainer.os.path.ismount',
                 side_effect=lambda x:
                 True if x == '/cgroup/cpuacct' or '/cgroup/cpu,cpuacct' else False)
+    @mock.patch('dockercontainer.os.path.exists',
+                side_effect=lambda x:
+                True if x == '/cgroup/cpuacct/docker' else False)
     def test_cpu_cgroup(
             self,
+            mocked_exists,
             mocked_ismount,
             mock_get_rootfs,
             mock_inspect,
