@@ -6,7 +6,7 @@ from utils.features import MetricFeature
 def _crawl_metrics_cpu_percent(process):
     cpu_percent = (
         process.get_cpu_percent(
-            interval=0) if hasattr(
+            interval=0.1) if hasattr(
             process.get_cpu_percent,
             '__call__') else process.cpu_percent)
     return cpu_percent
