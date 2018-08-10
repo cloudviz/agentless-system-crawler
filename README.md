@@ -13,17 +13,31 @@ The current state of this project is in the middle of "make it right".
 
 **Prereqs and Building:**
 -----------
-To run the crawler you'll need to do the following steps in the environment
-in which you want it to run:
+To run the crawler you will need to install python, pip and the python modules specified in the `requirements.txt` file.  
 
- * Install Python 2.7.5
- * apt-get install python-dev
+You can build the crawler as a native application or as a containerized application with Docker.
+
+***Building Crawler as a Native Application:*** 
+Do the following steps in the environment
+in which you want to run the crawler:
+
+```
+ * Install Python 2.7.5+
  * apt-get install python-pip
- * pip install psutil
- * pip install netifaces
- * pip install requests
- * pip install python-dateutil
+ * pip install -r requirements.txt
+```
 
+In a fresh Ubuntu 18.04 Bionic system, the following steps work to install and run the crawler natively:
+
+```
+sudo apt-get update
+sudo apt-get install python2.7 python-pip
+git clone https://github.com/cloudviz/agentless-system-crawler.git
+cd agentless-system-crawler/
+sudo pip install -r requirements.txt
+```
+
+***Building Crawler as a Container:*** 
 If you want to run the crawler in a container then build the `crawler` image
 using the provided `Dockerfile`:
 
@@ -39,11 +53,14 @@ To run the test cases, run:
 
 **Running the Crawler:**
 ------------------------
+
+***Runing the Crawler Natively:***
 To run the crawler natively on the Docker host system, use:
 ```
 sudo python crawler/crawler.py ...
 ```
 
+***Runing the Crawler as a Container:***
 To run the crawler in a container use:
 ```
 sudo docker run \
