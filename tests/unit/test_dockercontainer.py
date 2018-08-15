@@ -461,7 +461,7 @@ class DockerDockerContainerTests(unittest.TestCase):
                 side_effect=lambda x: True if x == '/cgroup/memory' else False)
     @mock.patch('dockercontainer.os.path.exists',
                 side_effect=lambda x:
-                True if x == '/cgroup/memory/docker' else False)
+                True if x == '/cgroup/memory/docker/good_id/abc' else False)
     def test_memory_cgroup(
             self,
             mocked_exists,
@@ -487,7 +487,7 @@ class DockerDockerContainerTests(unittest.TestCase):
                 True if x == '/cgroup/cpuacct' or '/cgroup/cpu,cpuacct' else False)
     @mock.patch('dockercontainer.os.path.exists',
                 side_effect=lambda x:
-                True if x == '/cgroup/cpuacct/docker' else False)
+                True if x == '/cgroup/cpuacct/docker/good_id/abc' else False)
     def test_cpu_cgroup(
             self,
             mocked_exists,

@@ -301,9 +301,10 @@ class DockerContainer(Container):
         raise ContainerWithoutCgroups('Can not find the cgroup dir')
 
     def resolve_cont_cgroup_path_docker_k8(self, cgroup_dir, node):
-        docker_cgroup_path = os.path.join(cgroup_dir, 'docker')
-        if os.path.exists(docker_cgroup_path):
-            return os.path.join(docker_cgroup_path, self.long_id, node)
+        cont_cgroup_path = os.path.join(
+            cgroup_dir, 'docker', self.long_id, node)
+        if os.path.exists(cont_cgroup_path):
+            return cont_cgroup_path
 
         # k8 specific hack for now until k8 becomes first class citizen
         # should use k8 python client to be cleaner
@@ -315,6 +316,8 @@ class DockerContainer(Container):
             if self.long_id in dirs:
                 pod_cgroup_path = root_dirpath
                 return os.path.join(pod_cgroup_path, self.long_id, node)
+
+        raise ContainerWithoutCgroups('Can not find the cgroup dir')
 
     def get_memory_cgroup_path(self, node='memory.stat'):
         cgroup_dir = self._get_cgroup_dir(['memory'])
