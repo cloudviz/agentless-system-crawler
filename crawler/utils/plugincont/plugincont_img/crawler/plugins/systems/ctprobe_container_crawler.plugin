@@ -1,0 +1,8 @@
+[Core]
+Name = ctprobe_container
+Module = ctprobe_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Crawling function for containers to start conntrackprobe

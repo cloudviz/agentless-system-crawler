@@ -1,0 +1,8 @@
+[Core]
+Name = metric_host
+Module = metric_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Metric crawling function for hosts"

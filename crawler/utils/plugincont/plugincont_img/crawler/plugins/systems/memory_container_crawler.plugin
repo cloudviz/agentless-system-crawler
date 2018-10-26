@@ -1,0 +1,8 @@
+[Core]
+Name = memory_container
+Module = memory_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Memory crawling function for containers"

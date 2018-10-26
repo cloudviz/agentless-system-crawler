@@ -30,7 +30,7 @@ def exec_dockerps():
     This call executes the `docker inspect` command every time it is invoked.
     """
     try:
-        client = docker.Client(
+        client = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         containers = client.containers()
         inspect_arr = []
@@ -46,8 +46,8 @@ def exec_dockerps():
 
 def exec_docker_history(long_id):
     try:
-        client = docker.Client(base_url='unix://var/run/docker.sock',
-                               version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         image = client.inspect_container(long_id)['Image']
         history = client.history(image)
         return history
@@ -70,7 +70,7 @@ def _reformat_inspect(inspect):
 
 def exec_dockerinspect(long_id):
     try:
-        client = docker.Client(
+        client = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         inspect = client.inspect_container(long_id)
         _reformat_inspect(inspect)
@@ -110,7 +110,7 @@ def _get_docker_storage_driver():
     # Step 1, get it from "docker info"
 
     try:
-        client = docker.Client(
+        client = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         driver = client.info()['Driver']
     except (docker.errors.DockerException, KeyError):
@@ -196,7 +196,7 @@ def _get_docker_server_version():
     """Run the `docker info` command to get server version
     """
     try:
-        client = docker.Client(
+        client = docker.APIClient(
             base_url='unix://var/run/docker.sock', version='auto')
         return client.version()['Version']
     except (docker.errors.DockerException, KeyError) as e:
@@ -288,14 +288,28 @@ def _get_container_rootfs_path_btrfs(long_id, inspect=None):
     return rootfs_path
 
 
+def _get_docker_root_dir():
+    try:
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
+        docker_info = client.info()
+        root_dir = str(docker_info['DockerRootDir'])
+        return root_dir
+    except docker.errors.APIError as e:
+        logger.warning(str(e))
+        raise DockerutilsException('Failed to get docker info')
+
+
 def _get_container_rootfs_path_aufs(long_id, inspect=None):
 
     rootfs_path = None
 
+    root_dir_prefix = _get_docker_root_dir()
+
     if VERSION_SPEC.match(semantic_version.Version(_fix_version(
                                                    server_version))):
         aufs_path = None
-        mountid_path = ('/var/lib/docker/image/aufs/layerdb/mounts/' +
+        mountid_path = (root_dir_prefix + '/image/aufs/layerdb/mounts/' +
                         long_id + '/mount-id')
         try:
             with open(mountid_path, 'r') as f:
@@ -304,11 +318,11 @@ def _get_container_rootfs_path_aufs(long_id, inspect=None):
             logger.warning(str(e))
         if not aufs_path:
             raise DockerutilsException('Failed to get rootfs on aufs')
-        rootfs_path = '/var/lib/docker/aufs/mnt/' + aufs_path
+        rootfs_path = root_dir_prefix + '/aufs/mnt/' + aufs_path
     else:
         rootfs_path = None
-        for _path in ['/var/lib/docker/aufs/mnt/' + long_id,
-                      '/var/lib/docker/aufs/diff/' + long_id]:
+        for _path in [root_dir_prefix + '/aufs/mnt/' + long_id,
+                      root_dir_prefix + '/aufs/diff/' + long_id]:
             if os.path.isdir(_path) and os.listdir(_path):
                 rootfs_path = _path
                 break
@@ -386,8 +400,8 @@ def get_docker_container_rootfs_path(long_id, inspect=None):
 
 def poll_container_create_events(timeout=0.1):
     try:
-        client = docker.Client(base_url='unix://var/run/docker.sock',
-                               version='auto')
+        client = docker.APIClient(
+            base_url='unix://var/run/docker.sock', version='auto')
         filters = dict()
         filters['type'] = 'container'
         filters['event'] = 'start'

@@ -2,7 +2,6 @@ sudo: required
 dist: trusty
 group: deprecated-2017Q4
 language: python
-
 services:
   - docker
 
@@ -36,6 +35,8 @@ before_install:
     - cp -r psvmi/maps maps
     - cp -r psvmi/offsets offsets
     - cp psvmi/header.h .
+    # for safe plugin mode
+    - sudo apt-get install libcap-dev iptables iptables-dev
 
 # command to install dependencies
 # XXX: Now mock complains if we don't `sudo pip install`.

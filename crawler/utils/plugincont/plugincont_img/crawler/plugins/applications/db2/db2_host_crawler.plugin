@@ -1,0 +1,14 @@
+[Core]
+Name = application_db2_host
+Module = db2_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "DB2 server"
+
+[Options]
+user = administrator user name, Default is db2inst1
+password = administrator password, Default is db2inst1-pwd
+db = db name to connect, Default is sample
+

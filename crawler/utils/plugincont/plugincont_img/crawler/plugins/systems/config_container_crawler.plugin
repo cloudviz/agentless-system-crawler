@@ -1,0 +1,8 @@
+[Core]
+Name = config_container
+Module = config_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Config crawling function for containers

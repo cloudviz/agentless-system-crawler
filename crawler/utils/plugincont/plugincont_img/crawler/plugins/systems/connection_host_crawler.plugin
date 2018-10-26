@@ -1,0 +1,8 @@
+[Core]
+Name = connection_host
+Module = connection_host_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Connection crawling function for hosts"

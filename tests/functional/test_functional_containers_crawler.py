@@ -31,8 +31,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-        self.docker = docker.Client(base_url='unix://var/run/docker.sock',
-                                    version='auto')
+        self.docker = docker.APIClient(base_url='unix://var/run/docker.sock',
+                                       version='auto')
         try:
             if len(self.docker.containers()) != 0:
                 raise Exception(
@@ -229,8 +229,8 @@ class ContainersCrawlerTests(unittest.TestCase):
         output = str(frames[0])
         print output  # only printed if the test fails
         # interface in avoid_setns mode is not supported
-        #assert 'interface-lo' in output
-        #assert 'if_octets_tx=' in output
+        # assert 'interface-lo' in output
+        # assert 'if_octets_tx=' in output
         assert 'cpu-0' in output
         assert 'cpu_nice=' in output
         assert 'memory' in output

@@ -14,8 +14,8 @@ class MockedClient():
         return [{'Id': 'good_id'}]
 
     def info(self):
-        return {'Driver': 'btrfs'}
-
+        return {'Driver': 'btrfs', 'DockerRootDir': '/var/lib/docker'}
+    
     def version(self):
         return {'Version': '1.10.1'}
 
@@ -88,7 +88,7 @@ class DockerUtilsTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_exec_dockerps(self, *args):
         for c in utils.dockerutils.exec_dockerps():
@@ -118,7 +118,7 @@ class DockerUtilsTests(unittest.TestCase):
                                                  'HostIp': ''}]}},
                      'Id': 'good_id'}
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.exec_dockerinspect',
                 side_effect=throw_docker_exception)
@@ -126,19 +126,19 @@ class DockerUtilsTests(unittest.TestCase):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.exec_dockerps()
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_exec_docker_history(self, *args):
         h = utils.dockerutils.exec_docker_history('ididid')
         assert h == [{'History': 'xxx'}]
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=throw_docker_exception)
     def test_exec_docker_history_failure(self, *args):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.exec_docker_history('ididid')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_exec_docker_inspect(self, *args):
         i = utils.dockerutils.exec_dockerinspect('ididid')
@@ -167,13 +167,13 @@ class DockerUtilsTests(unittest.TestCase):
                                                  'HostIp': ''}]}},
                      'Id': 'good_id'}
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=throw_docker_exception)
     def test_exec_docker_inspect_failure(self, *args):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.exec_dockerinspect('ididid')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=throw_docker_exception)
     @mock.patch('utils.dockerutils.open')
     def test_get_docker_storage_driver_step1a(self, mock_open, mock_client):
@@ -187,32 +187,32 @@ class DockerUtilsTests(unittest.TestCase):
         mock_open.return_value = open('tests/unit/proc_mounts_btrfs')
         assert utils.dockerutils._get_docker_storage_driver() == 'btrfs'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
     def test_get_docker_storage_driver_step2(self, mock_open, mock_client):
         assert utils.dockerutils._get_docker_storage_driver() == 'btrfs'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=throw_docker_exception)
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
     def test_get_docker_storage_driver_failure(self, mock_open, mock_client):
         assert utils.dockerutils._get_docker_storage_driver() == 'devicemapper'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_get_docker_server_version(self, mock_client):
         assert utils.dockerutils._get_docker_server_version() == '1.10.1'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=throw_docker_exception)
     def test_get_docker_server_version_failure(self, mock_client):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils._get_docker_server_version()
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch(
         'crawler.utils.dockerutils.os.path.isfile',
@@ -223,7 +223,7 @@ class DockerUtilsTests(unittest.TestCase):
         assert utils.dockerutils.get_docker_container_json_logs_path(
             'id') == '/var/lib/docker/containers/id/id-json.log'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.os.path.isfile',
                 side_effect=lambda p:
@@ -232,7 +232,7 @@ class DockerUtilsTests(unittest.TestCase):
         assert utils.dockerutils.get_docker_container_json_logs_path(
             'id') == '/a/b/c/log.json'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.os.path.isfile',
                 side_effect=lambda p: False)
@@ -240,7 +240,7 @@ class DockerUtilsTests(unittest.TestCase):
         with self.assertRaises(DockerutilsNoJsonLog):
             utils.dockerutils.get_docker_container_json_logs_path('id')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
@@ -250,7 +250,7 @@ class DockerUtilsTests(unittest.TestCase):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.get_docker_container_rootfs_path('id')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=[open('tests/unit/proc_pid_mounts_devicemapper'),
@@ -262,7 +262,7 @@ class DockerUtilsTests(unittest.TestCase):
                       "65fe676c24fe1faea1f06e222cc3811cc"
                       "9b651c381702ca4f787ffe562a5e39b/rootfs")
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
@@ -280,7 +280,7 @@ class DockerUtilsTests(unittest.TestCase):
                      'level', '5', 'path', 'sub1/abcde/sub2'),
                 ]
                 )
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_get_rootfs_btrfs_v1_8(self, mock_client, mock_list):
         utils.dockerutils.driver = 'btrfs'
@@ -290,7 +290,7 @@ class DockerUtilsTests(unittest.TestCase):
 
     @mock.patch('utils.dockerutils.misc.btrfs_list_subvolumes',
                 side_effect=throw_runtime_error)
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_get_rootfs_btrfs_v1_8_failure(self, mock_client, mock_list):
         utils.dockerutils.driver = 'btrfs'
@@ -298,7 +298,7 @@ class DockerUtilsTests(unittest.TestCase):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.get_docker_container_rootfs_path('abcde')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=[open('tests/unit/btrfs_mount_init-id')])
@@ -308,7 +308,7 @@ class DockerUtilsTests(unittest.TestCase):
         assert utils.dockerutils.get_docker_container_rootfs_path(
             'id') == '/var/lib/docker/btrfs/subvolumes/vol1/id/rootfs-a-b-c'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
@@ -322,7 +322,7 @@ class DockerUtilsTests(unittest.TestCase):
                 side_effect=lambda d: True)
     @mock.patch('utils.dockerutils.os.listdir',
                 side_effect=lambda d: ['usr', 'boot', 'var'])
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_get_rootfs_aufs_v1_8(self, *args):
         utils.dockerutils.driver = 'aufs'
@@ -334,7 +334,7 @@ class DockerUtilsTests(unittest.TestCase):
                 side_effect=lambda d: False)
     @mock.patch('utils.dockerutils.os.listdir',
                 side_effect=lambda d: ['usr', 'boot', 'var'])
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     def test_get_rootfs_aufs_v1_8_failure(self, *args):
         utils.dockerutils.driver = 'aufs'
@@ -342,7 +342,7 @@ class DockerUtilsTests(unittest.TestCase):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.get_docker_container_rootfs_path('abcde')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=[open('tests/unit/aufs_mount_init-id')])
@@ -352,7 +352,7 @@ class DockerUtilsTests(unittest.TestCase):
         assert utils.dockerutils.get_docker_container_rootfs_path(
             'abcde') == '/var/lib/docker/aufs/mnt/vol1/id/rootfs-a-b-c'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
@@ -362,7 +362,7 @@ class DockerUtilsTests(unittest.TestCase):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.get_docker_container_rootfs_path('abcde')
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=[open('tests/unit/vfs_mount_init-id')])
@@ -372,7 +372,7 @@ class DockerUtilsTests(unittest.TestCase):
         assert utils.dockerutils.get_docker_container_rootfs_path(
             'abcde') == '/var/lib/docker/vfs/dir/vol1/id/rootfs-a-b-c'
 
-    @mock.patch('utils.dockerutils.docker.Client',
+    @mock.patch('utils.dockerutils.docker.APIClient',
                 side_effect=lambda base_url, version: MockedClient())
     @mock.patch('utils.dockerutils.open',
                 side_effect=throw_io_error)
