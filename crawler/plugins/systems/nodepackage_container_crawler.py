@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 import subprocess
 
@@ -48,7 +47,7 @@ class NodePackageCrawler(IContainerCrawler):
 
         if avoid_setns:
             raise NotImplementedError()
-        else:  
+        else:
             return run_as_another_namespace(pid,
                                             ALL_NAMESPACES,
                                             self._crawl_in_system)
