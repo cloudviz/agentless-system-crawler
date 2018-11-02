@@ -135,7 +135,8 @@ class NullHandler(logging.Handler):
 def get_host_ipaddr():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(('www.ibm.com', 9))
+        #s.connect(('www.ibm.com', 9))
+        s.connect(('www.google.com', 9))
         return s.getsockname()[0]
     except socket.error:
         return socket.gethostname()
