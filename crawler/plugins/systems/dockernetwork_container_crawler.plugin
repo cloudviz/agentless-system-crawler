@@ -1,0 +1,8 @@
+[Core]
+Name = dockernetwork_container
+Module = dockernetwork_container_crawler
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = "Dockernetwork crawling function for containers"

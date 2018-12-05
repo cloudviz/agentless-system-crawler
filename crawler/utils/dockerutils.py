@@ -91,6 +91,41 @@ def exec_dockerinspect(long_id):
     return inspect
 
 
+# this function checks if container is using docker0 bridge network
+# from the host
+# This check is implemented to cover Docker CIS Check 5.2
+
+
+def exec_dockernetwork(long_id):
+    usesDocker0Bridge = False
+    response = dict()
+    try:
+        client = docker.Client(
+            base_url='unix://var/run/docker.sock', version='auto')
+        networks = client.networks()
+        for net in networks:
+            name = net['Name']
+            if name == 'bridge':
+                options = net['Options']
+                bridgeName = options.get("com.docker.network.bridge.name", "")
+                if bridgeName == 'docker0':
+                    netinspect = client.inspect_network(net['Id'])
+                    containers = netinspect['Containers']
+                    for c in containers:
+                        if c == long_id:
+                            usesDocker0Bridge = True
+                            break
+
+    except docker.errors.DockerException as e:
+        logger.warning(str(e))
+        raise DockerutilsException('Failed to exec dockernetwork')
+    except KeyError as e:
+        logger.warning(str(e))
+        pass
+    response['usesDocker0Bridge'] = usesDocker0Bridge
+    return response
+
+
 def _get_docker_storage_driver_using_proc_mounts():
     for l in open('/proc/mounts', 'r'):
         _, mnt, _, _, _, _ = l.split(' ')
