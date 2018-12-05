@@ -12,6 +12,9 @@ class MockedClient():
 
     def containers(self):
         return [{'Id': 'good_id'}]
+    
+    def networks(self):
+        return [{'Name':'bridge', 'Id':'b7f7e3e6a2c204240a1ca334645d42c458cad466206c6f921082bb27b95b2d98'}] 
 
     def info(self):
         return {'Driver': 'btrfs'}
@@ -67,6 +70,29 @@ class MockedClient():
     def history(self, image_id):
         return [{'History': 'xxx'}]
 
+    def docker_network(self, id):
+        return [{
+            "Name": "bridge",
+            "Id": "b7f7e3e6a2c204240a1ca334645d42c458cad466206c6f921082bb27b95b2d98",
+            "Created": "2018-11-12T05:10:12.622525664Z",
+            "Scope": "local",
+            "Driver": "bridge",
+            "EnableIPv6": false,
+            "Internal": false,
+            "Attachable": false,
+            "Ingress": false,
+            "ConfigOnly": false,
+            "Containers": {},
+            "Options": {
+                  "com.docker.network.bridge.default_bridge": "true",
+                  "com.docker.network.bridge.enable_icc": "true",
+                  "com.docker.network.bridge.enable_ip_masquerade": "true",
+                  "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+                  "com.docker.network.bridge.name": "docker0",
+                  "com.docker.network.driver.mtu": "1500"
+            },
+            "Labels": {}
+        }]
 
 def throw_runtime_error(*args, **kwargs):
     raise RuntimeError()
@@ -137,6 +163,12 @@ class DockerUtilsTests(unittest.TestCase):
     def test_exec_docker_history_failure(self, *args):
         with self.assertRaises(DockerutilsException):
             utils.dockerutils.exec_docker_history('ididid')
+
+    @mock.patch('utils.dockerutils.docker.Client',
+                side_effect=lambda base_url, version: MockedClient())
+    def test_exec_dockernetwork(self, *args):
+        net = utils.dockerutils.exec_dockernetwork('ididid')
+        assert net == {'usesDocker0Bridge': False}
 
     @mock.patch('utils.dockerutils.docker.Client',
                 side_effect=lambda base_url, version: MockedClient())
