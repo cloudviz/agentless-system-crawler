@@ -71,28 +71,27 @@ class MockedClient():
         return [{'History': 'xxx'}]
 
     def docker_network(self, id):
-        return [
-        {
-        "Name": "bridge",
-        "Id": "b7f7e3e6a2c204240a1ca334645d42c458cad466206c6f921082bb27b95b2d98",
-        "Created": "2018-11-12T05:10:12.622525664Z",
-        "Scope": "local",
-        "Driver": "bridge",
-        "EnableIPv6": false,
-        "Internal": false,
-        "Attachable": false,
-        "Ingress": false,
-        "ConfigOnly": false,
-        "Containers": {},
-        "Options": {
-             "com.docker.network.bridge.default_bridge": "true",
-             "com.docker.network.bridge.enable_icc": "true",
-             "com.docker.network.bridge.enable_ip_masquerade": "true",
-             "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
-             "com.docker.network.bridge.name": "docker0",
-             "com.docker.network.driver.mtu": "1500"
-        },
-        "Labels": {}
+        return [{
+            "Name": "bridge",
+            "Id": "b7f7e3e6a2c204240a1ca334645d42c458cad466206c6f921082bb27b95b2d98",
+            "Created": "2018-11-12T05:10:12.622525664Z",
+            "Scope": "local",
+            "Driver": "bridge",
+            "EnableIPv6": false,
+            "Internal": false,
+            "Attachable": false,
+            "Ingress": false,
+            "ConfigOnly": false,
+            "Containers": {},
+            "Options": {
+                  "com.docker.network.bridge.default_bridge": "true",
+                  "com.docker.network.bridge.enable_icc": "true",
+                  "com.docker.network.bridge.enable_ip_masquerade": "true",
+                  "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+                  "com.docker.network.bridge.name": "docker0",
+                  "com.docker.network.driver.mtu": "1500"
+            },
+            "Labels": {}
         }]
 
 def throw_runtime_error(*args, **kwargs):
