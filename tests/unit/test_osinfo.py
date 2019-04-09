@@ -8,6 +8,7 @@ from utils.osinfo import (_get_file_name,
                           parse_os_release,
                           parse_redhat_release,
                           parse_centos_release,
+                          parse_suse_release,
                           get_osinfo_from_lsb_release,
                           get_osinfo_from_os_release,
                           get_osinfo_from_redhat_centos
@@ -53,6 +54,29 @@ class Test_osinfo(TestCase):
         self.assertEqual(result['os'], 'alpine')
         self.assertEqual(result['version'], '3.4.0')
 
+    def test_suse_parse_os_release(self):
+        data = ['NAME="SLES"',
+                'VERSION="12"',
+                'VERSION_ID="12"',
+                'PRETTY_NAME="SUSE Linux Enterprise Server 12"',
+                'ID="sles"',
+                'ANSI_COLOR="0;32"'
+                ]
+
+        result = parse_os_release(data)
+        self.assertEqual(result['os'], 'sles')
+        self.assertEqual(result['version'], '12')
+
+    def test_parse_suse_release(self):
+        data = ['SUSE Linux Enterprise Server 11 (ppc64)',
+                'VERSION = 11',
+                'PATCHLEVEL = 0'
+                ]
+       
+        result = parse_suse_release(data)
+        self.assertEqual(result['os'], 'sles')
+        self.assertEqual(result['version'], '11')
+ 
     def test_parse_redhat_release(self):
         data = ['Red Hat Enterprise Linux Server release 7.2 (Maipo)']
 

@@ -28,6 +28,7 @@ before_install:
     # might as well upgrade pip to support TLS and get rid of the warnings
     # sudo -H pip install --upgrade pip
     - sudo -H pip install -I pip==9.0.1
+    - sudo -H pip install ibm_db==2.0.8a0
     - sudo -H pip install codecov pytest-cov==2.3.0 pytest==2.9.2
     # psvmi specific
     - sudo apt-get install qemu-kvm

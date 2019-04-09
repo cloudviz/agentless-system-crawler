@@ -8,7 +8,7 @@ APT_SOURCES = 'etc/apt/sources.list'
 REDHAT_RELEASE = 'etc/redhat-release'
 CENTOS_RELEASE = 'etc/centos-release'
 SYSTEM_RELEASE = 'etc/system-release'
-
+SUSE_RELEASE = 'etc/SuSE-release'
 REDHAT_RE = re.compile(r'red hat enterprise linux .* release (\d+(\.\d)?).*')
 CENTOS_RE = re.compile(r'centos (?:linux )?release (\d+(\.\d)?).*')
 
@@ -49,6 +49,23 @@ def parse_redhat_release(data):
     return result
 
 
+def parse_suse_release(data):
+    result = {}
+    version_t = None
+    for line in data:
+        if line.startswith('SUSE'):
+            result['os'] = 'sles'
+        if line.startswith('VERSION'):
+            version_t = line.strip().split('=')[1].lower().strip()
+        if line.startswith('PATCHLEVEL'):
+            subversion = line.strip().split('=')[1].lower().strip()
+            if subversion != '0':
+                result['version'] = version_t + '.' + subversion
+            else:
+                result['version'] = version_t
+    return result
+
+
 def parse_centos_release(data):
     result = {}
     for line in data:
@@ -65,6 +82,8 @@ def parse_redhat_centos_release(data):
             return parse_centos_release(data)
         elif 'red hat' in line.lower():
             return parse_redhat_release(data)
+        elif 'suse' in line.lower():
+            return parse_suse_release(data)
     return {}
 
 
@@ -84,7 +103,12 @@ def get_osinfo_from_redhat_centos(mount_point='/'):
                                          SYSTEM_RELEASE), 'r') as lsbp:
                     return parse_redhat_centos_release(lsbp.readlines())
             except IOError:
-                return {}
+                try:
+                    with open(_get_file_name(mount_point,
+                                             SUSE_RELEASE), 'r') as lsbp:
+                        return parse_redhat_centos_release(lsbp.readlines())
+                except IOError:
+                    return {}
 
 
 def get_osinfo_from_lsb_release(mount_point='/'):
