@@ -75,23 +75,23 @@ class COSEmitter(IEmitter):
         return(accesskey, secretkey, location)
 
     def emit_string(self, frameStr, mdJson):
-        print frameStr
+        #print frameStr
         tmpfilepath = tempfile.NamedTemporaryFile(prefix="frame", suffix=".gz")
-        print tmpfilepath.name
+        #print tmpfilepath.name
         tempio = cStringIO.StringIO()
         gzip_file = gzip.GzipFile(fileobj=tempio, mode='w')
         gzip_file.write(frameStr)
         gzip_file.close()
         tmpfp = open(tmpfilepath.name, "w")
-        print tempio.getvalue()
+        #print tempio.getvalue()
         tmpfp.write(tempio.getvalue())
         tmpfp.close()
         timestamp = mdJson['timestamp']
         hostType = mdJson.get('hostType', 'worker')
         hostNamespace = mdJson['namespace']
         objPath = "%s/%s/%s.gz"%(hostType, hostNamespace, timestamp)
-        print objPath
-        print self.url
+        #print objPath
+        #print self.url
         cosUrl = self.url.replace('cos://','').split('/')
         if len(cosUrl) != 2:
            return
@@ -122,10 +122,11 @@ class COSEmitter(IEmitter):
         except ResponseError as err:
              print err
              raise
+        # upload frame to bucket 
         try:
              minioClient.fput_object(cosBucket, objPath, tmpfilepath.name)
         except ResponseError as err:
              print err
              raise
-        #finally:
-        #    os.remove(tmpfilepath.name)
+        finally:
+            os.remove(tmpfilepath.name)
