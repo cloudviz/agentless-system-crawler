@@ -29,6 +29,7 @@ class COSEmitter(IEmitter):
         """
         iostream = self.format(frame)
         compress = True
+        self.emit_per_line = False
         iostream.seek(0)
         print "args ", kwargs
         self.cos_accesskey_filepath = kwargs.get("cos_accesskey_filepath", "")
