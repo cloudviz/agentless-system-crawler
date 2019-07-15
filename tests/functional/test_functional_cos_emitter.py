@@ -11,6 +11,12 @@ class CrawlerCosEmitterTests(unittest.TestCase):
 
         self.start_minio_container()
         self.start_crawled_container()
+        f=open("/etc/cos-secrets/access_key")
+        f.write("test")
+        f=open("/etc/cos-secrets/secret_key")
+        f.write("testforall")
+        f=open("/etc/cos-secrets/location")
+        f.write("test")
 
     def tearDown(self):
         containers = self.docker.containers()
