@@ -54,7 +54,6 @@ class COSEmitter(IEmitter):
         self.emit_string(iostream.getvalue().strip(), mdJson)
 
     def get_cos_tokens(self):
-        print self.cos_accesskey_filepath
         assert(os.path.exists(self.cos_accesskey_filepath))
         assert(os.path.exists(self.cos_secretkey_filepath))
         assert(os.path.exists(self.cos_location_filepath))
@@ -120,5 +119,5 @@ class COSEmitter(IEmitter):
         except ResponseError as err:
             print err
             raise
-        finally:
-            os.remove(tmpfilepath.name)
+        #finally:
+        #    os.remove(tmpfilepath.name)
