@@ -38,6 +38,31 @@ class CpuContainerCrawler(IContainerCrawler):
         cache_key = container_long_id
         return self._cache_get_value(cache_key)
 
+    def _get_scaling_factor(self, container, per_cpu):
+        if per_cpu:
+            return 1.0
+
+        # support for cgroups v1 below. cgroups v2 not yet supported.
+        try:
+            quota_path = container.get_cpu_cgroup_path('cpu.cfs_quota_us')
+            period_path = container.get_cpu_cgroup_path('cpu.cfs_period_us')
+
+            fd = open(quota_path, 'r')
+            quota = float(fd.read().strip())
+            fd.close()
+
+            if quota == -1:
+                return 1.0
+
+            fd = open(period_path, 'r')
+            period = float(fd.read().strip())
+            fd.close()
+            return float(quota / period)
+        except:
+            logger.debug('Missing CPU cgroup cfs feature; %s'
+                         % container.long_id)
+            return 1.0
+
     def get_feature(self):
         return 'cpu'
 
@@ -45,6 +70,8 @@ class CpuContainerCrawler(IContainerCrawler):
         logger.debug(
             'Crawling %s for container %s' %
             (self.get_feature(), container_id))
+
+        self.metric_type_absolute = kwargs.get('metric_type_absolute', 'False')
 
         container = DockerContainer(container_id)
 
@@ -60,7 +87,6 @@ class CpuContainerCrawler(IContainerCrawler):
                 cpu.steal,
                 100 - int(cpu.idle),
             )
-
         if per_cpu:
             stat_file_name = 'cpuacct.usage_percpu'
         else:
@@ -109,11 +135,18 @@ class CpuContainerCrawler(IContainerCrawler):
 
             # Interval is never 0 because of step 0 (forcing a sleep)
 
-            usage_percent = usage_secs / interval * 100.0
-            if usage_percent > 100.0:
-                usage_percent = 100.0
-            idle = 100.0 - usage_percent
+            # for fractional / multicore container
+            scaling_factor = self._get_scaling_factor(container, per_cpu)
+            if self.metric_type_absolute == 'True':
+                usage_percent = usage_secs / interval * 100.0
+                idle = (scaling_factor * interval - usage_secs) / \
+                    interval * 100.0
+            else:
+                usage_percent = usage_secs / scaling_factor / interval * 100.0
+                idle = 100 - usage_percent
 
+            if idle < 0:
+                idle = 0
             # Approximation 1
 
             user_plus_sys_hz = cpu_user_system['user'] \

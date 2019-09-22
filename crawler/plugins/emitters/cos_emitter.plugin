@@ -1,0 +1,14 @@
+[Core]
+Name = COS Emitter
+Module = cos_emitter
+
+[Documentation]
+Author = IBM
+Version = 0.1
+Description = Plugin to emit frame to cloud object storage
+
+[Options]
+cos_accesskey_filepath = /etc/cos-secrets/access_key
+cos_secretkey_filepath = /etc/cos-secrets/secret_key
+cos_location_filepath = /etc/cos-secrets/location
+ssl_verifcation = True 

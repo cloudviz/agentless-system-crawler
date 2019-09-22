@@ -99,6 +99,7 @@ def poll_docker_containers(timeout, user_list=None, host_namespace=''):
 
 
 class LogFileLink():
+
     """
     If `host_log_dir is not None`, then we should prefix `dest` with
     `host_log_dir`.
@@ -299,14 +300,33 @@ class DockerContainer(Container):
 
         raise ContainerWithoutCgroups('Can not find the cgroup dir')
 
+    def resolve_cont_cgroup_path_docker_k8(self, cgroup_dir, node):
+        cont_cgroup_path = os.path.join(
+            cgroup_dir, 'docker', self.long_id, node)
+        if os.path.exists(cont_cgroup_path):
+            return cont_cgroup_path
+
+        # k8 specific hack for now until k8 becomes first class citizen
+        # should use k8 python client to be cleaner
+        k8_cgroup_path = os.path.join(cgroup_dir, 'kubepods')
+        if not os.path.exists(k8_cgroup_path):
+            raise ContainerWithoutCgroups('Can not find the cgroup dir')
+
+        for (root_dirpath, dirs, files) in os.walk(k8_cgroup_path):
+            if self.long_id in dirs:
+                pod_cgroup_path = root_dirpath
+                return os.path.join(pod_cgroup_path, self.long_id, node)
+
+        raise ContainerWithoutCgroups('Can not find the cgroup dir')
+
     def get_memory_cgroup_path(self, node='memory.stat'):
-        return os.path.join(self._get_cgroup_dir(['memory']), 'docker',
-                            self.long_id, node)
+        cgroup_dir = self._get_cgroup_dir(['memory'])
+        return self.resolve_cont_cgroup_path_docker_k8(cgroup_dir, node)
 
     def get_cpu_cgroup_path(self, node='cpuacct.usage'):
         # In kernels 4.x, the node is actually called 'cpu,cpuacct'
         cgroup_dir = self._get_cgroup_dir(['cpuacct', 'cpu,cpuacct'])
-        return os.path.join(cgroup_dir, 'docker', self.long_id, node)
+        return self.resolve_cont_cgroup_path_docker_k8(cgroup_dir, node)
 
     def __str__(self):
         return str(self.__dict__)

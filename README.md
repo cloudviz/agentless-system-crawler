@@ -13,17 +13,31 @@ The current state of this project is in the middle of "make it right".
 
 **Prereqs and Building:**
 -----------
-To run the crawler you'll need to do the following steps in the environment
-in which you want it to run:
+To run the crawler you will need to install python, pip and the python modules specified in the `requirements.txt` file.  
 
- * Install Python 2.7.5
- * apt-get install python-dev
+You can build the crawler as a native application or as a containerized application with Docker.
+
+***Building Crawler as a Native Application:*** 
+Do the following steps in the environment
+in which you want to run the crawler:
+
+```
+ * Install Python 2.7.5+
  * apt-get install python-pip
- * pip install psutil
- * pip install netifaces
- * pip install requests
- * pip install python-dateutil
+ * pip install -r requirements.txt
+```
 
+In a fresh Ubuntu 18.04 Bionic system, the following steps work to install and run the crawler natively:
+
+```
+sudo apt-get update
+sudo apt-get install python2.7 python-pip
+git clone https://github.com/cloudviz/agentless-system-crawler.git
+cd agentless-system-crawler/
+sudo pip install -r requirements.txt
+```
+
+***Building Crawler as a Container:*** 
 If you want to run the crawler in a container then build the `crawler` image
 using the provided `Dockerfile`:
 
@@ -39,11 +53,14 @@ To run the test cases, run:
 
 **Running the Crawler:**
 ------------------------
+
+***Runing the Crawler Natively:***
 To run the crawler natively on the Docker host system, use:
 ```
 sudo python crawler/crawler.py ...
 ```
 
+***Runing the Crawler as a Container:***
 To run the crawler in a container use:
 ```
 sudo docker run \
@@ -172,3 +189,37 @@ emacs is now installed and disk space has shrunk due to installating emacs.
 
 > > package       "emacs"
 > > {"installed":null,"pkgname":"emacs","pkgsize":"25","pkgversion":"45.0ubuntu1"}
+
+**Adding Additional Metadata to Crawler Output:**
+------------------------------------------------
+Sometimes you might need to add additional information to crawler output to identify the system it is running on, to pass some configuration or environment specific information about the crawled systems.
+To do this, you can pass extra metadata at crawler invocation using the `--extraMetadata` option:
+
+```
+--extraMetadata '{"field1": 123, "field2": "abc"}'`
+```
+
+You get this metadata as part of the first line (metadata) output of the crawler:
+
+```
+{"system_type": "host", ..., "field2": "abc", "field1": 123, ...}
+```
+
+Example:
+
+```
+$ CRAWLER --features package --format json --url file://pkg.json
+
+$ CRAWLER --features package --format json --extraMetadata '{"field1": 123, "field2": "abc"}' --url file://pkg_extra.json
+```
+
+```
+$ diff pkg.json.0 pkg_extra.json.0
+1c1
+< {"system_type": "host", "timestamp": "2018-10-27T02:55:09+0000", "namespace": "10.97.64.69", "features": "package", "uuid": "c32f4f34-9081-4022-afbe-c35dd2031022"}
+---
+> {"system_type": "host", "field2": "abc", "timestamp": "2018-10-27T03:01:27+0000", "field1": 123, "namespace": "10.97.64.69", "uuid": "715d6351-399c-43b8-9c9f-0f2ed0ce92c5", "features": "package"}
+```
+
+The second document includes the additional fields in its output.
+
