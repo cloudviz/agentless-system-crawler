@@ -1,0 +1,8 @@
+[Core]
+Name = Elastic Emitter
+Module = es_emitter
+
+[Documentation]
+Author = Mahesh Babu Gorantla
+Version = 0.1
+Description = Plugin to emit frames to Elastic Search Index
