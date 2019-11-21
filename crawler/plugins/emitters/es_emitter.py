@@ -5,7 +5,9 @@ from datetime import datetime
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
-from crawler.iemit_plugin import IEmitter
+import traceback
+
+from iemit_plugin import IEmitter
 
 logger = logging.getLogger('crawlutils')
 
@@ -38,7 +40,7 @@ class ElasticEmitter(IEmitter):
         Returns:
             Elasticsearch -- An ElasticSearch Client
         """
-        url = "http{}".format(self.url[len(self.get_emitter_protocol):])
+        url = "http{}".format(self.url[len(self.get_emitter_protocol()):])
         return Elasticsearch([url])
 
     def _get_elastic_index_name(self, prefix_identifier=None):
@@ -84,6 +86,7 @@ class ElasticEmitter(IEmitter):
             )
 
         except Exception as error:
+            traceback.print_exc()
             print(error)
 
     def __add_metadata(self, metadata=None, metadata_keys=None, json_document=None):
@@ -104,7 +107,7 @@ class ElasticEmitter(IEmitter):
             raise TypeError("'elastic_doc' should be of {}".format(dict))
 
         for key in metadata_keys:
-            json_document[key] = metadata(key, None)
+            json_document[key] = metadata.get(key, None)
 
         return json_document
 
@@ -185,6 +188,7 @@ class ElasticEmitter(IEmitter):
         )
 
         for document in elastic_documents:
+            # print(document)
             bulk_queue.append(document)
             queue_size = (queue_size + 1) % max_queue_size
 
