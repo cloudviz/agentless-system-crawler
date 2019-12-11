@@ -1,4 +1,3 @@
-import fnmatch
 import logging
 import os
 import re
@@ -26,8 +25,7 @@ def crawl_files(
         root_dir_alias = root_dir
     exclude_dirs = [os.path.join(root_dir, d) for d in
                     exclude_dirs]
-    exclude_regex = r'|'.join([fnmatch.translate(d)
-                               for d in exclude_dirs]) or r'$.'
+    exclude_regex = re.compile(r'|'.join([d for d in exclude_dirs]))
 
     # walk the directory hierarchy starting at 'root_dir' in BFS
     # order
@@ -71,6 +69,7 @@ def _filetype(fpath, fperm):
         'p': 'pipe',
     }.get(modebit)
     return ftype
+
 
 _filemode_table = (
     (
