@@ -9,11 +9,7 @@ from base_crawler import BaseFrame
 class TestElasticEmitter(TestCase):
 
     def setUp(self):
-        # {"system_type": "host", "field2": "abc",
-        # "timestamp": "2020-07-11T12:52:12-0500", "field1": 123,
-        # "namespace": "192.168.1.221",
-        # "uuid": "41a261d1-6dbd-4e0c-b8ed-68388e73df11",
-        # "features": "os,disk,process,package"}
+
         self.frame = BaseFrame(feature_types=["os", "disk",
                                               "process", "package"])
         self.frame.metadata['namespace'] = '192.168.1.221'
