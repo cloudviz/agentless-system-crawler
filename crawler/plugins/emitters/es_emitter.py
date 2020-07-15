@@ -2,8 +2,16 @@ from __future__ import print_function
 import logging
 from json import loads
 from datetime import datetime
-from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
+
+from sys import executable
+import subprocess
+try:
+    from elasticsearch import ElasticSearch
+except ImportError:
+    subprocess.check_call([executable, "-m", "pip", "install", "elasticsearch"])
+finally:
+    from elasticsearch import Elasticsearch
+    from elasticsearch.helpers import bulk
 
 import traceback
 
