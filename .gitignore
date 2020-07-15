@@ -10,4 +10,6 @@ eggs/
 .eggs/
 .coverage*
 .idea
+.vscode
+venv*
 .DS_Store
