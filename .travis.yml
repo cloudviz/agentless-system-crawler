@@ -27,7 +27,7 @@ before_install:
     #- sudo apt-get upgrade
     #- sudo apt-get upgrade -y --allow-unauthenticated
     #- sudo apt-get -qqy --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install docker-ce=${DOCKER_VERSION}
-    - sudo apt-get install docker-ce=${DOCKER_VERSION}
+    - sudo apt-get install docker-ce
     - docker -v
     # might as well upgrade pip to support TLS and get rid of the warnings
     # sudo -H pip install --upgrade pip
