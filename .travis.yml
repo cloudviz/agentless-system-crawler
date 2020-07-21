@@ -20,9 +20,11 @@ before_install:
     - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     - sudo apt-key fingerprint 0EBFCD88
     - sudo add-apt-repository  "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs) stable"
+    - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
     - sudo apt-key update
     - sudo apt-get update
-    - sudo apt-get upgrade -y
+    - sudo apt-get upgrade
+    #- sudo apt-get upgrade -y --allow-unauthenticated
     - sudo apt-get -qqy --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install docker-ce=${DOCKER_VERSION}
     - docker -v
     # might as well upgrade pip to support TLS and get rid of the warnings
