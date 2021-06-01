@@ -13,4 +13,4 @@ morph==0.1.2
 fluent-logger==0.4.6
 requests_unixsocket==0.1.5
 minio==4.0.18
-urllib3==1.24.2
+urllib3==1.26.5
